@@ -1,8 +1,12 @@
 <!doctype html>
 <html>
 <head>
+  <meta charset="utf-8" />
   <title>{% block title %}Crispy Dashboard{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/static/crispy-mark.svg" type="image/svg+xml" />
+  <link rel="mask-icon" href="/static/crispy-mark.svg" color="#059669" />
+  <meta name="theme-color" content="#059669" />
   <style>
     {% block styles %}
     :root {
@@ -415,7 +419,7 @@
     .global-rail:hover, .global-rail:focus-within { width: 220px; box-shadow: 0 12px 28px rgba(15,23,42,0.08); }
     .rail-brand { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 9px; color: var(--text, #0f172a); font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
     .global-rail:hover .rail-brand, .global-rail:focus-within .rail-brand { padding: 0 7px; }
-    .rail-brand-mark { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: var(--accent, #059669); color: #fff; font-size: 12px; flex: 0 0 22px; line-height: 1; }
+    .rail-brand-mark { width: 22px; height: 22px; border-radius: 7px; display: block; flex: 0 0 22px; }
     .rail-label, .rail-brand-text { opacity: 0; transform: translateX(-4px); transition: opacity 140ms ease, transform 140ms ease; }
     .global-rail:hover .rail-label, .global-rail:focus-within .rail-label, .global-rail:hover .rail-brand-text, .global-rail:focus-within .rail-brand-text { opacity: 1; transform: translateX(0); }
     .global-rail:not(:hover):not(:focus-within) .rail-label, .global-rail:not(:hover):not(:focus-within) .rail-brand-text { display: none; }

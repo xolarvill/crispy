@@ -53,6 +53,23 @@ def test_dashboard_pages_share_global_rail(client):
         assert "Back to Dashboard" not in resp.text
 
 
+def test_crispy_mark_is_served_and_used_as_brand_icon(client):
+    icon = client.get("/static/crispy-mark.svg")
+    assert icon.status_code == 200
+    assert icon.headers["content-type"].startswith("image/svg+xml")
+    assert '<link rel="icon" href="/static/crispy-mark.svg" type="image/svg+xml" />' in client.get("/dashboard").text
+    assert '<img class="rail-brand-mark" src="/static/crispy-mark.svg"' in client.get("/dashboard").text
+    media_path = Path("assets/brand_icon_test.png")
+    media_path.parent.mkdir(parents=True, exist_ok=True)
+    media_path.write_bytes(b"not-real-png")
+    try:
+        assert '<link rel="icon" href="/static/crispy-mark.svg" type="image/svg+xml" />' in client.get(
+            "/media/view", params={"path": str(media_path)}
+        ).text
+    finally:
+        media_path.unlink(missing_ok=True)
+
+
 def test_dashboard_data_source_selector_is_database_labeled(client):
     resp = client.get("/dashboard")
     assert resp.status_code == 200
