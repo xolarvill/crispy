@@ -8,8 +8,7 @@
   .shops-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
   .shops-header-note { color: var(--muted); font-size: 12px; }
   .shops-kicker { color: var(--accent-dark); font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-  .shops-layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
-  .shops-sidebar { display: grid; gap: 12px; position: sticky; top: 16px; }
+  .shops-content { display: grid; gap: 16px; align-items: start; }
   .shop-create-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 0.62fr); gap: 24px; align-items: start; }
   .shop-create-form { display: grid; gap: 16px; }
   .shop-create-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -24,18 +23,18 @@
   .shop-create-actions > div:last-child { display: flex; gap: 8px; }
   .shop-create-actions button { min-width: 112px; }
   .shops-list-card { padding: 0; overflow: hidden; }
-  .shops-list-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: #fff; }
+  .shops-directory-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: #fff; }
   .shops-list-title { font-size: 14px; font-weight: 760; }
-  .shops-list-tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-  .shops-list-tools select, .shops-list-tools button { width: auto; min-width: 0; padding: 6px 8px; font-size: 12px; }
-  .shops-list { max-height: calc(100vh - 280px); min-height: 320px; overflow: auto; background: #fff; }
-  .shop-list-item { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--line-light); border-radius: 0; text-align: left; background: #fff; }
-  .shop-list-item:hover { background: var(--gray-50); }
-  .shop-list-item.active { background: var(--green-50); box-shadow: inset 3px 0 0 var(--accent); }
+  .shops-list-tools, .shops-list-filters { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; justify-content: flex-end; }
+  .shops-list-tools select, .shops-list-tools button, .shops-list-filters select, .shops-list-filters button { width: auto; min-width: 0; padding: 6px 8px; font-size: 12px; }
+  .shop-directory { display: flex; gap: 8px; min-height: 112px; padding: 8px; overflow-x: auto; overflow-y: hidden; background: #fff; }
+  .shop-list-item { flex: 1 0 250px; min-width: 250px; display: grid; gap: 10px; align-content: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); text-align: left; background: #fff; }
+  .shop-list-item:hover { background: var(--gray-50); border-color: var(--gray-300); }
+  .shop-list-item.active { background: var(--green-50); border-color: var(--accent); box-shadow: inset 0 3px 0 var(--accent); }
   .shop-list-copy { min-width: 0; display: grid; gap: 3px; }
   .shop-list-name { display: block; font-size: 14px; font-weight: 760; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
   .shop-list-meta { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
-  .shop-count-stack { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .shop-count-stack { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-start; }
   .shop-count-chip { min-width: 48px; padding: 3px 7px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--text-secondary); font-size: 11px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
   .shops-workspace { display: grid; gap: 16px; }
   .shop-detail-top { display: block; }
@@ -80,11 +79,13 @@
   .shop-edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .shop-edit-grid .full { grid-column: 1 / -1; }
   .shop-edit-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .connection-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .connection-stack { display: grid; gap: 12px; }
   .connection-card { display: grid; gap: 12px; }
+  .connection-bar { padding: 16px 18px; }
   .connection-list { display: grid; gap: 8px; }
-  .connection-item { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 10px; display: grid; gap: 6px; }
+  .connection-item { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 10px; display: flex; gap: 16px; align-items: center; justify-content: space-between; }
   .connection-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .connection-item .connection-head { flex: 1; min-width: 0; }
   .connection-title { min-width: 0; font-size: 13px; font-weight: 800; overflow-wrap: anywhere; }
   .connection-meta { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
   .connection-actions { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -95,6 +96,19 @@
   .small-check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
   .small-check input { width: auto; }
   .empty-connection { min-height: 72px; display: grid; place-items: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); background: var(--gray-50); font-size: 12px; text-align: center; padding: 12px; }
+  .channel-platform-list { display: grid; gap: 8px; }
+  .channel-platform-bar { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; overflow: hidden; }
+  .channel-platform-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; background: var(--gray-50); border-bottom: 1px solid var(--line-light); }
+  .channel-platform-title { font-size: 13px; font-weight: 800; }
+  .channel-platform-copy { margin-top: 2px; color: var(--muted); font-size: 11px; }
+  .channel-platform-count { color: var(--muted); font-size: 11px; font-weight: 760; white-space: nowrap; }
+  .channel-platform-accounts { display: grid; gap: 8px; padding: 8px 12px 0; }
+  .channel-platform-form { padding: 10px 12px 12px; }
+  .channel-platform-form-grid { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)) auto; gap: 8px; align-items: end; }
+  .channel-platform-form-grid input { min-width: 0; }
+  .channel-platform-form-grid button { min-height: 37px; white-space: nowrap; }
+  .channel-platform-form .shop-status-line { margin-top: 6px; }
+  .shop-directory .empty-shop-state { min-height: 96px; width: 100%; }
   .danger-text { color: var(--danger); }
   .shop-status-line { min-height: 18px; color: var(--muted); font-size: 12px; font-weight: 650; }
   .shop-status-line.ok { color: var(--accent-dark); }
@@ -104,17 +118,20 @@
   .archived-toggle { display: inline-flex; align-items: center; gap: 6px; margin: 0 6px 0 0; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
   .archived-toggle input { width: auto; }
   @media (max-width: 980px) {
-    .shops-layout, .shop-detail-top, .shop-edit-grid, .summary-grid, .connection-grid { grid-template-columns: 1fr; }
-    .shops-sidebar { position: static; }
-    .shops-list { max-height: 380px; }
+    .shop-detail-top, .shop-edit-grid, .summary-grid { grid-template-columns: 1fr; }
     .shop-create-layout { grid-template-columns: 1fr; }
+    .channel-platform-form-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 560px) {
-    .shops-header, .shop-profile-head, .shop-edit-actions { align-items: flex-start; flex-direction: column; }
+    .shops-header, .shop-profile-head, .shop-edit-actions, .shops-directory-head { align-items: flex-start; flex-direction: column; }
     .shops-header-actions { justify-content: flex-start; }
+    .shops-list-filters { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
     .shop-create-form-grid { grid-template-columns: 1fr; }
     .metric-grid { grid-template-columns: 1fr; }
     .shop-profile-actions { justify-content: flex-start; }
+    .connection-item { align-items: flex-start; flex-direction: column; gap: 8px; }
+    .connection-actions { width: 100%; }
+    .channel-platform-form-grid { grid-template-columns: 1fr; }
   }
 {% endblock %}
 {% block body %}
@@ -134,25 +151,23 @@
       </div>
     </header>
 
-    <div class="shops-layout">
-      <aside class="shops-sidebar">
-        <section class="card shops-list-card">
-          <div class="shops-list-head">
-            <div class="shops-list-title">Shop List</div>
-            <div class="shops-list-tools">
-              <label class="archived-toggle"><input id="include-archived" type="checkbox" onchange="loadShops()" /> Show archived</label>
-              <select id="shop-sort-key" onchange="renderShopList()">
-                <option value="name">Name</option>
-                <option value="run_count">Runs</option>
-                <option value="analysis_count">Research</option>
-                <option value="category_count">Categories</option>
-              </select>
-              <button id="shop-sort-dir" type="button" onclick="toggleSortDirection()">A-Z</button>
-            </div>
+    <div class="shops-content">
+      <section class="card shops-list-card shops-directory-bar" aria-label="Shop directory">
+        <div class="shops-directory-head">
+          <div class="shops-list-title">Shop List</div>
+          <div class="shops-list-filters shops-list-tools">
+            <label class="archived-toggle"><input id="include-archived" type="checkbox" onchange="loadShops()" /> Show archived</label>
+            <select id="shop-sort-key" aria-label="Sort shops by" onchange="renderShopList()">
+              <option value="name">Name</option>
+              <option value="run_count">Runs</option>
+              <option value="analysis_count">Research</option>
+              <option value="category_count">Categories</option>
+            </select>
+            <button id="shop-sort-dir" type="button" onclick="toggleSortDirection()">A-Z</button>
           </div>
-          <div id="shop-list" class="shops-list"><div class="loading">Loading shops...</div></div>
-        </section>
-      </aside>
+        </div>
+        <div id="shop-list" class="shop-directory"><div class="loading">Loading shops...</div></div>
+      </section>
 
       <section class="shops-workspace" id="shop-workspace">
         <div class="card empty-shop-state">
@@ -197,6 +212,14 @@
     let shopSortDirection = "asc";
     let shopSitesById = {};
     let shopChannelsById = {};
+    const SHOP_CHANNEL_PLATFORMS = [
+      { id: "shopify", label: "Shopify", copy: "Storefront and product data" },
+      { id: "meta", label: "Meta", copy: "Facebook and Instagram ads" },
+      { id: "tiktok", label: "TikTok", copy: "TikTok Shop and ads" },
+      { id: "notion", label: "Notion", copy: "Publishing and team workspace" },
+      { id: "instagram", label: "Instagram", copy: "Organic social channel" },
+      { id: "facebook", label: "Facebook", copy: "Organic social channel" }
+    ];
 
     async function api(url, options) {
       const resp = await fetch(url, Object.assign({ headers: { "Content-Type": "application/json" } }, options || {}));
@@ -388,7 +411,7 @@
         + '<div class="action-row"><button class="primary" type="button" onclick="saveSelectedShop()">Save Details</button><button class="' + archiveClass + '" type="button" onclick="toggleArchiveSelectedShop()">' + archiveLabel + ' Shop</button></div>'
         + '<div id="detail-status" class="shop-status-line"></div>'
         + '</div></section>'
-        + '<section class="connection-grid">'
+        + '<section class="connection-stack" aria-label="Shop connections">'
         + renderSitesCard(shop)
         + renderChannelsCard(shop)
         + '</section>';
@@ -411,13 +434,19 @@
 
     function renderConnectionLists(shopId) {
       const siteList = document.getElementById("site-list");
-      const channelList = document.getElementById("channel-list");
       if (siteList) siteList.innerHTML = renderSiteItems(shopSitesById[shopId] || []);
-      if (channelList) channelList.innerHTML = renderChannelItems(shopChannelsById[shopId] || []);
+      const accounts = shopChannelsById[shopId] || [];
+      SHOP_CHANNEL_PLATFORMS.forEach(platform => {
+        const platformAccounts = accounts.filter(account => account.platform === platform.id);
+        const channelList = document.getElementById("channel-list-" + platform.id);
+        const count = document.getElementById("channel-count-" + platform.id);
+        if (channelList) channelList.innerHTML = renderChannelItems(platformAccounts);
+        if (count) count.textContent = platformAccounts.length + (platformAccounts.length === 1 ? " account" : " accounts");
+      });
     }
 
     function renderSitesCard(shop) {
-      return '<section class="card connection-card"><div><h2>Sites</h2><div class="subtitle">Storefronts, marketplaces, and owned web surfaces for this shop.</div></div>'
+      return '<section class="card connection-card connection-bar"><div><h2>Sites</h2><div class="subtitle">Storefronts, marketplaces, and owned web surfaces for this shop.</div></div>'
         + '<div id="site-list" class="connection-list">' + renderSiteItems(shopSitesById[shop.id] || []) + '</div>'
         + '<div class="connection-form">'
         + '<div class="connection-form-grid">'
@@ -432,22 +461,37 @@
         + '</div><div id="site-status" class="shop-status-line"></div></section>';
     }
 
+    function renderChannelPlatformForm(platform) {
+      const fields = [
+        ["key", "Account Key", "main, us-store, ads-1", "text"],
+        ["label", "Label", "Main account", "text"],
+        ["account-id", "Account ID / Domain", "act_..., advertiser id, myshopify domain", "text"],
+        ["account-url", "Account URL", "https://...", "url"],
+        ["token-env", "Token Env", "CRISPY_API_KEY_...", "text"],
+        ["account-env", "Account/Domain Env", "CRISPY_API_KEY_...", "text"]
+      ];
+      return '<div class="channel-platform-form"><div class="channel-platform-form-grid">'
+        + fields.map(field => '<div><label for="new-channel-' + field[0] + '-' + platform + '">' + field[1] + '</label><input id="new-channel-' + field[0] + '-' + platform + '" type="' + field[3] + '" placeholder="' + field[2] + '" /></div>').join("")
+        + '<label class="small-check"><input id="new-channel-primary-' + platform + '" type="checkbox" /> Primary</label>'
+        + '<button type="button" class="primary" onclick="createChannelAccount(\'' + platform + '\')">Add ' + platform + '</button>'
+        + '</div><div id="channel-status-' + platform + '" class="shop-status-line"></div></div>';
+    }
+
+    function renderChannelPlatformBar(platform, accounts) {
+      return '<article class="channel-platform-bar" data-channel-platform="' + platform.id + '">'
+        + '<div class="channel-platform-head"><div><div class="channel-platform-title">' + escHtml(platform.label) + '</div><div class="channel-platform-copy">' + escHtml(platform.copy) + '</div></div>'
+        + '<span class="channel-platform-count" id="channel-count-' + platform.id + '">' + accounts.length + (accounts.length === 1 ? ' account' : ' accounts') + '</span></div>'
+        + '<div id="channel-list-' + platform.id + '" class="channel-platform-accounts">' + renderChannelItems(accounts) + '</div>'
+        + renderChannelPlatformForm(platform.id)
+        + '</article>';
+    }
+
     function renderChannelsCard(shop) {
-      return '<section class="card connection-card"><div><h2>Channel Accounts</h2><div class="subtitle">Platform accounts, credentials, sync policy, and attribution rules scoped to this shop.</div></div>'
-        + '<div id="channel-list" class="connection-list">' + renderChannelItems(shopChannelsById[shop.id] || []) + '</div>'
-        + '<div class="connection-form">'
-        + '<div class="connection-form-grid">'
-        + '<div><label>Platform</label><select id="new-channel-platform"><option value="shopify">Shopify</option><option value="meta">Meta</option><option value="tiktok">TikTok</option><option value="notion">Notion</option><option value="instagram">Instagram</option><option value="facebook">Facebook</option></select></div>'
-        + '<div><label>Account Key</label><input id="new-channel-key" placeholder="main, us-store, ads-1" /></div>'
-        + '<div><label>Label</label><input id="new-channel-label" placeholder="Main TikTok Ads" /></div>'
-        + '<div><label>Account ID / Domain</label><input id="new-channel-account-id" placeholder="act_..., advertiser id, myshopify domain" /></div>'
-        + '<div class="full"><label>Account URL</label><input id="new-channel-url" type="url" placeholder="https://..." /></div>'
-        + '<div><label>Token Env</label><input id="new-channel-token-env" placeholder="CRISPY_API_KEY_..." /></div>'
-        + '<div><label>Account/Domain Env</label><input id="new-channel-account-env" placeholder="CRISPY_API_KEY_..." /></div>'
-        + '</div>'
-        + '<label class="small-check"><input id="new-channel-primary" type="checkbox" /> Primary account for platform</label>'
-        + '<button type="button" class="primary" onclick="createChannelAccount()">Add Channel Account</button>'
-        + '</div><div id="channel-status" class="shop-status-line"></div><div id="connection-status" class="shop-status-line"></div></section>';
+      const accounts = shopChannelsById[shop.id] || [];
+      return '<section class="card connection-card connection-bar"><div><h2>Channel Accounts</h2><div class="subtitle">Each platform has its own account bar, credentials, and attribution settings.</div></div>'
+        + '<div class="channel-platform-list">'
+        + SHOP_CHANNEL_PLATFORMS.map(platform => renderChannelPlatformBar(platform, accounts.filter(account => account.platform === platform.id))).join("")
+        + '</div><div id="connection-status" class="shop-status-line"></div></section>';
     }
 
     function metricBox(label, value, note) {
@@ -489,7 +533,7 @@
         const missing = account.missing_credentials || [];
         const ready = account.ready && account.status !== "disabled";
         return '<article class="connection-item">'
-          + '<div class="connection-head"><div><div class="connection-title">' + escHtml((account.label || account.account_key) + ' · ' + account.platform) + '</div>'
+          + '<div class="connection-head"><div><div class="connection-title">' + escHtml(account.label || account.account_key) + '</div>'
           + '<div class="connection-meta">' + escHtml([account.account_id, account.account_url].filter(Boolean).join(" · ") || account.account_key) + '</div>'
           + '<div class="connection-meta">' + escHtml(missing.length ? 'Missing ' + missing.join(", ") : 'Credentials ready') + '</div></div>'
           + '<span class="status-dot ' + (ready ? 'ok' : 'warn') + '">' + escHtml(ready ? 'Ready' : account.status || 'Needs config') + '</span></div>'
@@ -565,36 +609,36 @@
       await loadShops();
     }
 
-    async function createChannelAccount() {
+    async function createChannelAccount(platform) {
       const shop = selectedShop();
       if (!shop) return;
-      const platform = document.getElementById("new-channel-platform").value;
-      const accountKey = document.getElementById("new-channel-key").value.trim();
+      const field = name => document.getElementById("new-channel-" + name + "-" + platform);
+      const accountKey = field("key").value.trim();
       if (!accountKey) {
-        setStatus("channel-status", "Enter an account key first.", "error");
+        setStatus("channel-status-" + platform, "Enter an account key first.", "error");
         return;
       }
-      const tokenEnv = document.getElementById("new-channel-token-env").value.trim();
-      const accountEnv = document.getElementById("new-channel-account-env").value.trim();
-      setStatus("channel-status", "Adding...");
+      const tokenEnv = field("token-env").value.trim();
+      const accountEnv = field("account-env").value.trim();
+      setStatus("channel-status-" + platform, "Adding...");
       try {
         await api("/shops/" + encodeURIComponent(shop.id) + "/channel-accounts", { method: "POST", body: JSON.stringify({
           platform: platform,
           account_key: accountKey,
-          label: document.getElementById("new-channel-label").value.trim() || accountKey,
-          account_id: document.getElementById("new-channel-account-id").value.trim() || null,
-          account_url: document.getElementById("new-channel-url").value.trim() || null,
+          label: field("label").value.trim() || accountKey,
+          account_id: field("account-id").value.trim() || null,
+          account_url: field("account-url").value.trim() || null,
           credential_env_vars: channelCredentialPayload(platform, tokenEnv, accountEnv),
           attribution_rules: { creative_key: "creative_key" },
-          is_primary: document.getElementById("new-channel-primary").checked
+          is_primary: field("primary").checked
         }) });
-        ["new-channel-key", "new-channel-label", "new-channel-account-id", "new-channel-url", "new-channel-token-env", "new-channel-account-env"].forEach(id => document.getElementById(id).value = "");
-        document.getElementById("new-channel-primary").checked = false;
+        ["key", "label", "account-id", "account-url", "token-env", "account-env"].forEach(name => field(name).value = "");
+        field("primary").checked = false;
         await loadShopConnections(shop.id);
         await loadShops();
-        setStatus("channel-status", "Channel account added.", "ok");
+        setStatus("channel-status-" + platform, "Channel account added.", "ok");
       } catch (err) {
-        setStatus("channel-status", "Could not add channel: " + err.message, "error");
+        setStatus("channel-status-" + platform, "Could not add channel: " + err.message, "error");
       }
     }
 
