@@ -3,7 +3,7 @@
     attempts=0
     while [ "$attempts" -lt 30 ]; do
         if curl -fsS http://127.0.0.1:8849 >/dev/null 2>&1; then
-            open http://localhost:8849
+            uv run python -m webbrowser -t http://localhost:8849
             exit
         fi
         attempts=$((attempts + 1))

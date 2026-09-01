@@ -94,8 +94,13 @@ env | grep CRISPY_API_KEY | sort
 
 ### 3. Start
 
+
 ```bash
+# macOS / Linux / WSL
 ./crispy
+
+# On Windows, PowerShell / CMD
+.\crispy.bat
 ```
 
 The default browser opens automatically at **http://localhost:8849**.
