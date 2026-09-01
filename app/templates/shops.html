@@ -1,24 +1,28 @@
 {% extends "base.html" %}
+{% from "_modal.html" import modal %}
 {% block title %}Crispy Shops{% endblock %}
 {% block styles %}
   {{ super() }}
   .shops-shell { max-width: 1320px; }
-  .shops-header { margin-bottom: 16px; }
+  .shops-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 16px; }
+  .shops-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .shops-header-note { color: var(--muted); font-size: 12px; }
   .shops-kicker { color: var(--accent-dark); font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
   .shops-layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
   .shops-sidebar { display: grid; gap: 12px; position: sticky; top: 16px; }
-  .shops-create-card { padding: 16px; }
-  .shops-create-card.is-collapsed { padding: 12px 16px; }
-  .create-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-  .create-card-title { display: inline-flex; align-items: center; gap: 8px; }
-  .create-toggle { width: 30px; height: 30px; padding: 0; border-radius: var(--radius-sm); display: inline-grid; place-items: center; }
-  .create-body { margin-top: 12px; display: grid; gap: 10px; }
-  .shops-create-card.is-collapsed .create-body { display: none; }
-  .flow-help { position: relative; display: inline-flex; align-items: center; }
-  .flow-help-button { width: 22px; height: 22px; padding: 0; border-radius: 999px; display: inline-grid; place-items: center; color: var(--accent-dark); background: var(--green-50); border-color: var(--green-200); font-size: 12px; font-weight: 800; }
-  .flow-tooltip { position: absolute; left: 0; top: 28px; z-index: 20; width: 292px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow-lg); opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity 140ms ease, transform 140ms ease; }
-  .flow-help:hover .flow-tooltip, .flow-help:focus-within .flow-tooltip { opacity: 1; transform: translateY(0); pointer-events: auto; }
-  .shops-create-card.is-collapsed .shop-status-line:empty { display: none; }
+  .shop-create-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 0.62fr); gap: 24px; align-items: start; }
+  .shop-create-form { display: grid; gap: 16px; }
+  .shop-create-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .shop-create-form-grid .full { grid-column: 1 / -1; }
+  .shop-create-side { padding: 16px; border: 1px solid var(--green-200); border-radius: var(--radius-lg); background: var(--green-50); }
+  .shop-create-side-title { color: var(--accent-dark); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+  .shop-create-side ol { display: grid; gap: 12px; margin: 12px 0 0; padding-left: 20px; color: var(--text-secondary); font-size: 13px; line-height: 1.45; }
+  .shop-create-side li::marker { color: var(--accent-dark); font-weight: 800; }
+  .shop-create-side strong { color: var(--text); }
+  .shop-create-side p { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--green-200); color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .shop-create-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--line-light); }
+  .shop-create-actions > div:last-child { display: flex; gap: 8px; }
+  .shop-create-actions button { min-width: 112px; }
   .shops-list-card { padding: 0; overflow: hidden; }
   .shops-list-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: #fff; }
   .shops-list-title { font-size: 14px; font-weight: 760; }
@@ -103,9 +107,12 @@
     .shops-layout, .shop-detail-top, .shop-edit-grid, .summary-grid, .connection-grid { grid-template-columns: 1fr; }
     .shops-sidebar { position: static; }
     .shops-list { max-height: 380px; }
+    .shop-create-layout { grid-template-columns: 1fr; }
   }
   @media (max-width: 560px) {
-    .shop-profile-head, .shop-edit-actions { align-items: flex-start; flex-direction: column; }
+    .shops-header, .shop-profile-head, .shop-edit-actions { align-items: flex-start; flex-direction: column; }
+    .shops-header-actions { justify-content: flex-start; }
+    .shop-create-form-grid { grid-template-columns: 1fr; }
     .metric-grid { grid-template-columns: 1fr; }
     .shop-profile-actions { justify-content: flex-start; }
   }
@@ -121,36 +128,14 @@
         <h1>Shops</h1>
         <div class="subtitle">Manage the store entity used by research, creative runs, GM memory, data sync, and scheduling.</div>
       </div>
+      <div class="shops-header-actions">
+        <span class="shops-header-note">Manage existing shops below</span>
+        <button class="primary" id="open-create-shop" type="button" aria-haspopup="dialog" aria-controls="create-shop-modal" onclick="openShopCreateModal()">+ Add Shop</button>
+      </div>
     </header>
 
     <div class="shops-layout">
       <aside class="shops-sidebar">
-        <section class="card shops-create-card" id="create-shop-card">
-          <div class="create-card-head">
-            <div class="create-card-title">
-              <h2 style="margin-bottom:0;">Create Shop</h2>
-              <span class="flow-help">
-                <button class="flow-help-button" type="button" aria-label="Shop workflow help">?</button>
-                <span class="flow-tooltip" role="tooltip">
-                  <span class="workflow-list">
-                    <span class="workflow-item"><span class="workflow-index">1</span><span><span class="workflow-title">Define shop</span><span class="workflow-copy">Save the storefront URL and industry before research.</span></span></span>
-                    <span class="workflow-item"><span class="workflow-index">2</span><span><span class="workflow-title">Research context</span><span class="workflow-copy">Run research to seed GM memory.</span></span></span>
-                    <span class="workflow-item"><span class="workflow-index">3</span><span><span class="workflow-title">Generate assets</span><span class="workflow-copy">Create runs from the selected shop context.</span></span></span>
-                  </span>
-                </span>
-              </span>
-            </div>
-            <button class="create-toggle" id="create-shop-toggle" type="button" onclick="toggleCreateShop()" aria-expanded="true" aria-controls="create-shop-body">-</button>
-          </div>
-          <div class="create-body" id="create-shop-body">
-            <div><label>Name</label><input id="new-shop-name" placeholder="e.g. pawtifo-store" /></div>
-            <div><label>Industry</label><input id="new-shop-industry" placeholder="general" /></div>
-            <div><label>Storefront URL</label><input id="new-shop-url" type="url" placeholder="https://example.com" /></div>
-            <button class="primary" id="btn-create-shop" type="button" onclick="createShop()" style="width:100%;">Create Shop</button>
-          </div>
-          <div id="create-status" class="shop-status-line"></div>
-        </section>
-
         <section class="card shops-list-card">
           <div class="shops-list-head">
             <div class="shops-list-title">Shop List</div>
@@ -176,6 +161,35 @@
       </section>
     </div>
   </main>
+
+  {% call modal("create-shop-modal", "Add a shop", "Set up the shop profile that powers research, creative runs, memory, and integrations.", "wide") %}
+    <form id="shop-create-form" class="shop-create-form" onsubmit="event.preventDefault(); createShop()">
+      <div class="shop-create-layout">
+        <div class="shop-create-form-grid">
+          <div class="full"><label for="new-shop-name">Shop name</label><input id="new-shop-name" required maxlength="128" placeholder="e.g. pawtifo-store" autofocus /></div>
+          <div><label for="new-shop-industry">Industry</label><input id="new-shop-industry" maxlength="128" value="general" placeholder="e.g. pet accessories" /></div>
+          <div><label for="new-shop-url">Storefront URL</label><input id="new-shop-url" type="url" maxlength="512" placeholder="https://example.com" /></div>
+          <div class="full"><label for="new-shop-description">Description <span class="muted">(optional)</span></label><textarea id="new-shop-description" rows="5" placeholder="Positioning, catalog focus, target buyer, known constraints..."></textarea></div>
+        </div>
+        <aside class="shop-create-side" aria-label="Shop setup flow">
+          <div class="shop-create-side-title">Shop workflow help</div>
+          <ol>
+            <li><strong>Define the profile.</strong> Save the storefront, industry, and context.</li>
+            <li><strong>Add connections.</strong> Attach sites and channel accounts from the management view.</li>
+            <li><strong>Build intelligence.</strong> Run research before creating the first creative run.</li>
+          </ol>
+          <p>Credentials are never stored here. Configure them later with environment variable names in shop management.</p>
+        </aside>
+      </div>
+      <div class="shop-create-actions">
+        <div id="create-status" class="shop-status-line" role="status" aria-live="polite"></div>
+        <div>
+          <button type="button" onclick="closeShopCreateModal()">Cancel</button>
+          <button class="primary" id="btn-create-shop" type="submit">Create Shop</button>
+        </div>
+      </div>
+    </form>
+  {% endcall %}
 
   <script>
     let shops = [];
@@ -261,7 +275,6 @@
       if (!selectedShopId || !shops.some(shop => shop.id === selectedShopId)) {
         selectedShopId = shops.length ? shops[0].id : "";
       }
-      setCreateCollapsed(shops.length > 0);
       renderShopList();
       renderShopWorkspace();
       if (selectedShopId) loadShopConnections(selectedShopId);
@@ -272,7 +285,7 @@
       const list = document.getElementById("shop-list");
       const rows = sortedShops();
       if (!rows.length) {
-        list.innerHTML = '<div class="empty-shop-state"><div><strong>No shops</strong><span>Create the first shop to start research and runs.</span></div></div>';
+        list.innerHTML = '<div class="empty-shop-state"><div><strong>No shops yet</strong><span>Create the first shop to start research and runs.</span><button class="primary" type="button" aria-haspopup="dialog" aria-controls="create-shop-modal" onclick="openShopCreateModal()" style="margin-top:12px;">+ Add Shop</button></div></div>';
         return;
       }
       list.innerHTML = rows.map(shop => {
@@ -602,18 +615,16 @@
       await loadShops();
     }
 
-    function setCreateCollapsed(collapsed) {
-      const card = document.getElementById("create-shop-card");
-      const toggle = document.getElementById("create-shop-toggle");
-      if (!card || !toggle) return;
-      card.classList.toggle("is-collapsed", collapsed);
-      toggle.textContent = collapsed ? "+" : "-";
-      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    function openShopCreateModal() {
+      const form = document.getElementById("shop-create-form");
+      form.reset();
+      document.getElementById("new-shop-industry").value = "general";
+      setStatus("create-status", "");
+      window.CrispyModal.open("create-shop-modal");
     }
 
-    function toggleCreateShop() {
-      const card = document.getElementById("create-shop-card");
-      setCreateCollapsed(!card.classList.contains("is-collapsed"));
+    function closeShopCreateModal() {
+      window.CrispyModal.close("create-shop-modal");
     }
 
     async function createShop() {
@@ -630,14 +641,12 @@
           name: name,
           industry_code: document.getElementById("new-shop-industry").value.trim() || "general",
           store_url: document.getElementById("new-shop-url").value.trim() || null,
-          description: null
+          description: document.getElementById("new-shop-description").value.trim() || null
         }) });
-        document.getElementById("new-shop-name").value = "";
-        document.getElementById("new-shop-industry").value = "";
-        document.getElementById("new-shop-url").value = "";
         selectedShopId = created.id;
         await loadShops();
-        setStatus("create-status", "Created " + displayShopName(created.name) + ".", "ok");
+        closeShopCreateModal();
+        setStatus("detail-status", "Created " + displayShopName(created.name) + ".", "ok");
       } catch (err) {
         setStatus("create-status", "Could not create shop: " + err.message, "error");
       } finally {

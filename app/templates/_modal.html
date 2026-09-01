@@ -1,0 +1,14 @@
+{% macro modal(id, title, description="", size="medium") -%}
+<dialog class="ui-modal ui-modal-{{ size }}" id="{{ id }}" data-modal="reusable" aria-modal="true" aria-labelledby="{{ id }}-title"{% if description %} aria-describedby="{{ id }}-description"{% endif %} onclick="if (event.target === this) this.close()">
+  <section class="ui-modal-shell">
+    <header class="ui-modal-header">
+      <div>
+        <h2 id="{{ id }}-title">{{ title }}</h2>
+        {% if description %}<p class="ui-modal-description" id="{{ id }}-description">{{ description }}</p>{% endif %}
+      </div>
+      <button class="ui-modal-close" type="button" onclick="this.closest('dialog').close()" aria-label="Close {{ title }}">&times;</button>
+    </header>
+    <div class="ui-modal-body">{{ caller() }}</div>
+  </section>
+</dialog>
+{%- endmacro %}

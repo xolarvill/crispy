@@ -106,13 +106,39 @@
     .t-modal { transform-origin: center; transform: scale(var(--modal-scale)); opacity: 0; pointer-events: none; transition: transform var(--modal-open-dur) var(--modal-ease), opacity var(--modal-open-dur) var(--modal-ease); will-change: transform, opacity; }
     .t-modal.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
     .t-modal.is-closing { transform: scale(var(--modal-scale-close)); opacity: 0; pointer-events: none; transition: transform var(--modal-close-dur) var(--modal-ease), opacity var(--modal-close-dur) var(--modal-ease); }
+    /* Reusable native modal shell. The browser owns focus, Escape, and the backdrop. */
+    dialog.ui-modal {
+      width: min(680px, calc(100vw - 32px));
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px);
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-xl);
+      background: transparent;
+      color: var(--text);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      opacity: 0;
+      transform: scale(var(--modal-scale));
+      transition: opacity var(--modal-open-dur) var(--modal-ease), transform var(--modal-open-dur) var(--modal-ease);
+    }
+    dialog.ui-modal[open] { opacity: 1; transform: scale(1); }
+    dialog.ui-modal::backdrop { background: rgba(15,23,42,0.42); backdrop-filter: blur(7px); }
+    dialog.ui-modal.ui-modal-wide { width: min(860px, calc(100vw - 32px)); }
+    .ui-modal-shell { max-height: calc(100vh - 32px); overflow-y: auto; background: var(--card); }
+    .ui-modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 24px 28px 0; }
+    .ui-modal-header h2 { margin: 0; font-size: 22px; }
+    .ui-modal-description { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .ui-modal-close { width: 32px; height: 32px; flex: 0 0 32px; padding: 0; border-radius: 50%; color: var(--muted); font-size: 18px; line-height: 1; }
+    .ui-modal-close:hover { color: var(--text); }
+    .ui-modal-body { padding: 20px 28px 28px; }
     .t-icon-swap { position: relative; display: inline-grid; place-items: center; }
     .t-icon-swap .t-icon { grid-area: 1 / 1; transition: opacity var(--icon-swap-dur) var(--icon-swap-ease), filter var(--icon-swap-dur) var(--icon-swap-ease), transform var(--icon-swap-dur) var(--icon-swap-ease); will-change: opacity, filter, transform; }
     .t-icon-swap[data-state="a"] .t-icon[data-icon="a"], .t-icon-swap[data-state="b"] .t-icon[data-icon="b"] { opacity: 1; filter: blur(0); transform: scale(1); }
     .t-icon-swap[data-state="a"] .t-icon[data-icon="b"], .t-icon-swap[data-state="b"] .t-icon[data-icon="a"] { opacity: 0; filter: blur(var(--icon-swap-blur)); transform: scale(var(--icon-swap-start-scale)); }
 
     @media (prefers-reduced-motion: reduce) {
-      .t-resize, .t-panel-slide, .drawer-panel, .drawer-overlay, .t-modal, .t-icon-swap .t-icon, .fab-pill { transition: none !important; animation: none !important; }
+      .t-resize, .t-panel-slide, .drawer-panel, .drawer-overlay, .t-modal, .ui-modal, .t-icon-swap .t-icon, .fab-pill { transition: none !important; animation: none !important; }
     }
 
     /* ── Body & layout ── */
@@ -459,6 +485,18 @@
     }
   </style>
   {% block head_extra %}{% endblock %}
+  <script>
+    window.CrispyModal = window.CrispyModal || {
+      open(id) {
+        const dialog = document.getElementById(id);
+        if (dialog && !dialog.open) dialog.showModal();
+      },
+      close(id) {
+        const dialog = document.getElementById(id);
+        if (dialog && dialog.open) dialog.close();
+      }
+    };
+  </script>
 </head>
 {% block body %}{% endblock %}
 </html>
