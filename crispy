@@ -1,0 +1,13 @@
+#!/bin/sh
+(
+    attempts=0
+    while [ "$attempts" -lt 30 ]; do
+        if curl -fsS http://127.0.0.1:8849 >/dev/null 2>&1; then
+            open http://localhost:8849
+            exit
+        fi
+        attempts=$((attempts + 1))
+        sleep 1
+    done
+) &
+exec uv run uvicorn app.main:app --port 8849 "$@"

@@ -95,10 +95,10 @@ env | grep CRISPY_API_KEY | sort
 ### 3. Start
 
 ```bash
-uv run uvicorn app.main:app --port 8849
+./crispy
 ```
 
-Open **http://localhost:8849** in your browser.
+The default browser opens automatically at **http://localhost:8849**.
 
 ### 4. Sync Shopify and Meta data
 
