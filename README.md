@@ -1,3 +1,5 @@
+
+
 # Crispy
 
 ![Crispy](other/hero.png)
@@ -79,7 +81,7 @@ export CRISPY_API_KEY_FIRECRAWL="fc-..."
 
 All keys use the `CRISPY_API_KEY_*` prefix and are auto-discovered.
 
-> 1. To connect to Notion, add an [Internal Connection](https://www.notion.so/profile/integrations/internal), copy its Installation Access Token as Notion api key. The internal connection will be showed as a user-like bot. Give it content access to a database you choose. Extract the code between `notion.so/` and `?v` in the database's website link. This code is the Notion database key.
+> 1. To connect to Notion, add an [Internal Connection](https://www.notion.so/profile/integrations/internal), copy its Installation Access Token as Notion api key. The internal connection will be shown as a user-like bot. Give it content access to a database you choose. Extract the code between `notion.so/` and `?v` in the database's website link. This code is the Notion database key.
 > 2. To connect to Shopify, create or use a Shopify Admin app for the target store, grant read access for products and orders, then copy the Admin API access token to `CRISPY_API_KEY_SHOPIFY`. Use the `.myshopify.com` store domain for `CRISPY_API_KEY_SHOPIFY_DOMAIN`; the app also accepts the short store name and adds `.myshopify.com` automatically.
 > 3. To connect to Meta, create or use a Meta app/system user token that can read the target ad account, campaigns, ads, and insights. Put the token in `CRISPY_API_KEY_META` and the numeric ad account id in `CRISPY_API_KEY_META_ACCOUNT` without the `act_` prefix.
 
