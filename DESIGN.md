@@ -8,6 +8,7 @@ Production workspace for finding runs, inspecting stages and product references,
 - Header: 78px white surface with compact page context and explicit demo/API mode. Mobile uses a 64px sticky header.
 - Navigation: 238px pale sidebar (narrower on tablets), dark green selected item, soft 10px navigation corners. Narrow-screen navigation is hidden until opened and scrolls in short landscape viewports.
 - Task index: full content width, state filters, search/mode toolbar and a single bordered table. No auto-selected task panel.
+- Task media: a compact preview strip between task identity and status, up to three media tiles on desktop and one cover plus count on mobile. Clicking opens a focus-managed image/video gallery; generated media is prioritized and input references are labelled separately. Empty or broken media has an explicit fallback.
 - Task page: addressable `#/tasks/:id`, breadcrumb return, compact resource identity, view buttons, factual metadata and a review workspace. Product references use contain sizing and link to the full image.
 - Creation: addressable `#/new`, three steps for product/project, creative settings and confirmation. File selection, preset choices and preflight feedback belong in the page flow.
 - Shop settings: `#/shops`, independent shop/account editors, and `#/shops/shared` for global mappings. No agent-management screen; future Magpie integration is outside this layer.
