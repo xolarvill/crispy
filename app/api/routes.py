@@ -68,6 +68,7 @@ from app.schemas.api import (
     RunPreflightResponse,
     RunVariantView,
     RunSummary,
+    RunMediaResponse,
     RunView,
     StageTaskView,
     RunStatusExplanation,
@@ -3781,7 +3782,10 @@ def preflight_pipeline_run(payload: RunPreflightRequest, db: Session = Depends(g
 
 @router.get("/runs", response_model=list[RunSummary])
 def list_runs(db: Session = Depends(get_db)) -> list[RunSummary]:
+    from app.services.run_media import run_media_summaries
+
     runs = db.scalars(select(PipelineRun).order_by(desc(PipelineRun.created_at)).limit(50)).all()
+    media = run_media_summaries(db, [run.id for run in runs])
     return [
         RunSummary(
             id=run.id,
@@ -3792,9 +3796,19 @@ def list_runs(db: Session = Depends(get_db)) -> list[RunSummary]:
             product_code=run.product_code or "",
             industry_code=run.industry_code or "",
             updated_at=run.updated_at,
+            **media.get(run.id, {}),
         )
         for run in runs
     ]
+
+
+@router.get("/runs/{run_id}/media", response_model=RunMediaResponse)
+def run_media_gallery(run_id: str, db: Session = Depends(get_db)) -> RunMediaResponse:
+    from app.services.run_media import run_media_summaries
+
+    if db.get(PipelineRun, run_id) is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    return RunMediaResponse(run_id=run_id, **run_media_summaries(db, [run_id], limit=None).get(run_id, {}))
 
 
 def _gm_memory_item(row: GmMemory) -> GmMemoryItem:

@@ -33,6 +33,8 @@ const ShopsPage = lazy(() => import("./ShopsPage"));
 import { AnimatedSelection, PolishedAsset } from "./components/polish";
 import { IconButton, Status } from "./components/console-controls";
 import { go } from "./navigation";
+import { RunMediaGallery, RunMediaStrip } from "./components/run-media";
+import type { RunMedia } from "./data";
 function route() {
   return location.hash.slice(1) || "/tasks";
 }
@@ -52,6 +54,11 @@ const filters = [
   ["completed", "已完成"],
 ];
 export default function App() {
+  const [preview, setPreview] = useState<{
+    run: Run;
+    media: RunMedia;
+    trigger: HTMLElement;
+  } | null>(null);
   const [path, setPath] = useState(route),
     [demo, setDemo] = useState(
       () => new URLSearchParams(location.search).get("mode") !== "live",
@@ -84,6 +91,7 @@ export default function App() {
       setPath(route());
       setMobileNav(false);
       setError("");
+      setPreview(null);
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
@@ -162,6 +170,7 @@ export default function App() {
     return () => cancelAnimationFrame(frame);
   }, [path]);
   function switchMode(value: string) {
+    setPreview(null);
     const next = value === "demo";
     setDemo(next);
     setRuns(next ? demoRuns : []);
@@ -770,6 +779,7 @@ export default function App() {
                         <thead>
                           <tr>
                             <th>任务 / 产品</th>
+                            <th className="task-media-column">媒体</th>
                             <th>状态</th>
                             <th className="mode-column">创作模式</th>
                             <th className="stage-column">当前阶段</th>
@@ -798,6 +808,15 @@ export default function App() {
                                     {r.product_code || r.id.slice(0, 8)}
                                   </small>
                                 </a>
+                              </td>
+                              <td className="task-media-column">
+                                <RunMediaStrip
+                                  run={r}
+                                  demo={demo}
+                                  open={(run, media, trigger) =>
+                                    setPreview({ run, media, trigger })
+                                  }
+                                />
                               </td>
                               <td>
                                 <Status value={r.status} />
@@ -867,6 +886,16 @@ export default function App() {
             )}
           </div>
         </main>
+        {preview && (
+          <RunMediaGallery
+            key={preview.run.id}
+            run={preview.run}
+            initial={preview.media}
+            trigger={preview.trigger}
+            demo={demo}
+            close={() => setPreview(null)}
+          />
+        )}
         {toast && (
           <div className="toast" role="status">
             <Check size={15} />

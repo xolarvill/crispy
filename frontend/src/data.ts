@@ -1,3 +1,8 @@
+export type RunMedia = {
+  uri: string;
+  kind: "image" | "video";
+  source: "generated" | "input";
+};
 export type Run = {
   id: string;
   product_code: string;
@@ -8,6 +13,8 @@ export type Run = {
   project_id: string;
   name?: string;
   image?: string;
+  media_count?: number;
+  media_previews?: RunMedia[];
   stage_tasks?: {
     id: string;
     stage_name: string;
