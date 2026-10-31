@@ -247,12 +247,17 @@ export default function App() {
               onClick={() => setMobileNav((v) => !v)}
             />
           </span>
-          <a href="#/tasks" className="brand">
-            <Layers size={25} />
-            <span>crispy</span>
-          </a>
-          <span className="header-rule" />
-          <span className="account">本地工作空间</span>
+          <span className="header-page-label">
+            {isShops
+              ? "店铺与凭证"
+              : isNew
+                ? "新建任务"
+                : isAssets
+                  ? "产品素材"
+                  : selectedId
+                    ? "任务详情"
+                    : "任务"}
+          </span>
           <div className="header-actions">
             <label className="data-mode">
               <span className="sr-only">数据模式</span>
@@ -276,6 +281,19 @@ export default function App() {
           </div>
         </header>
         <aside className={`navigation ${mobileNav ? "navigation-open" : ""}`}>
+          <a
+            href="#/tasks"
+            className="workspace-brand"
+            onClick={() => navigate("/tasks")}
+          >
+            <span className="brand-mark">
+              <Layers size={25} />
+            </span>
+            <span>
+              <strong>crispy</strong>
+              <small>本地工作空间</small>
+            </span>
+          </a>
           <div className="nav-context">
             <FolderClosed size={16} />
             工作空间
