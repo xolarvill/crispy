@@ -1,11 +1,12 @@
-# Crispy console — version 3
+# Crispy console — version 4
 
-Production workspace for finding runs, inspecting stages and product references, creating work, and managing shop credentials. Keep the user's approved minimalist resource-console structure, restore forest green and add restrained Aceternity interaction polish.
+Production workspace for finding runs, inspecting stages and product references, creating work, and managing shop credentials. Keep the approved page-based workflows and forest green. The user's supplied TaskPilot screenshot now pins the material treatment: warm gray canvas, white application shell, pale panel frames, fine warm borders, soft contact shadows and dark green navigation selection.
 
 ## Structure
 
-- Global header: 62px white surface, green Lucide Layers mark, local workspace context and explicit demo/API mode.
-- Navigation: 214px white sidebar with task/material resources, operational links and settings. Narrow-screen navigation is hidden until opened.
+- Desktop shell: centered rounded white application on a warm gray canvas, 32px outer margin (responsive), 24px outer radius. Header occupies the content column; sidebar carries the brand/workspace tile.
+- Header: 78px white surface with compact page context and explicit demo/API mode. Mobile uses a 64px sticky header.
+- Navigation: 238px pale sidebar (narrower on tablets), dark green selected item, soft 10px navigation corners. Narrow-screen navigation is hidden until opened and scrolls in short landscape viewports.
 - Task index: full content width, state filters, search/mode toolbar and a single bordered table. No auto-selected task panel.
 - Task page: addressable `#/tasks/:id`, breadcrumb return, compact resource identity, view buttons, factual metadata and a review workspace. Product references use contain sizing and link to the full image.
 - Creation: addressable `#/new`, three steps for product/project, creative settings and confirmation. File selection, preset choices and preflight feedback belong in the page flow.
@@ -13,7 +14,7 @@ Production workspace for finding runs, inspecting stages and product references,
 
 ## Visual system
 
-White surfaces on `#f8f9fb`, foreground `#22252a`, primary `#175c46`, primary hover `#104b38`, selected surface `#eaf3ee`, resource links `#1b60b9`, borders `#dfe2e6`. System UI typography, 22px compact page labels, 12–13px operational text and 11px metadata. Controls use 4px radii and fine borders. Green identifies primary actions and current navigation; statuses use text plus dots, never color alone. No decorative hero metrics or persistent panel shadows.
+White surfaces on warm `#f0eeeb`, pale panel `#faf9f7`, foreground `#302e32`, muted text `#706e72`, borders `#e8e5e1`, primary `#175c46` and navigation selection `#253d33`. System UI typography, 24px compact page labels, 12–13px operational text and 11px metadata. Controls use 8–9px radii; panels 13–15px, inset tables 10–11px. Fine borders and small offset contact shadows follow the reference's layered material. Desktop outer shell has a broad low-opacity offset shadow. No copied metric cards, decorative widgets or reference-specific product claims.
 
 ## Interaction and content rules
 
@@ -25,11 +26,11 @@ White surfaces on `#f8f9fb`, foreground `#22252a`, primary `#175c46`, primary ho
 - Polling preserves the selected detail view. Closed mobile navigation is not keyboard reachable.
 - Demo data is explicitly labelled and never substitutes for failed live requests. Future stage state must be truthful.
 - Preflight errors stop submission. Warnings require explicit continuation. Reference-file limits match backend intake limits.
-- Aceternity's free Glowing Effect provides a thin green pointer edge on the shop identity and material tiles. Motion shared-layout underlines identify selected resource views. Material tiles lift only 3px. No full-screen shader, continuous ambient animation or light effect behind credential inputs.
+- Aceternity's free Glowing Effect provides a subdued green pointer edge on the shop identity and material tiles. Motion shared-layout selection now uses a raised white segment on a pale track, matching the reference material. Material tiles lift only 3px. No full-screen shader, continuous ambient animation or light effect behind credential inputs.
 - Reduced-motion preferences are observed initially and when changed at runtime. Hover tracking runs only over an eligible mouse target; superseded animations are stopped.
 - Credentials are environment-variable references only. No secret-value fields or browser storage. Local readiness must never imply successful platform authentication.
 - Preserve drafts after failed saves, serialize pending mutations across settings routes, and ignore late navigation effects after leaving a form. Archive is reversible through the archived filter and restore action.
 
 Live full-output review still opens the existing dashboard. No approval is offered in the new live preview without complete review content. Generated-variant comparison, advanced creation controls, configuration and deployment integration remain migration work.
 
-Current Impeccable review, verification evidence and provenance are recorded in `docs/design/review-v3.md`. Prior layout decisions remain in `docs/design/surface-v2.md`, superseded by the green palette and motion rules here. Aceternity Glowing Effect source was installed from its public registry; Motion is installed. Fluid Functionalism remains a design reference. No paid component source was used.
+Current reference-driven review and verification are recorded in `docs/design/review-v4.md`. The material layer is centralized in `frontend/src/surface.css`; `styles.css` retains the functional layout/state foundations. Prior workflow and credential verification remains in `review-v2.md` and `review-v3.md`. Aceternity Glowing Effect source was installed from its public registry; Motion is installed. No paid component source was used.
