@@ -4,8 +4,8 @@ Production workspace for finding runs, inspecting stages and product references,
 
 ## Structure
 
-- Desktop shell: centered rounded white application on a warm gray canvas, 32px outer margin (responsive), 24px outer radius. Header occupies the content column; sidebar carries the brand/workspace tile.
-- Header: 78px white surface with compact page context and explicit demo/API mode. Mobile uses a 64px sticky header.
+- Desktop shell: centered rounded white application on a warm gray canvas, 32px outer margin (responsive), 24px outer radius. Content starts at the top of the shell; sidebar carries the brand/workspace tile.
+- No global top header or repeated page label. Demo/API mode lives in the sidebar. Mobile navigation uses a floating 44px button with no reserved header height.
 - Navigation: 238px pale sidebar (narrower on tablets), dark green selected item, soft 10px navigation corners. Narrow-screen navigation is hidden until opened and scrolls in short landscape viewports.
 - Task index: full content width, state filters, search/mode toolbar and a single bordered table. No auto-selected task panel.
 - Task media: a compact preview strip between task identity and status, up to three media tiles on desktop and one cover plus count on mobile. Clicking opens a focus-managed image/video gallery; generated media is prioritized and input references are labelled separately. Empty or broken media has an explicit fallback.

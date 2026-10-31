@@ -9,7 +9,6 @@ import {
   CalendarDays,
   Check,
   ChevronRight,
-  CircleHelp,
   Copy,
   FolderClosed,
   Image,
@@ -252,48 +251,14 @@ export default function App() {
   return (
     <Tooltip.Provider delayDuration={300}>
       <div className="console">
-        <header className="global-header">
-          <span className="mobile-menu">
-            <IconButton
-              icon={Menu}
-              label="打开导航"
-              expanded={mobileNav}
-              onClick={() => setMobileNav((v) => !v)}
-            />
-          </span>
-          <span className="header-page-label">
-            {isShops
-              ? "店铺与凭证"
-              : isNew
-                ? "新建任务"
-                : isAssets
-                  ? "产品素材"
-                  : selectedId
-                    ? "任务详情"
-                    : "任务"}
-          </span>
-          <div className="header-actions">
-            <label className="data-mode">
-              <span className="sr-only">数据模式</span>
-              <select
-                value={demo ? "demo" : "live"}
-                onChange={(e) => switchMode(e.target.value)}
-              >
-                <option value="demo">演示数据</option>
-                <option value="live">本地 API</option>
-              </select>
-            </label>
-            <span className="header-rule" />
-            <IconButton
-              icon={CircleHelp}
-              label="快捷键帮助"
-              onClick={() => setToast("Ctrl / ⌘ K 搜索 · Esc 收起导航")}
-            />
-            <span className="avatar" aria-label="本地用户">
-              V
-            </span>
-          </div>
-        </header>
+        <div className="mobile-nav-toggle">
+          <IconButton
+            icon={mobileNav ? X : Menu}
+            label={mobileNav ? "关闭导航" : "打开导航"}
+            expanded={mobileNav}
+            onClick={() => setMobileNav((v) => !v)}
+          />
+        </div>
         <aside className={`navigation ${mobileNav ? "navigation-open" : ""}`}>
           <a
             href="#/tasks"
@@ -365,6 +330,16 @@ export default function App() {
               <Settings2 size={16} />
               店铺与凭证
             </a>
+            <label className="data-mode sidebar-data-mode">
+              <span className="sr-only">数据模式</span>
+              <select
+                value={demo ? "demo" : "live"}
+                onChange={(e) => switchMode(e.target.value)}
+              >
+                <option value="demo">演示数据</option>
+                <option value="live">本地 API</option>
+              </select>
+            </label>
             <div className="environment">
               <span className="connection-dot" />
               {demo ? "设计预览" : "本地 API"}

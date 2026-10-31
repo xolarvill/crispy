@@ -22,7 +22,7 @@ body {
   --sidebar-width: 238px;
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  grid-template-rows: 78px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   max-width: 1740px;
   min-height: calc(100dvh - 64px);
   margin: 32px auto;
@@ -82,7 +82,7 @@ body {
 }
 .navigation {
   grid-column: 1;
-  grid-row: 1/3;
+  grid-row: 1;
   position: sticky;
   inset: auto;
   top: 0;
@@ -191,7 +191,7 @@ body {
 }
 .console-main {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 1;
   min-width: 0;
   margin: 0;
   min-height: calc(100dvh - 142px);
@@ -759,7 +759,7 @@ td:first-child {
     width: calc(100% - 40px);
     min-height: calc(100dvh - 40px);
     border-radius: 20px;
-    grid-template-rows: 70px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
   .navigation {
     height: calc(100dvh - 40px);
@@ -1304,5 +1304,42 @@ td:first-child {
   .toast {
     font-size: 12px;
     bottom: 18px;
+  }
+}
+
+/* Keep the workspace chrome out of the content's vertical flow. */
+.sidebar-data-mode {
+  display: block;
+  margin: 18px 10px 0;
+}
+.sidebar-data-mode select {
+  width: 100%;
+  max-width: none;
+}
+.mobile-nav-toggle {
+  display: none;
+}
+@media (max-width: 640px) {
+  .mobile-nav-toggle {
+    display: block;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 40;
+  }
+  .mobile-nav-toggle > .button {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--background);
+    box-shadow: 0 4px 16px #302e321f;
+  }
+  .navigation {
+    top: 0;
+    height: 100dvh;
+  }
+  .nav-backdrop {
+    inset: 0;
   }
 }
