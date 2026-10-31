@@ -11,7 +11,6 @@ import {
   ChevronRight,
   CircleHelp,
   Copy,
-  ExternalLink,
   FolderClosed,
   Image,
   Layers,
@@ -33,7 +32,12 @@ const ShopsPage = lazy(() => import("./ShopsPage"));
 import { AnimatedSelection, PolishedAsset } from "./components/polish";
 import { IconButton, Status } from "./components/console-controls";
 import { go } from "./navigation";
-import { RunMediaGallery, RunMediaStrip } from "./components/run-media";
+import {
+  RunMediaGallery,
+  RunMediaStrip,
+  TaskMediaPanel,
+  type MediaPreviewOptions,
+} from "./components/run-media";
 import type { RunMedia } from "./data";
 function route() {
   return location.hash.slice(1) || "/tasks";
@@ -58,6 +62,7 @@ export default function App() {
     run: Run;
     media: RunMedia;
     trigger: HTMLElement;
+    options?: MediaPreviewOptions;
   } | null>(null);
   const [path, setPath] = useState(route),
     [demo, setDemo] = useState(
@@ -436,7 +441,7 @@ export default function App() {
               />
             ) : selectedId ? (
               <>
-                <div className="resource-header">
+                <div className="resource-header task-resource-header">
                   <div className="resource-name">
                     <IconButton
                       icon={ArrowLeft}
@@ -448,6 +453,26 @@ export default function App() {
                     </p>
                     {current && <Status value={current.status} />}
                   </div>
+                  {current && (
+                    <div className="resource-summary">
+                      <span>
+                        <small>当前阶段</small>
+                        {stageNames[current.current_stage || ""] || "待执行"}
+                      </span>
+                      <span>
+                        <small>创作模式</small>
+                        {modes[current.pipeline_mode]}
+                      </span>
+                      <span>
+                        <small>产品编号</small>
+                        {current.product_code}
+                      </span>
+                      <span>
+                        <small>更新</small>
+                        {date(current.updated_at)}
+                      </span>
+                    </div>
+                  )}
                   <div className="resource-actions">
                     <IconButton
                       icon={Copy}
@@ -495,83 +520,17 @@ export default function App() {
                 </div>
                 {current ? (
                   <>
-                    <div className="resource-summary">
-                      <span>
-                        <small>当前阶段</small>
-                        {stageNames[current.current_stage || ""] || "待执行"}
-                      </span>
-                      <span>
-                        <small>创作模式</small>
-                        {modes[current.pipeline_mode]}
-                      </span>
-                      <span>
-                        <small>产品编号</small>
-                        {current.product_code}
-                      </span>
-                      <span>
-                        <small>更新</small>
-                        {date(current.updated_at)}
-                      </span>
-                    </div>
                     {detailTab === "overview" ? (
                       <div className="review-workspace">
-                        <section
-                          className="reference-section"
-                          aria-label="参考素材"
-                        >
-                          <div className="section-toolbar">
-                            <p>产品参考</p>
-                            {current.image && (
-                              <a
-                                href={current.image}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-link"
-                              >
-                                原图
-                                <ExternalLink size={13} />
-                              </a>
-                            )}
-                          </div>
-                          {demo && current.image ? (
-                            <a
-                              className="product-canvas"
-                              href={current.image}
-                              target="_blank"
-                              rel="noreferrer"
-                              aria-label="查看完整参考图"
-                            >
-                              <img
-                                src={current.image}
-                                alt={`${current.name}参考图`}
-                              />
-                            </a>
-                          ) : (
-                            <div className="material-empty">
-                              <Image size={24} />
-                              <span>
-                                {demo
-                                  ? "未上传参考图"
-                                  : "完整素材请在旧版审核页查看"}
-                              </span>
-                            </div>
-                          )}
-                          <div className="reference-footer">
-                            <Image size={14} />
-                            <span>
-                              {demo ? "产品参考 · 演示素材" : "素材审核"}
-                            </span>
-                            {!demo && (
-                              <a
-                                className="text-link"
-                                href="http://127.0.0.1:8000/dashboard"
-                              >
-                                旧版审核
-                                <ArrowUpRight size={13} />
-                              </a>
-                            )}
-                          </div>
-                        </section>
+                        <TaskMediaPanel
+                          key={current.id}
+                          run={current}
+                          demo={demo}
+                          refreshKey={revision}
+                          open={(run, media, trigger, options) =>
+                            setPreview({ run, media, trigger, options })
+                          }
+                        />
                         <section
                           className="execution-section"
                           aria-label="执行记录"
@@ -893,6 +852,8 @@ export default function App() {
             initial={preview.media}
             trigger={preview.trigger}
             demo={demo}
+            complete={preview.options?.complete}
+            onSelect={preview.options?.onSelect}
             close={() => setPreview(null)}
           />
         )}

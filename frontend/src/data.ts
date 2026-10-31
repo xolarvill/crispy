@@ -116,14 +116,20 @@ export const demoRuns: Run[] = [
   },
   {
     id: "demo-0830",
-    name: "居家棉质长袍",
-    product_code: "ROBE-030",
+    name: "春夏服饰 · 参考素材",
+    product_code: "STYLE-030",
     status: "completed",
     current_stage: "evaluation_selection",
     pipeline_mode: "full_multimodal",
     updated_at: "2026-10-30T08:20:00Z",
     project_id: "demo",
     image: "/robe.jpg",
+    media_count: 3,
+    media_previews: [
+      { uri: "/robe.jpg", kind: "image", source: "input" },
+      { uri: "/dress.jpg", kind: "image", source: "input" },
+      { uri: "/silver.jpg", kind: "image", source: "input" },
+    ],
   },
   {
     id: "demo-0829",
