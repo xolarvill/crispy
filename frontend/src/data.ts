@@ -170,5 +170,6 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
         : `请求失败 (${res.status})`,
     );
   }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   Activity,
   ArrowDown,
@@ -29,6 +29,8 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { Button } from "./components/ui/button";
 import { api, demoRuns, modes, plan, stageNames, type Run } from "./data";
 import CreatePage from "./CreatePage";
+const ShopsPage = lazy(() => import("./ShopsPage"));
+import { AnimatedSelection, PolishedAsset } from "./components/polish";
 import { IconButton, Status } from "./components/console-controls";
 import { go } from "./navigation";
 function route() {
@@ -67,7 +69,8 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [mobileNav, setMobileNav] = useState(false),
     [detailTab, setDetailTab] = useState("overview");
-  const isNew = path === "/new",
+  const isShops = path.startsWith("/shops"),
+    isNew = path === "/new",
     isAssets = path === "/assets",
     selectedId = path.startsWith("/tasks/")
       ? decodeURIComponent(path.slice(7))
@@ -86,15 +89,15 @@ export default function App() {
     return () => window.removeEventListener("hashchange", update);
   }, []);
   useEffect(() => {
-    document.title = `Crispy · ${isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"}`;
-  }, [isNew, selectedId, isAssets]);
+    document.title = `Crispy · ${isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"}`;
+  }, [isNew, selectedId, isAssets, isShops]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 3500);
     return () => clearTimeout(timer);
   }, [toast]);
   useEffect(() => {
-    if (demo) {
+    if (demo || isShops) {
       setLoading(false);
       return;
     }
@@ -110,14 +113,14 @@ export default function App() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [demo, revision]);
+  }, [demo, revision, isShops]);
   useEffect(() => {
-    if (demo) return;
+    if (demo || isShops) return;
     const timer = setInterval(() => {
       if (!document.hidden) setRevision((r) => r + 1);
     }, 10000);
     return () => clearInterval(timer);
-  }, [demo]);
+  }, [demo, isShops]);
   useEffect(() => {
     setDetail(null);
     setDetailTab("overview");
@@ -169,7 +172,9 @@ export default function App() {
       "",
       `${location.pathname}?mode=${value}${location.hash}`,
     );
-    if (selectedId || isNew) go("/tasks");
+    if (isShops)
+      go(path.startsWith("/shops/shared") ? "/shops/shared" : "/shops");
+    else if (selectedId || isNew) go("/tasks");
   }
   function navigate(next: string) {
     setFilter("all");
@@ -285,9 +290,9 @@ export default function App() {
             ).map(([target, label, Icon]) => (
               <a
                 href={`#${target}`}
-                className={`nav-link ${(target === "/tasks" && !isAssets) || (target === "/assets" && isAssets) ? "active" : ""}`}
+                className={`nav-link ${(target === "/tasks" && !isAssets && !isShops) || (target === "/assets" && isAssets) ? "active" : ""}`}
                 aria-current={
-                  (target === "/tasks" && !isAssets) ||
+                  (target === "/tasks" && !isAssets && !isShops) ||
                   (target === "/assets" && isAssets)
                     ? "page"
                     : undefined
@@ -320,17 +325,18 @@ export default function App() {
           </nav>
           <div className="nav-bottom">
             <a
-              className="nav-link"
-              href="http://127.0.0.1:8000/dashboard/agent-apis"
+              className={`nav-link ${isShops ? "active" : ""}`}
+              aria-current={isShops ? "page" : undefined}
+              href="#/shops"
+              onClick={() => navigate("/shops")}
             >
               <Settings2 size={16} />
-              设置
-              <ArrowUpRight size={12} className="nav-arrow" />
+              店铺与凭证
             </a>
             <div className="environment">
               <span className="connection-dot" />
               {demo ? "设计预览" : "本地 API"}
-              <span>v0.2</span>
+              <span>v0.3</span>
             </div>
           </div>
         </aside>
@@ -343,24 +349,26 @@ export default function App() {
         )}
         <main className="console-main">
           <div className={`page ${isNew ? "creation-page" : ""}`}>
-            <div className="breadcrumb">
-              <a href="#/tasks" onClick={() => navigate("/tasks")}>
-                创意生产
-              </a>
-              <ChevronRight size={12} />
-              {selectedId || isNew ? (
-                <>
-                  <a href="#/tasks">任务</a>
-                  <ChevronRight size={12} />
-                  <span>
-                    {isNew ? "新建" : current?.product_code || selectedId}
-                  </span>
-                </>
-              ) : (
-                <span>{isAssets ? "产品素材" : "任务"}</span>
-              )}
-            </div>
-            {error && (
+            {!isShops && (
+              <div className="breadcrumb">
+                <a href="#/tasks" onClick={() => navigate("/tasks")}>
+                  创意生产
+                </a>
+                <ChevronRight size={12} />
+                {selectedId || isNew ? (
+                  <>
+                    <a href="#/tasks">任务</a>
+                    <ChevronRight size={12} />
+                    <span>
+                      {isNew ? "新建" : current?.product_code || selectedId}
+                    </span>
+                  </>
+                ) : (
+                  <span>{isAssets ? "产品素材" : "任务"}</span>
+                )}
+              </div>
+            )}
+            {error && !isShops && (
               <div className="alert" role="alert">
                 <span>{error} · 后端地址 127.0.0.1:8000</span>
                 <Button
@@ -372,7 +380,23 @@ export default function App() {
                 </Button>
               </div>
             )}
-            {isNew ? (
+            {isShops ? (
+              <Suspense
+                fallback={
+                  <div className="empty-state">
+                    <LoaderCircle size={24} className="spin" />
+                    <p>正在加载店铺凭证</p>
+                  </div>
+                }
+              >
+                <ShopsPage
+                  key={demo ? "demo" : "live"}
+                  path={path}
+                  demo={demo}
+                  notify={setToast}
+                />
+              </Suspense>
+            ) : isNew ? (
               <CreatePage
                 demo={demo}
                 onCreated={(run) => {
@@ -424,20 +448,23 @@ export default function App() {
                   role="group"
                   aria-label="任务视图"
                 >
-                  {[
-                    ["overview", "概览"],
-                    ["stages", "执行阶段"],
-                    ["info", "任务信息"],
-                  ].map(([id, label]) => (
-                    <button
-                      key={id}
-                      aria-pressed={detailTab === id}
-                      className={detailTab === id ? "active" : ""}
-                      onClick={() => setDetailTab(id)}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                  <AnimatedSelection active={detailTab}>
+                    {[
+                      ["overview", "概览"],
+                      ["stages", "执行阶段"],
+                      ["info", "任务信息"],
+                    ].map(([id, label]) => (
+                      <button
+                        key={id}
+                        data-selection-id={id}
+                        aria-pressed={detailTab === id}
+                        className={detailTab === id ? "active" : ""}
+                        onClick={() => setDetailTab(id)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </AnimatedSelection>
                 </div>
                 {current ? (
                   <>
@@ -627,26 +654,29 @@ export default function App() {
                   role="group"
                   aria-label="任务状态"
                 >
-                  {filters.map(([id, label]) => (
-                    <button
-                      key={id}
-                      aria-pressed={filter === id}
-                      className={filter === id ? "active" : ""}
-                      onClick={() => setFilter(id)}
-                    >
-                      {label}
-                      <span>
-                        {
-                          runs.filter(
-                            (r) =>
-                              id === "all" ||
-                              r.status === id ||
-                              (id === "running" && r.status === "queued"),
-                          ).length
-                        }
-                      </span>
-                    </button>
-                  ))}
+                  <AnimatedSelection active={filter}>
+                    {filters.map(([id, label]) => (
+                      <button
+                        key={id}
+                        data-selection-id={id}
+                        aria-pressed={filter === id}
+                        className={filter === id ? "active" : ""}
+                        onClick={() => setFilter(id)}
+                      >
+                        {label}
+                        <span>
+                          {
+                            runs.filter(
+                              (r) =>
+                                id === "all" ||
+                                r.status === id ||
+                                (id === "running" && r.status === "queued"),
+                            ).length
+                          }
+                        </span>
+                      </button>
+                    ))}
+                  </AnimatedSelection>
                 </div>
                 <section
                   className={isAssets ? "material-index" : "surface task-index"}
@@ -696,11 +726,7 @@ export default function App() {
                   {isAssets ? (
                     <div className="asset-grid">
                       {visible.map((r) => (
-                        <a
-                          href={`#/tasks/${r.id}`}
-                          className="asset-tile"
-                          key={r.id}
-                        >
+                        <PolishedAsset href={`#/tasks/${r.id}`} key={r.id}>
                           {r.image ? (
                             <img
                               src={r.image}
@@ -717,7 +743,7 @@ export default function App() {
                             <ArrowUpRight size={14} />
                           </div>
                           <small>{r.product_code} · 参考素材</small>
-                        </a>
+                        </PolishedAsset>
                       ))}
                     </div>
                   ) : (
