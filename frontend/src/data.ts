@@ -31,6 +31,7 @@ export const statusNames: Record<string, string> = {
   running: "进行中",
   queued: "排队中",
   draft: "草稿",
+  not_started: "未开始",
   approved: "已通过",
   completed: "已完成",
   failed: "失败",
@@ -154,7 +155,12 @@ export const demoRuns: Run[] = [
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch("/api" + path, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      ...(options?.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
+      ...options?.headers,
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
