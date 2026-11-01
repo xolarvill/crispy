@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640" role="img" aria-labelledby="title desc">
+  <title id="title">crispy — the marketing workbench</title>
+  <desc id="desc">A forest-green editorial brand header. Research, create, publish, learn.</desc>
+  <rect width="1600" height="640" rx="24" fill="#143c30"/>
+  <g fill="none" stroke="#c4d7bd" stroke-width="3" stroke-linejoin="round">
+    <path d="m92 89 24-12 24 12-24 12Z"/>
+    <path d="m92 101 24 12 24-12M92 113l24 12 24-12"/>
+  </g>
+  <text x="150" y="112" fill="#c4d7bd" font-family="Arial, Helvetica, sans-serif" font-size="20" letter-spacing="2">THE MARKETING WORKBENCH</text>
+  <text x="80" y="375" fill="#f5f3e9" font-family="Arial, Helvetica, sans-serif" font-size="270" font-weight="700" letter-spacing="-17">crispy</text>
+  <circle cx="1458" cy="349" r="17" fill="#c4d7bd"/>
+  <path d="M88 467H1512" stroke="#537264" stroke-width="1"/>
+  <g fill="#dce5d7" font-family="Arial, Helvetica, sans-serif" font-size="25">
+    <text x="88" y="534">Research</text>
+    <text x="468" y="534">Create</text>
+    <text x="848" y="534">Publish</text>
+    <text x="1228" y="534">Learn</text>
+  </g>
+  <g stroke="#a7bf9d" stroke-width="1.5" fill="none">
+    <path d="M354 526h30m-7-7 7 7-7 7M734 526h30m-7-7 7 7-7 7M1114 526h30m-7-7 7 7-7 7"/>
+    <path d="M1450 526h30m-7-7 7 7-7 7"/>
+  </g>
+</svg>
