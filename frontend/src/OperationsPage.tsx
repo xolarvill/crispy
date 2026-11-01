@@ -23,7 +23,9 @@ type Row = {
   error_message?: string;
 };
 const titles: Record<string, string> = {
-  research: "研究与记忆",
+  "product-research": "产品研究",
+  "competitor-research": "竞品研究",
+  memory: "记忆库",
   calendar: "发布排期",
   data: "数据",
 };
@@ -86,6 +88,10 @@ const labels: Record<string, string> = {
   scheduled: "已排期",
   published: "已发布",
   store_context: "店铺研究",
+  full_intelligence: "综合研究",
+  industry_baseline: "行业研究",
+  audience_pain_points: "受众研究",
+  compliance_scan: "合规研究",
   competitive_landscape: "竞品研究",
   shop_profile: "店铺画像",
 };
@@ -101,7 +107,6 @@ export default function OperationsPage({
 }) {
   const [shops, setShops] = useState<Shop[]>(demo ? demoShops : []),
     [shop, setShop] = useState(demo ? demoShops[0].id : ""),
-    [tab, setTab] = useState("research"),
     [rows, setRows] = useState<Row[]>([]),
     [metrics, setMetrics] = useState<Record<string, unknown> | null>(null),
     [selected, setSelected] = useState<Row | null>(null),
@@ -145,7 +150,9 @@ export default function OperationsPage({
     setMetrics(null);
     setRows([]);
     if (demo) {
-      setRows(demoRows[section === "research" ? tab : section] || []);
+      setRows(
+        demoRows[section.endsWith("-research") ? "research" : section] || [],
+      );
       if (section === "data")
         setMetrics({
           product_count: 18,
@@ -157,7 +164,7 @@ export default function OperationsPage({
         });
       return;
     }
-    if (!shop) return;
+    if (!shop && section !== "memory") return;
     if (section === "data" && !submittedProject) return;
     if (section === "calendar" && (!start || !end || start > end)) {
       setError("请选择有效日期范围");
@@ -167,11 +174,10 @@ export default function OperationsPage({
     setLoading(true);
     const params = new URLSearchParams();
     let url = "";
-    if (section === "research")
+    if (section === "memory") url = "/gm-memory?limit=100";
+    if (section.endsWith("-research"))
       url =
-        tab === "memory"
-          ? "/gm-memory?limit=100"
-          : "/shop-analysis/tasks?shop_id=" + encodeURIComponent(shop);
+        "/shop-analysis/tasks?limit=100&shop_id=" + encodeURIComponent(shop);
     if (section === "calendar") {
       params.set("workspace_id", shop);
       params.set("start_date", start);
@@ -200,9 +206,15 @@ export default function OperationsPage({
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [demo, section, tab, shop, revision, start, end, submittedProject, shops]);
-  const filtered = rows.filter((r) =>
-    JSON.stringify(r).toLowerCase().includes(query.toLowerCase()),
+  }, [demo, section, shop, revision, start, end, submittedProject, shops]);
+  const filtered = rows.filter(
+    (r) =>
+      (section === "competitor-research"
+        ? r.task_type === "competitive_landscape"
+        : section === "product-research"
+          ? r.task_type !== "competitive_landscape"
+          : true) &&
+      JSON.stringify(r).toLowerCase().includes(query.toLowerCase()),
   );
   return (
     <div className="operations-page">
@@ -217,7 +229,7 @@ export default function OperationsPage({
         />
       </div>
       <div className="operations-toolbar">
-        {!(section === "research" && tab === "memory") && (
+        {section !== "memory" && (
           <label>
             店铺
             <select
@@ -237,22 +249,6 @@ export default function OperationsPage({
               ))}
             </select>
           </label>
-        )}
-        {section === "research" && (
-          <div className="operations-tabs" aria-label="研究视图">
-            {[
-              ["research", "研究任务"],
-              ["memory", "记忆库"],
-            ].map(([id, name]) => (
-              <Button
-                key={id}
-                variant={tab === id ? "default" : "ghost"}
-                onClick={() => setTab(id)}
-              >
-                {name}
-              </Button>
-            ))}
-          </div>
         )}
         {section === "calendar" && (
           <>
@@ -308,7 +304,7 @@ export default function OperationsPage({
           </label>
         )}
       </div>
-      {(demo || (section === "research" && tab === "memory")) && (
+      {(demo || section === "memory") && (
         <p className="muted operations-disclosure">
           {demo ? "演示数据" : "全部店铺 · 有效记忆"}
         </p>

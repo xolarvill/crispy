@@ -40,7 +40,8 @@ import {
 } from "./components/run-media";
 import type { RunMedia } from "./data";
 function route() {
-  return location.hash.slice(1) || "/tasks";
+  const path = location.hash.slice(1) || "/tasks";
+  return path === "/research" ? "/product-research" : path;
 }
 function date(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -81,9 +82,13 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [mobileNav, setMobileNav] = useState(false),
     [detailTab, setDetailTab] = useState("overview");
-  const operation = ["research", "calendar", "data"].find(
-    (name) => path === `/${name}`,
-  );
+  const operation = [
+    "product-research",
+    "competitor-research",
+    "memory",
+    "calendar",
+    "data",
+  ].find((name) => path === `/${name}`);
   const isShops = path.startsWith("/shops"),
     isNew = path === "/new",
     isAssets = path === "/assets",
@@ -105,7 +110,7 @@ export default function App() {
     return () => window.removeEventListener("hashchange", update);
   }, []);
   useEffect(() => {
-    document.title = `Crispy · ${operation ? { research: "研究与记忆", calendar: "发布排期", data: "数据" }[operation] : isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"}`;
+    document.title = `Crispy · ${operation ? { "product-research": "产品研究", "competitor-research": "竞品研究", memory: "记忆库", calendar: "发布排期", data: "数据" }[operation] : isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"}`;
   }, [isNew, selectedId, isAssets, isShops, operation]);
   useEffect(() => {
     if (!toast) return;
@@ -311,7 +316,9 @@ export default function App() {
             <div className="nav-section separated">运营</div>
             {(
               [
-                ["research", "研究与记忆", BookOpen],
+                ["product-research", "产品研究", Search],
+                ["competitor-research", "竞品研究", ListFilter],
+                ["memory", "记忆库", BookOpen],
                 ["calendar", "发布排期", CalendarDays],
                 ["data", "数据", Activity],
               ] as [string, string, LucideIcon][]
