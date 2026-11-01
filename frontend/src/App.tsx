@@ -279,7 +279,6 @@ export default function App() {
             </span>
             <span>
               <strong>crispy</strong>
-              <small>the marketing workbench</small>
             </span>
           </a>
           <div className="nav-context">

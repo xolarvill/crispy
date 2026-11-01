@@ -22,4 +22,4 @@ The frontend currently offers initial read views for research, memory, schedules
 
 Use direct, concise operational language. Prefer “任务”, “素材”, “研究”, “发布”, “数据”, “记忆”; avoid describing the whole product as a production pipeline, generation factory or orchestration system. Technical pipeline terminology remains valid in internal contracts, APIs and diagnostics.
 
-Keep forest green, warm neutral surfaces, the existing layered mark and a compact wordmark. Show the signature once in the workspace brand. No slogan blocks, redundant top bars, H1/H2 UI elements or decorative dashboards. Familiar actions use Lucide icons with accessible names. Marketing breadth does not justify extra chrome or speculative navigation.
+Keep forest green, warm neutral surfaces, the existing layered mark and a compact wordmark. Keep the signature in README and product/brand documentation; do not place it under the sidebar wordmark. No slogan blocks, redundant top bars, H1/H2 UI elements or decorative dashboards. Familiar actions use Lucide icons with accessible names. Marketing breadth does not justify extra chrome or speculative navigation.
