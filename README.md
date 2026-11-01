@@ -108,7 +108,7 @@ The original dashboard remains available on the API server. The standalone launc
 
 Workbench development integrates into **`workbench/main`**. It will merge into the repository's main release line, currently **`master`**, when ready.
 
-The [marketing skills research and integration proposal](docs/marketing-skills-research.md) maps upstream social, email and campaign skills to future workbench workflows. It is a source-selection proposal; those integrations have not shipped.
+The [marketing coverage and upstream vendor document](docs/marketing-skills-research.md) records the proposed work areas, user priorities, page boundaries, human–agent collaboration and social/email skill sources. It distinguishes user direction from pending proposals; those integrations have not shipped.
 
 ## Development
 
