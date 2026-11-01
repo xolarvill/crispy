@@ -1,6 +1,6 @@
-# Crispy console — version 4
+# crispy — the marketing workbench
 
-Production workspace for finding runs, inspecting stages and product references, creating work, and managing shop credentials. Keep the approved page-based workflows and forest green. The user's supplied TaskPilot screenshot now pins the material treatment: warm gray canvas, white application shell, pale panel frames, fine warm borders, soft contact shadows and dark green navigation selection.
+Marketing workspace spanning research, creative work, publishing, measurement and reusable knowledge. Creative runs are one execution module, not the product identity. Brand name is lowercase `crispy`; the fixed signature is `the marketing workbench`. Keep the approved page-based workflows and forest green. The user's supplied TaskPilot screenshot now pins the material treatment: warm gray canvas, white application shell, pale panel frames, fine warm borders, soft contact shadows and dark green navigation selection.
 
 ## Structure
 

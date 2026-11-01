@@ -1,12 +1,16 @@
-# Crispy
+# crispy — the marketing workbench
 
 ![Crispy](other/hero.png)
 
-Crispy is a product-first creative operations system for e-commerce teams. It generates ad copy, product images, marketplace visuals, and short-form video assets around real SKUs, then uses store and ad performance feedback from Shopify, Meta, and CSV imports to improve future creative runs.
+crispy is the marketing workbench: a shared place for product and competitor research, creative work, publishing, performance, and reusable marketing knowledge.
+
+Creative generation is one part of the workbench. Research informs the brief; content moves through review and scheduling; performance and memory inform the next decision. Agent-driven pipelines handle execution behind the workspace.
+
+The React console currently includes creative tasks and media previews, shop credentials, separate product research, competitor research and memory pages, plus initial scheduling and data views. Scheduling edits, research execution and deeper analytics are still being migrated; these views do not yet replace every legacy workflow.
 
 ## Key Features
 
-**Multi-agent pipeline** — Each stage has a specialized AI persona: orchestrator for intake, ideation agent for strategy, generation agent for creative production, scoring agent for evaluation.
+**Creative execution** — Each stage has a specialized AI persona: orchestrator for intake, ideation agent for strategy, generation agent for creative production, scoring agent for evaluation.
 
 **Self-improving memory** — Performance feedback is stored as product-level and industry-level memory. The planning agent automatically references past winners and avoids past failures.
 

@@ -110,7 +110,7 @@ export default function App() {
     return () => window.removeEventListener("hashchange", update);
   }, []);
   useEffect(() => {
-    document.title = `Crispy · ${operation ? { "product-research": "产品研究", "competitor-research": "竞品研究", memory: "记忆库", calendar: "发布排期", data: "数据" }[operation] : isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"}`;
+    document.title = `crispy · ${operation ? { "product-research": "产品研究", "competitor-research": "竞品研究", memory: "记忆库", calendar: "发布排期", data: "数据" }[operation] : isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"} — the marketing workbench`;
   }, [isNew, selectedId, isAssets, isShops, operation]);
   useEffect(() => {
     if (!toast) return;
@@ -279,14 +279,14 @@ export default function App() {
             </span>
             <span>
               <strong>crispy</strong>
-              <small>本地工作空间</small>
+              <small>the marketing workbench</small>
             </span>
           </a>
           <div className="nav-context">
             <FolderClosed size={16} />
             工作空间
           </div>
-          <div className="nav-section">创意生产</div>
+          <div className="nav-section">营销工作</div>
           <nav aria-label="主导航">
             {(
               [
@@ -313,7 +313,7 @@ export default function App() {
                 {label}
               </a>
             ))}
-            <div className="nav-section separated">运营</div>
+            <div className="nav-section separated">洞察与运营</div>
             {(
               [
                 ["product-research", "产品研究", Search],
@@ -374,7 +374,7 @@ export default function App() {
             {!isShops && !operation && (
               <div className="breadcrumb">
                 <a href="#/tasks" onClick={() => navigate("/tasks")}>
-                  创意生产
+                  营销工作
                 </a>
                 <ChevronRight size={12} />
                 {selectedId || isNew ? (
