@@ -1,7 +1,7 @@
 [project]
 name = "crispy"
 version = "0.1.0"
-description = "Add your description here"
+description = "crispy — the marketing workbench"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

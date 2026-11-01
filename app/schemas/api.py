@@ -122,6 +122,18 @@ class RunView(BaseModel):
     research_context: dict = Field(default_factory=dict)
 
 
+class RunMediaPreview(BaseModel):
+    uri: str
+    kind: Literal["image", "video"]
+    source: Literal["generated", "input"]
+
+
+class RunMediaResponse(BaseModel):
+    run_id: str
+    media_count: int = 0
+    media_previews: list[RunMediaPreview] = Field(default_factory=list)
+
+
 class RunSummary(BaseModel):
     id: str
     status: str
@@ -131,6 +143,8 @@ class RunSummary(BaseModel):
     product_code: str = ""
     industry_code: str = ""
     updated_at: datetime
+    media_count: int = 0
+    media_previews: list[RunMediaPreview] = Field(default_factory=list)
 
 
 class ReviewActionRequest(BaseModel):
