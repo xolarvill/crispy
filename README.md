@@ -98,11 +98,16 @@ env | grep CRISPY_API_KEY | sort
 
 ### 3. Start
 
+
 ```bash
-uv run uvicorn app.main:app --port 8849
+# macOS / Linux / WSL
+./crispy
+
+# On Windows, PowerShell / CMD
+.\crispy.bat
 ```
 
-Open **http://localhost:8849** in your browser.
+The default browser opens automatically at **http://localhost:8849**.
 
 ### 4. Sync Shopify and Meta data
 
@@ -152,6 +157,14 @@ curl -X POST "http://localhost:8849/integrations/meta/sync?workspace_name=Defaul
 | `full_multimodal` | Both copy+image and video in one run |
 | `marketplace_main_image` | White-background product main images for Amazon/Shopify/TikTok Shop |
 | `tiktok_shop_video` | TikTok-optimized video ads |
+
+## Future TODO
+
+- [ ] Consolidate the UI/UX toward a restrained, Cloudflare-inspired visual language.
+- [ ] Redesign Create Run as a more formal, reviewable workflow.
+- [ ] Separate audio and video experiences across navigation, creation, review, and asset surfaces.
+- [ ] Add an Example Prompt gallery with muted autoplay video previews and one-click prompt application.
+- [ ] Gradually React-ify stable pages and interactions while reusing the existing APIs and data contracts.
 
 ## Database Backup
 

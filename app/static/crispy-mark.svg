@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Crispy</title>
+  <desc id="desc">A rounded green square with a white C mark.</desc>
+  <rect width="64" height="64" rx="16" fill="#059669"/>
+  <path d="M45.5 20.5A17.5 17.5 0 1 0 45.5 43.5" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="8"/>
+  <circle cx="46" cy="20" r="3" fill="#a7f3d0"/>
+</svg>

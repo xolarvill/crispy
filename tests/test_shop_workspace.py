@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 
 def test_list_shops_returns_array(client):
     resp = client.get("/shops")
@@ -60,9 +62,29 @@ def test_shop_management_page_renders_workflow_layout(client):
     assert "Create Shop" in html
     assert "Shop workflow help" in html
     assert "shop-list" in html
+    assert "shops-directory-bar" in html
+    assert "shops-list-filters" in html
+    assert "shop-directory" in html
     assert "shops-list-tools" in html
-    assert "create-shop-toggle" in html
-    assert "setCreateCollapsed(shops.length > 0)" in html
+    assert "shops-layout" not in html
+    assert "shops-sidebar" not in html
+    assert "shops-list-head" not in html
+    assert re.search(r'<dialog[^>]+id="create-shop-modal"[^>]*>', html)
+    assert re.search(r'<dialog[^>]+aria-modal="true"[^>]*>', html)
+    assert re.search(r'<dialog[^>]+aria-labelledby="[^"]+"[^>]*>', html)
+    assert re.search(r'aria-haspopup="dialog"[^>]+aria-controls="create-shop-modal"', html)
+    assert re.search(r'<button[^>]+class="ui-modal-close"[^>]+type="button"[^>]+onclick="this\.closest\(\'dialog\'\)\.close\(\)"', html)
+    assert 'data-modal="reusable"' in html
+    assert re.search(r'dialog\.ui-modal::backdrop[^}]*backdrop-filter:\s*blur\(', html)
+    assert "function openShopCreateModal()" in html
+    assert "function closeShopCreateModal()" in html
+    assert "async function createShop()" in html
+    assert "showModal()" in html
+    assert "close()" in html
+    assert "create-shop-card" not in html
+    assert "create-shop-toggle" not in html
+    assert "setCreateCollapsed" not in html
+    assert "toggleCreateShop" not in html
     assert "renderShopWorkspace" in html
     assert "displayShopName" in html
     assert "summary-grid" in html
@@ -70,9 +92,16 @@ def test_shop_management_page_renders_workflow_layout(client):
     assert "Memory Health" in html
     assert "Sites" in html
     assert "Channel Accounts" in html
+    assert "connection-stack" in html
+    assert "connection-bar" in html
+    assert "connection-grid" not in html
     assert "loadShopConnections" in html
     assert "createChannelAccount" in html
-    assert "new-channel-platform" in html
+    assert "channel-platform-bar" in html
+    assert "channel-platform-form" in html
+    for platform in ("shopify", "meta", "tiktok", "notion", "instagram", "facebook"):
+        assert platform in html
+    assert "new-channel-platform" not in html
     assert "workflow-card" not in html
     assert 'href="/dashboard/shops"' in html
 
