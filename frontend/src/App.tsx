@@ -27,6 +27,7 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { Button } from "./components/ui/button";
 import { api, demoRuns, modes, plan, stageNames, type Run } from "./data";
 import CreatePage from "./CreatePage";
+const OperationsPage = lazy(() => import("./OperationsPage"));
 const ShopsPage = lazy(() => import("./ShopsPage"));
 import { AnimatedSelection, PolishedAsset } from "./components/polish";
 import { IconButton, Status } from "./components/console-controls";
@@ -80,6 +81,9 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [mobileNav, setMobileNav] = useState(false),
     [detailTab, setDetailTab] = useState("overview");
+  const operation = ["research", "calendar", "data"].find(
+    (name) => path === `/${name}`,
+  );
   const isShops = path.startsWith("/shops"),
     isNew = path === "/new",
     isAssets = path === "/assets",
@@ -101,15 +105,15 @@ export default function App() {
     return () => window.removeEventListener("hashchange", update);
   }, []);
   useEffect(() => {
-    document.title = `Crispy · ${isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"}`;
-  }, [isNew, selectedId, isAssets, isShops]);
+    document.title = `Crispy · ${operation ? { research: "研究与记忆", calendar: "发布排期", data: "数据" }[operation] : isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"}`;
+  }, [isNew, selectedId, isAssets, isShops, operation]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 3500);
     return () => clearTimeout(timer);
   }, [toast]);
   useEffect(() => {
-    if (demo || isShops) {
+    if (demo || isShops || operation) {
       setLoading(false);
       return;
     }
@@ -125,14 +129,14 @@ export default function App() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [demo, revision, isShops]);
+  }, [demo, revision, isShops, operation]);
   useEffect(() => {
-    if (demo || isShops) return;
+    if (demo || isShops || operation) return;
     const timer = setInterval(() => {
       if (!document.hidden) setRevision((r) => r + 1);
     }, 10000);
     return () => clearInterval(timer);
-  }, [demo, isShops]);
+  }, [demo, isShops, operation]);
   useEffect(() => {
     setDetail(null);
     setDetailTab("overview");
@@ -287,9 +291,12 @@ export default function App() {
             ).map(([target, label, Icon]) => (
               <a
                 href={`#${target}`}
-                className={`nav-link ${(target === "/tasks" && !isAssets && !isShops) || (target === "/assets" && isAssets) ? "active" : ""}`}
+                className={`nav-link ${(target === "/tasks" && !isAssets && !isShops && !operation) || (target === "/assets" && isAssets) ? "active" : ""}`}
                 aria-current={
-                  (target === "/tasks" && !isAssets && !isShops) ||
+                  (target === "/tasks" &&
+                    !isAssets &&
+                    !isShops &&
+                    !operation) ||
                   (target === "/assets" && isAssets)
                     ? "page"
                     : undefined
@@ -310,13 +317,14 @@ export default function App() {
               ] as [string, string, LucideIcon][]
             ).map(([id, label, Icon]) => (
               <a
-                className="nav-link"
-                href={`http://127.0.0.1:8000/dashboard/${id}`}
+                className={`nav-link ${operation === id ? "active" : ""}`}
+                aria-current={operation === id ? "page" : undefined}
+                onClick={() => navigate(`/${id}`)}
+                href={`#/${id}`}
                 key={id}
               >
                 <Icon size={16} />
                 {label}
-                <ArrowUpRight size={12} className="nav-arrow" />
               </a>
             ))}
           </nav>
@@ -356,7 +364,7 @@ export default function App() {
         )}
         <main className="console-main">
           <div className={`page ${isNew ? "creation-page" : ""}`}>
-            {!isShops && (
+            {!isShops && !operation && (
               <div className="breadcrumb">
                 <a href="#/tasks" onClick={() => navigate("/tasks")}>
                   创意生产
@@ -387,7 +395,15 @@ export default function App() {
                 </Button>
               </div>
             )}
-            {isShops ? (
+            {operation ? (
+              <Suspense fallback={<p role="status">加载中…</p>}>
+                <OperationsPage
+                  key={`${operation}-${demo}`}
+                  section={operation}
+                  demo={demo}
+                />
+              </Suspense>
+            ) : isShops ? (
               <Suspense
                 fallback={
                   <div className="empty-state">
