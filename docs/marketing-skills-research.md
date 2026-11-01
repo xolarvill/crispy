@@ -2,7 +2,17 @@
 
 调研日期：2026-11-01。状态：选型提案；未安装上游 skills、未接通发送/发布，也未改变现有运行时。
 
-目标：与 agent 协作的 marketing all-in-one workbench，首批聚焦社媒和 EDM，再扩展广告、转化、社区与营销分析。当前仓库未找到 SEO workbench 的聚合实现，因此本提案按“筛选上游能力，再融入统一工作流”的意图设计，不假定两者已经有共享协议。
+目标：与 agent 协作的 marketing all-in-one workbench，首批聚焦社媒和 EDM，再扩展广告、转化、社区与营销分析。参照本地独立项目 `D:\CODING\seo-workbench` 的方法融合模式；该项目位于 crispy 仓库之外。
+
+## 本地 SEO workbench 的参照依据
+
+已读取相邻项目的 `README.md`、`skills/README.md`、`docs/skill-sources.md`、`docs/skill-sources.json`、`docs/agent-skill-routing-design.md` 与维护验收记录。该项目的来源清单登记了 60 个一级技能入口、409 个受维护文件，主要来源是 SuperSEO、Claude SEO、SEO Machine，另有本地适配方法；这里引用的是清单记录，未重新运行其验收。
+
+它的核心做法是：按用户任务组织方法索引；agent 根据目标、现有决定、产物和证据选择、组合方法；保留上游身份、固定比较版本、文件指纹、许可证及本地修改历史。固定比较版本不冒充原始导入版本。该项目已经退役 `next` 阶段调度，专业交付按证据和结果验收。
+
+其中已有 `social-content`、`email-sequence`、`paid-ads`、`launch-strategy` 等本地适配技能。Marketing 实施前应逐项比较这些材料与下方新候选，优先复用适用的方法及适配经验，同时保留真实来源与本地派生关系；本轮未复制文件，也未改动 SEO workbench。
+
+因此，下文的活动闭环是典型使用场景，实施顺序是工程依赖顺序，均不要求每项营销任务走固定阶段。局部改帖、修改邮件或分析数据可以直接进入对应方法；现有且适用的研究与草稿应继续使用。
 
 ## 推荐组合
 
