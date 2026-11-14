@@ -333,6 +333,18 @@ class AgentTraceEvent(Base):
     stage_task: Mapped[StageTask | None] = relationship(back_populates="trace_events")
 
 
+class BrandCreative(Base):
+    __tablename__ = "brand_creative"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspace.id"), index=True)
+    run_id: Mapped[str] = mapped_column(String(36))
+    parent_id: Mapped[str | None] = mapped_column(ForeignKey("brand_creative.id"))
+    name: Mapped[str] = mapped_column(String(160))
+    document: Mapped[dict] = mapped_column(json_type())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class RunVariant(Base):
     __tablename__ = "run_variant"
     __table_args__ = (UniqueConstraint("run_id", "variant_id", name="uq_run_variant_run_variant"),)

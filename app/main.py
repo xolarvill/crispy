@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from app.agents.personas import ensure_default_personas
 from app.api.routes import router
+from app.api.brand_creatives import router as brand_creatives_router
 from app.core.config import get_settings
 from app.data.models import Workspace
 from app.data.session import SessionLocal, init_db
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
     app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
     app.include_router(router)
+    app.include_router(brand_creatives_router)
     return app
 
 
