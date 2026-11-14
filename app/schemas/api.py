@@ -18,6 +18,15 @@ PipelineMode = Literal[
 ApprovalMode = Literal["manual", "semi_auto", "full_auto"]
 
 
+class ImagePromptExpansionRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    idea: str = Field(min_length=1, max_length=4000)
+
+
+class ImagePromptExpansionResponse(BaseModel):
+    prompt: str
+
+
 class RunCreateRequest(BaseModel):
     workspace_name: str
     project_name: str

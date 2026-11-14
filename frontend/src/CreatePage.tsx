@@ -12,6 +12,7 @@ import {
 import { Button } from "./components/ui/button";
 import { Field, IconButton } from "./components/console-controls";
 import { go } from "./navigation";
+import { PromptEditor } from "./PromptEditor";
 import { api, modes, type Run } from "./data";
 type Draft = {
   name: string;
@@ -76,6 +77,10 @@ export default function CreatePage({
     [draft, setDraft] = useState<Draft>(initial),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [useImagePrompt, setUseImagePrompt] = useState(false);
+  const supportsImageDirection = ["copy_image_only", "full_multimodal", "dtc_site_image"].includes(draft.mode);
+  const imageDirection = supportsImageDirection && useImagePrompt ? imagePrompt.trim() : "";
   const [files, setFiles] = useState<File[]>([]),
     [presets, setPresets] = useState<Preset[]>(demo ? demoPresets : []),
     [presetError, setPresetError] = useState(""),
@@ -188,7 +193,10 @@ export default function CreatePage({
       industry_code: draft.industry.trim(),
       campaign_name: draft.campaign.trim(),
       creative_preset: draft.preset.trim(),
-      creative_specs: presets.find((p) => p.value === draft.preset)?.spec || {},
+      creative_specs: {
+        ...presets.find((p) => p.value === draft.preset)?.spec,
+        ...(imageDirection && { image_direction: imageDirection }),
+      },
       pipeline_mode: draft.mode,
       approval_mode: draft.approval,
       variant_count: Number(draft.count),
@@ -267,6 +275,7 @@ export default function CreatePage({
     ["审核方式", approvals[draft.approval]],
     ["创意预设", draft.preset || "—"],
     ["变体数量", draft.count],
+    ...(imageDirection ? [["画面提示词", imageDirection]] : []),
     ["市场 / 语言", "US / en-US"],
     ["参考文件", `${files.length} 个`],
   ];
@@ -283,6 +292,11 @@ export default function CreatePage({
         </div>
         <span className="muted">{demo ? "演示 · 不执行生成" : "本地 API"}</span>
       </div>
+      <PromptEditor demo={demo} prompt={imagePrompt} onChange={setImagePrompt} />
+      {imagePrompt.trim() && supportsImageDirection && (
+        <label><input type="checkbox" checked={useImagePrompt}
+          onChange={(e) => setUseImagePrompt(e.target.checked)} /> 将当前提示词用于本任务的图文生成</label>
+      )}
       <ol className="creation-steps" aria-label="创建步骤">
         {["产品与项目", "创作设置", "确认创建"].map((label, i) => (
           <li

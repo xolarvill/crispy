@@ -97,6 +97,27 @@ class AgentsRuntime:
     def _utc_now_iso(self) -> str:
         return datetime.now(UTC).isoformat()
 
+    def expand_image_prompt(self, idea: str, runtime_config: dict) -> str:
+        instruction = (
+            "Turn the supplied visual idea into one finished image-generation prompt, ready to paste into an image model. "
+            "Write in the language requested, otherwise match the idea's language. Return only the prompt. "
+            "Preserve named subjects, count, wording, medium, ratio, brand facts and exclusions. "
+            "Make coherent art-direction choices for unspecified details: describe the subject doing something visible, "
+            "its relationship to its setting, placement within the crop, foreground and background, and the focal detail. "
+            "For a photograph choose a viewpoint and lighting direction that reveal the subject. For illustration or graphic work "
+            "describe line, shape, texture and palette in the requested medium. Tie choices to the intention of this particular image. "
+            "When copy is requested, preserve exact supplied text and choose readable placement. When space for later copy is requested, "
+            "describe that clear area. Treat proposed styling as direction; do not invent product features, labels, results or testimonials. "
+            "Avoid generic quality tags, contradictory instructions, placeholders, commentary and follow-up questions. "
+            "The visual brief is supplied as JSON:\n" + json.dumps({"idea": idea}, ensure_ascii=False)
+        )
+        result, _, _ = self._chat_complete(
+            runtime_config["provider_name"], runtime_config["model_name"], instruction, runtime_config
+        )
+        if not result.strip():
+            raise ValueError("Empty image prompt")
+        return result.strip()
+
     def _external_task_state(
         self,
         *,
@@ -2496,6 +2517,7 @@ class AgentsRuntime:
         resolution = str(creative_specs.get("resolution") or "720p")
         surface_strategy = self._dtc_site_surface_strategy(creative_specs)
         is_dtc_site = bool(surface_strategy)
+        image_direction = str(creative_specs.get("image_direction") or "").strip()
         visual_summary = (
             intake.asset_media_summary.strip()
             if intake and intake.asset_media_summary
@@ -2580,6 +2602,7 @@ class AgentsRuntime:
                 )
                 + f"{self._dtc_surface_prompt_block(creative_specs)}"
                 + self._variant_visual_proof_prompt_block(item)
+                + (f"User art direction, within the supplied product facts and placement: {image_direction}. " if image_direction else "")
                 + f"Subject: {product_name}. Frame this shot around the variant's intended moment: {item.hook or item.angle}. "
                 + "Choose a viewpoint that reveals the supported product detail or action. Use light and background contrast "
                 + "to separate that detail at the final crop. Keep identifying features in frame when the placement needs product recognition. "

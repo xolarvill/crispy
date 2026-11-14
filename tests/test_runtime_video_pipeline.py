@@ -1108,7 +1108,7 @@ def test_copy_image_generation_uses_variant_visual_proof_spec():
         ),
         intake=ProductIntake(product_name="anti-pull dog harness"),
         business_context={"target_audience": "dog owners", "primary_cta": "Shop Now"},
-        creative_specs={},
+        creative_specs={"image_direction": "Keep the leash contact point in side light."},
         market="US",
         locale="en-US",
         provider="deepseek",
@@ -1117,6 +1117,7 @@ def test_copy_image_generation_uses_variant_visual_proof_spec():
     )
 
     assert "Variant visual proof spec" in captured_prompts[0]
+    assert "Keep the leash contact point in side light." in captured_prompts[0]
     assert "Creative leap: device bait_and_reveal" in captured_prompts[0]
     assert "the problem continuing unchanged" in captured_prompts[0]
     assert output.payload["image_assets"][0]["visual_proof_spec"]["semantic_fail_conditions"]

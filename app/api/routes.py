@@ -17,6 +17,9 @@ from sqlalchemy import String, cast, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.agents.registry import stage_agent
+from app.agents.runtime import AgentsRuntime
+from app.schemas.api import ImagePromptExpansionRequest, ImagePromptExpansionResponse
+from app.services.agent_api_configs import resolve_agent_config, resolve_agent_runtime
 from app.core.config import get_settings
 from app.data.models import Artifact, Campaign, ContentSchedule, GmMemory, GmPolicyVersion, GmReflection, IntegrationSync, PerformanceSnapshot, PipelineRun, Product, Project, RunVariant, ScoreCard as ScoreCardModel, ShopChannelAccount, ShopSite, StageTask, VariantAsset, Workspace
 from app.data.session import (
@@ -3766,6 +3769,18 @@ def product_config_hint(
     db: Session = Depends(get_db),
 ) -> dict | None:
     return get_last_product_config(db, product_code)
+
+
+@router.post("/image-prompts/expand", response_model=ImagePromptExpansionResponse)
+def expand_image_prompt(payload: ImagePromptExpansionRequest, db: Session = Depends(get_db)):
+    config = resolve_agent_config(db, agent_name="copy_image_agent", run_provider="", run_model="")
+    if not config.get("provider_name") or not config.get("model_name"):
+        raise HTTPException(503, "请先配置图文代理或默认文本模型")
+    try:
+        prompt = AgentsRuntime().expand_image_prompt(payload.idea, resolve_agent_runtime(config))
+    except Exception as exc:
+        raise HTTPException(502, "提示词扩写失败，请检查文本模型配置与连接后重试") from exc
+    return ImagePromptExpansionResponse(prompt=prompt)
 
 
 @router.post("/runs/preflight", response_model=RunPreflightResponse)
