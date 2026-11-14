@@ -2,7 +2,8 @@ import { cloneElement, isValidElement, useId, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Button } from "./ui/button";
-import { statusNames } from "../data";
+import { statusLabel } from "../data";
+import { useI18n } from "../i18n";
 export function IconButton({
   icon: Icon,
   label,
@@ -40,10 +41,11 @@ export function IconButton({
   );
 }
 export function Status({ value }: { value: string }) {
+  const { locale } = useI18n();
   return (
     <span className={`status status-${value}`}>
       <span />
-      {statusNames[value] || value}
+      {statusLabel(value, locale) || value}
     </span>
   );
 }

@@ -20,13 +20,15 @@ import {
   RefreshCw,
   Search,
   Settings2,
+  SlidersHorizontal,
   SwatchBook,
   X,
   type LucideIcon,
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Button } from "./components/ui/button";
-import { api, demoRuns, modes, plan, stageNames, type Run } from "./data";
+import { api, demoRuns, modeLabel, modes, plan, stageLabel, type Run } from "./data";
+import { LocaleSwitch, formatDateTime, useI18n } from "./i18n";
 import CreatePage from "./CreatePage";
 import { BrandCreativeStudio, type StudioTarget } from "./BrandCreativeStudio";
 const OperationsPage = lazy(() => import("./OperationsPage"));
@@ -45,22 +47,8 @@ function route() {
   const path = location.hash.slice(1) || "/tasks";
   return path === "/research" ? "/product-research" : path;
 }
-function date(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Shanghai",
-  }).format(new Date(value));
-}
-const filters = [
-  ["all", "全部"],
-  ["running", "进行中"],
-  ["waiting_review", "待审核"],
-  ["completed", "已完成"],
-];
 export default function App() {
+  const { locale, t } = useI18n();
   const [preview, setPreview] = useState<{
     run: Run;
     media: RunMedia;
@@ -72,7 +60,7 @@ export default function App() {
     [demo, setDemo] = useState(
       () => new URLSearchParams(location.search).get("mode") !== "live",
     );
-  const [runs, setRuns] = useState<Run[]>(demo ? demoRuns : []),
+  const [runs, setRuns] = useState<Run[]>(() => (demo ? demoRuns(locale) : [])),
     [detail, setDetail] = useState<Run | null>(null),
     [loading, setLoading] = useState(!demo),
     [detailLoading, setDetailLoading] = useState(false),
@@ -113,9 +101,34 @@ export default function App() {
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
+  const filters = [
+    ["all", t("All", "全部")],
+    ["running", t("Active", "进行中")],
+    ["waiting_review", t("Needs review", "待审核")],
+    ["completed", t("Completed", "已完成")],
+  ];
   useEffect(() => {
-    document.title = `crispy · ${operation ? { "product-research": "产品研究", "competitor-research": "竞品研究", memory: "记忆库", calendar: "发布排期", data: "数据" }[operation] : isShops ? "店铺与凭证" : isNew ? "新建任务" : selectedId ? "任务详情" : isAssets ? "产品素材" : "任务"} — the marketing workbench`;
-  }, [isNew, selectedId, isAssets, isShops, operation]);
+    const labels: Record<string, string> = {
+      "product-research": t("Product research", "产品研究"),
+      "competitor-research": t("Competitor research", "竞品研究"),
+      memory: t("Memory", "记忆库"),
+      calendar: t("Publishing calendar", "发布排期"),
+      data: t("Data", "数据"),
+    };
+    document.title = `crispy · ${
+      operation
+        ? labels[operation]
+        : isShops
+          ? t("Shops & credentials", "店铺与凭证")
+          : isNew
+            ? t("New task", "新建任务")
+            : selectedId
+              ? t("Task detail", "任务详情")
+              : isAssets
+                ? t("Product assets", "产品素材")
+                : t("Tasks", "任务")
+    } — the marketing workbench`;
+  }, [isNew, selectedId, isAssets, isShops, operation, t]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 3500);
@@ -217,7 +230,7 @@ export default function App() {
     setPreview(null);
     const next = value === "demo";
     setDemo(next);
-    setRuns(next ? demoRuns : []);
+    setRuns(next ? demoRuns(locale) : []);
     setDetail(null);
     setError("");
     history.replaceState(
@@ -236,6 +249,9 @@ export default function App() {
     go(next);
     setMobileNav(false);
   }
+  useEffect(() => {
+    if (demo) setRuns(demoRuns(locale));
+  }, [locale, demo]);
   const visible = runs.filter(
     (r) =>
       (filter === "all" ||
@@ -273,14 +289,22 @@ export default function App() {
               : r,
           ),
         );
-        setToast(action === "advance" ? "演示：已通过" : "演示：已重新排队");
+        setToast(
+          action === "advance"
+            ? t("Demo: approved", "演示：已通过")
+            : t("Demo: requeued", "演示：已重新排队"),
+        );
       } else {
         await api(`/runs/${encodeURIComponent(current.id)}/${action}`, {
           method: "POST",
           body: JSON.stringify({ notes: "" }),
         });
         setRevision((r) => r + 1);
-        setToast(action === "advance" ? "已通过" : "已驳回");
+        setToast(
+          action === "advance"
+            ? t("Approved", "已通过")
+            : t("Rejected", "已驳回"),
+        );
       }
     } catch (e) {
       setError((e as Error).message);
@@ -294,7 +318,7 @@ export default function App() {
         <div className="mobile-nav-toggle">
           <IconButton
             icon={mobileNav ? X : Menu}
-            label={mobileNav ? "关闭导航" : "打开导航"}
+            label={mobileNav ? t("Close navigation", "关闭导航") : t("Open navigation", "打开导航")}
             expanded={mobileNav}
             onClick={() => setMobileNav((v) => !v)}
           />
@@ -314,14 +338,14 @@ export default function App() {
           </a>
           <div className="nav-context">
             <FolderClosed size={16} />
-            工作空间
+            {t("Workspace", "工作空间")}
           </div>
-          <div className="nav-section">营销工作</div>
-          <nav aria-label="主导航">
+          <div className="nav-section">{t("Marketing work", "营销工作")}</div>
+          <nav aria-label={t("Main navigation", "主导航")}>
             {(
               [
-                ["/tasks", "任务", Layers],
-                ["/assets", "产品素材", Image],
+                ["/tasks", t("Tasks", "任务"), Layers],
+                ["/assets", t("Product assets", "产品素材"), Image],
               ] as [string, string, LucideIcon][]
             ).map(([target, label, Icon]) => (
               <a
@@ -343,14 +367,24 @@ export default function App() {
                 {label}
               </a>
             ))}
-            <div className="nav-section separated">洞察与运营</div>
+            <div className="nav-section separated">
+              {t("Insights & operations", "洞察与运营")}
+            </div>
             {(
               [
-                ["product-research", "产品研究", Search],
-                ["competitor-research", "竞品研究", ListFilter],
-                ["memory", "记忆库", BookOpen],
-                ["calendar", "发布排期", CalendarDays],
-                ["data", "数据", Activity],
+                ["product-research", t("Product research", "产品研究"), Search],
+                [
+                  "competitor-research",
+                  t("Competitor research", "竞品研究"),
+                  ListFilter,
+                ],
+                ["memory", t("Memory", "记忆库"), BookOpen],
+                [
+                  "calendar",
+                  t("Publishing calendar", "发布排期"),
+                  CalendarDays,
+                ],
+                ["data", t("Data", "数据"), Activity],
               ] as [string, string, LucideIcon][]
             ).map(([id, label, Icon]) => (
               <a
@@ -373,29 +407,42 @@ export default function App() {
               onClick={() => navigate("/shops")}
             >
               <Settings2 size={16} />
-              店铺与凭证
+              {t("Shops & credentials", "店铺与凭证")}
             </a>
-            <label className="data-mode sidebar-data-mode">
-              <span className="sr-only">数据模式</span>
-              <select
-                value={demo ? "demo" : "live"}
-                onChange={(e) => switchMode(e.target.value)}
-              >
-                <option value="demo">演示数据</option>
-                <option value="live">本地 API</option>
-              </select>
-            </label>
-            <div className="environment">
-              <span className="connection-dot" />
-              {demo ? "设计预览" : "本地 API"}
-              <span>v0.3</span>
-            </div>
+            <details className="sidebar-settings">
+              <summary>
+                <span>
+                  <SlidersHorizontal size={16} />
+                  {t("Settings", "设置")}
+                </span>
+                <span className="sidebar-settings-value">
+                  {demo ? t("Demo", "演示") : t("Live", "本地")}
+                </span>
+                <ChevronRight size={13} className="sidebar-settings-chevron" />
+              </summary>
+              <div className="sidebar-settings-body">
+                <div className="sidebar-setting">
+                  <span>{t("Language", "语言")}</span>
+                  <LocaleSwitch />
+                </div>
+                <label className="sidebar-setting">
+                  <span>{t("Data mode", "数据模式")}</span>
+                  <select
+                    value={demo ? "demo" : "live"}
+                    onChange={(e) => switchMode(e.target.value)}
+                  >
+                    <option value="demo">{t("Demo data", "演示数据")}</option>
+                    <option value="live">{t("Local API", "本地 API")}</option>
+                  </select>
+                </label>
+              </div>
+            </details>
           </div>
         </aside>
         {mobileNav && (
           <button
             className="nav-backdrop"
-            aria-label="关闭导航"
+            aria-label={t("Close navigation", "关闭导航")}
             onClick={() => setMobileNav(false)}
           />
         )}
@@ -404,36 +451,48 @@ export default function App() {
             {!isShops && !operation && (
               <div className="breadcrumb">
                 <a href="#/tasks" onClick={() => navigate("/tasks")}>
-                  营销工作
+                  {t("Marketing work", "营销工作")}
                 </a>
                 <ChevronRight size={12} />
                 {selectedId || isNew ? (
                   <>
-                    <a href="#/tasks">任务</a>
+                    <a href="#/tasks">{t("Tasks", "任务")}</a>
                     <ChevronRight size={12} />
                     <span>
-                      {isNew ? "新建" : current?.product_code || selectedId}
+                      {isNew
+                        ? t("New", "新建")
+                        : current?.product_code || selectedId}
                     </span>
                   </>
                 ) : (
-                  <span>{isAssets ? "产品素材" : "任务"}</span>
+                  <span>
+                    {isAssets
+                      ? t("Product assets", "产品素材")
+                      : t("Tasks", "任务")}
+                  </span>
                 )}
               </div>
             )}
             {error && !isShops && (
               <div className="alert" role="alert">
-                <span>{error} · 后端地址 127.0.0.1:8000</span>
+                <span>
+                  {error} · {t("API at", "后端地址")} 127.0.0.1:8000
+                </span>
                 <Button
                   variant="outline"
                   onClick={() => setRevision((r) => r + 1)}
                 >
                   <RefreshCw size={14} />
-                  重试
+                  {t("Retry", "重试")}
                 </Button>
               </div>
             )}
             {operation ? (
-              <Suspense fallback={<p role="status">加载中…</p>}>
+              <Suspense
+                fallback={
+                  <p role="status">{t("Loading…", "加载中…")}</p>
+                }
+              >
                 <OperationsPage
                   key={`${operation}-${demo}`}
                   section={operation}
@@ -445,7 +504,7 @@ export default function App() {
                 fallback={
                   <div className="empty-state">
                     <LoaderCircle size={24} className="spin" />
-                    <p>正在加载店铺凭证</p>
+                    <p>{t("Loading shop credentials", "正在加载店铺凭证")}</p>
                   </div>
                 }
               >
@@ -463,7 +522,11 @@ export default function App() {
                   setRuns((rows) => [run, ...rows]);
                   setFilter("all");
                   setQuery("");
-                  setToast(demo ? "演示任务已创建" : "任务已创建");
+                  setToast(
+                    demo
+                      ? t("Demo task created", "演示任务已创建")
+                      : t("Task created", "任务已创建"),
+                  );
                   go(`/tasks/${run.id}`);
                 }}
                 onUseTemplate={(templateId, workspace) =>
@@ -476,51 +539,54 @@ export default function App() {
                   <div className="resource-name">
                     <IconButton
                       icon={ArrowLeft}
-                      label="返回任务列表"
+                      label={t("Back to tasks", "返回任务列表")}
                       onClick={() => go("/tasks")}
                     />
                     <p className="page-title" tabIndex={-1}>
-                      {current?.name || current?.product_code || "任务详情"}
+                      {current?.name ||
+                        current?.product_code ||
+                        t("Task detail", "任务详情")}
                     </p>
                     {current && <Status value={current.status} />}
                   </div>
                   {current && (
                     <div className="resource-summary">
                       <span>
-                        <small>当前阶段</small>
-                        {stageNames[current.current_stage || ""] || "待执行"}
+                        <small>{t("Current stage", "当前阶段")}</small>
+                        {stageLabel(current.current_stage, locale) ||
+                          t("Not started", "待执行")}
                       </span>
                       <span>
-                        <small>创作模式</small>
-                        {modes[current.pipeline_mode]}
+                        <small>{t("Creative mode", "创作模式")}</small>
+                        {modeLabel(current.pipeline_mode, locale)}
                       </span>
                       <span>
-                        <small>产品编号</small>
+                        <small>{t("Product code", "产品编号")}</small>
                         {current.product_code}
                       </span>
                       <span>
-                        <small>更新</small>
-                        {date(current.updated_at)}
+                        <small>{t("Updated", "更新")}</small>
+                        {formatDateTime(locale, current.updated_at)}
                       </span>
                     </div>
                   )}
                   <div className="resource-actions">
                     <IconButton
                       icon={Copy}
-                      label="复制任务编号"
+                      label={t("Copy task ID", "复制任务编号")}
                       onClick={() =>
                         void navigator.clipboard.writeText(selectedId).then(
-                          () => setToast("已复制任务编号"),
-                          () => setToast("复制失败"),
+                          () => setToast(t("Task ID copied", "已复制任务编号")),
+                          () => setToast(t("Copy failed", "复制失败")),
                         )
                       }
                     />
                     <IconButton
                       icon={RefreshCw}
-                      label="刷新任务"
+                      label={t("Refresh task", "刷新任务")}
                       onClick={() =>
                         demo
-                          ? setToast("当前为演示数据")
+                          ? setToast(t("Demo data is active", "当前为演示数据"))
                           : setRevision((r) => r + 1)
                       }
                     />
@@ -529,13 +595,13 @@ export default function App() {
                 <div
                   className="resource-tabs"
                   role="group"
-                  aria-label="任务视图"
+                  aria-label={t("Task view", "任务视图")}
                 >
                   <AnimatedSelection active={detailTab}>
                     {[
-                      ["overview", "概览"],
-                      ["stages", "执行阶段"],
-                      ["info", "任务信息"],
+                      ["overview", t("Overview", "概览")],
+                      ["stages", t("Stages", "执行阶段")],
+                      ["info", t("Task info", "任务信息")],
                     ].map(([id, label]) => (
                       <button
                         key={id}
@@ -564,12 +630,15 @@ export default function App() {
                         />
                         <section
                           className="execution-section"
-                          aria-label="执行记录"
+                          aria-label={t("Execution log", "执行记录")}
                         >
                           <div className="section-toolbar">
-                            <p>执行阶段</p>
+                            <p>{t("Stages", "执行阶段")}</p>
                             <span className="muted">
-                              {plan(current).length} 阶段
+                              {t(
+                                `${plan(current).length} stages`,
+                                `${plan(current).length} 阶段`,
+                              )}
                             </span>
                           </div>
                           <StageList run={current} demo={demo} />
@@ -577,7 +646,7 @@ export default function App() {
                             <div>
                               <Status value={current.status} />
                               <span className="muted">
-                                {stageNames[current.current_stage || ""]}
+                                {stageLabel(current.current_stage, locale)}
                               </span>
                             </div>
                             {current.status === "waiting_review" && !demo ? (
@@ -585,7 +654,7 @@ export default function App() {
                                 className="button button-primary button-default"
                                 href="http://127.0.0.1:8000/dashboard"
                               >
-                                打开完整审核
+                                {t("Open full review", "打开完整审核")}
                                 <ArrowUpRight size={14} />
                               </a>
                             ) : current.status === "waiting_review" ? (
@@ -596,7 +665,7 @@ export default function App() {
                                   onClick={() => void review("reject")}
                                 >
                                   <X size={15} />
-                                  驳回
+                                  {t("Reject", "驳回")}
                                 </Button>
                                 <Button
                                   disabled={busy}
@@ -607,7 +676,7 @@ export default function App() {
                                   ) : (
                                     <Check size={15} />
                                   )}
-                                  通过阶段
+                                  {t("Approve stage", "通过阶段")}
                                 </Button>
                               </div>
                             ) : null}
@@ -622,11 +691,17 @@ export default function App() {
                       <section className="surface info-page">
                         <dl>
                           {[
-                            ["任务编号", current.id],
-                            ["产品编号", current.product_code],
-                            ["项目", current.project_id],
-                            ["创作模式", modes[current.pipeline_mode]],
-                            ["数据来源", demo ? "演示" : "本地 API"],
+                            [t("Task ID", "任务编号"), current.id],
+                            [t("Product code", "产品编号"), current.product_code],
+                            [t("Project", "项目"), current.project_id],
+                            [
+                              t("Creative mode", "创作模式"),
+                              modeLabel(current.pipeline_mode, locale),
+                            ],
+                            [
+                              t("Data source", "数据来源"),
+                              demo ? t("Demo", "演示") : t("Local API", "本地 API"),
+                            ],
                           ].map(([label, value]) => (
                             <div key={label}>
                               <dt>{label}</dt>
@@ -644,9 +719,13 @@ export default function App() {
                     ) : (
                       <FolderClosed size={24} />
                     )}
-                    <p>{detailLoading ? "正在加载" : "找不到该任务"}</p>
+                    <p>
+                      {detailLoading
+                        ? t("Loading", "正在加载")
+                        : t("Task not found", "找不到该任务")}
+                    </p>
                     <Button variant="outline" onClick={() => go("/tasks")}>
-                      返回列表
+                      {t("Back to list", "返回列表")}
                     </Button>
                   </div>
                 )}
@@ -655,17 +734,17 @@ export default function App() {
               <>
                 <div className="resource-header">
                   <p className="page-title" tabIndex={-1}>
-                    {isAssets ? "产品素材" : "任务"}
+                    {isAssets ? t("Product assets", "产品素材") : t("Tasks", "任务")}
                   </p>
                   <Button onClick={() => go("/new")}>
                     <Plus size={15} />
-                    新建任务
+                    {t("New task", "新建任务")}
                   </Button>
                 </div>
                 <div
                   className="resource-tabs"
                   role="group"
-                  aria-label="任务状态"
+                  aria-label={t("Task status", "任务状态")}
                 >
                   <AnimatedSelection active={filter}>
                     {filters.map(([id, label]) => (
@@ -693,7 +772,9 @@ export default function App() {
                 </div>
                 <section
                   className={isAssets ? "material-index" : "surface task-index"}
-                  aria-label={isAssets ? "产品素材列表" : "任务列表"}
+                  aria-label={
+                    isAssets ? t("Product asset list", "产品素材列表") : t("Task list", "任务列表")
+                  }
                   aria-busy={loading}
                 >
                   <div className="index-toolbar">
@@ -701,8 +782,8 @@ export default function App() {
                       <Search size={16} />
                       <input
                         id="task-search"
-                        aria-label="搜索任务"
-                        placeholder="搜索名称或产品编号"
+                        aria-label={t("Search tasks", "搜索任务")}
+                        placeholder={t("Search by name or product code", "搜索名称或产品编号")}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                       />
@@ -711,26 +792,26 @@ export default function App() {
                     <div className="toolbar-right">
                       <label className="mode-filter">
                         <ListFilter size={14} />
-                        <span className="sr-only">创作模式</span>
+                        <span className="sr-only">{t("Creative mode", "创作模式")}</span>
                         <select
                           value={modeFilter}
                           onChange={(e) => setModeFilter(e.target.value)}
                         >
-                          <option value="all">全部模式</option>
-                          {Object.entries(modes).map(([id, label]) => (
+                          <option value="all">{t("All modes", "全部模式")}</option>
+                          {Object.entries(modes).map(([id]) => (
                             <option key={id} value={id}>
-                              {label}
+                              {modeLabel(id, locale)}
                             </option>
                           ))}
                         </select>
                       </label>
                       <IconButton
                         icon={RefreshCw}
-                        label="刷新列表"
+                        label={t("Refresh list", "刷新列表")}
                         disabled={loading}
                         onClick={() =>
                           demo
-                            ? setToast("当前为演示数据")
+                            ? setToast(t("Demo data is active", "当前为演示数据"))
                             : setRevision((r) => r + 1)
                         }
                       />
@@ -755,7 +836,9 @@ export default function App() {
                             <strong>{r.name || r.product_code}</strong>
                             <ArrowUpRight size={14} />
                           </div>
-                          <small>{r.product_code} · 参考素材</small>
+                          <small>
+                            {r.product_code} · {t("Reference assets", "参考素材")}
+                          </small>
                         </PolishedAsset>
                       ))}
                     </div>
@@ -764,16 +847,16 @@ export default function App() {
                       <table>
                         <thead>
                           <tr>
-                            <th>任务 / 产品</th>
-                            <th className="task-media-column">媒体</th>
-                            <th>状态</th>
-                            <th className="mode-column">创作模式</th>
-                            <th className="stage-column">当前阶段</th>
+                            <th>{t("Task / product", "任务 / 产品")}</th>
+                            <th className="task-media-column">{t("Media", "媒体")}</th>
+                            <th>{t("Status", "状态")}</th>
+                            <th className="mode-column">{t("Creative mode", "创作模式")}</th>
+                            <th className="stage-column">{t("Current stage", "当前阶段")}</th>
                             <th className="date-column">
-                              更新 <ArrowDown size={12} />
+                              {t("Updated", "更新")} <ArrowDown size={12} />
                             </th>
                             <th>
-                              <span className="sr-only">打开任务</span>
+                              <span className="sr-only">{t("Open task", "打开任务")}</span>
                             </th>
                           </tr>
                         </thead>
@@ -808,20 +891,25 @@ export default function App() {
                                 <Status value={r.status} />
                               </td>
                               <td className="mode-column">
-                                {modes[r.pipeline_mode] || r.pipeline_mode}
+                                {modeLabel(r.pipeline_mode, locale) ||
+                                  r.pipeline_mode}
                               </td>
                               <td className="stage-column">
-                                {stageNames[r.current_stage || ""] || "待执行"}
+                                {stageLabel(r.current_stage, locale) ||
+                                  t("Not started", "待执行")}
                               </td>
                               <td className="date-column">
                                 <time dateTime={r.updated_at}>
-                                  {date(r.updated_at)}
+                                  {formatDateTime(locale, r.updated_at)}
                                 </time>
                               </td>
                               <td>
                                 <IconButton
                                   icon={ArrowRight}
-                                  label={`查看 ${r.name || r.product_code}`}
+                                  label={t(
+                                    `View ${r.name || r.product_code}`,
+                                    `查看 ${r.name || r.product_code}`,
+                                  )}
                                   onClick={() => go(`/tasks/${r.id}`)}
                                 />
                               </td>
@@ -840,12 +928,12 @@ export default function App() {
                       )}
                       <p>
                         {loading
-                          ? "正在加载"
+                          ? t("Loading", "正在加载")
                           : error
-                            ? "连接失败"
+                            ? t("Connection failed", "连接失败")
                             : query || modeFilter !== "all" || filter !== "all"
-                              ? "没有匹配的任务"
-                              : "暂无任务"}
+                              ? t("No matching tasks", "没有匹配的任务")
+                              : t("No tasks yet", "暂无任务")}
                       </p>
                       {!loading && !error && (
                         <Button
@@ -856,13 +944,18 @@ export default function App() {
                             setFilter("all");
                           }}
                         >
-                          清除筛选
+                          {t("Clear filters", "清除筛选")}
                         </Button>
                       )}
                     </div>
                   )}
                   <div className="index-footer">
-                    <span>{visible.length} 个任务</span>
+                    <span>
+                      {t(
+                        `${visible.length} tasks`,
+                        `${visible.length} 个任务`,
+                      )}
+                    </span>
                   </div>
                 </section>
               </>
@@ -898,7 +991,7 @@ export default function App() {
             {toast}
             <IconButton
               icon={X}
-              label="关闭提示"
+              label={t("Dismiss notification", "关闭提示")}
               onClick={() => setToast("")}
             />
           </div>
@@ -908,6 +1001,7 @@ export default function App() {
   );
 }
 function StageList({ run, demo }: { run: Run; demo: boolean }) {
+  const { locale, t } = useI18n();
   const stages = plan(run),
     active = stages.indexOf(run.current_stage || "");
   const items = demo
@@ -940,7 +1034,7 @@ function StageList({ run, demo }: { run: Run; demo: boolean }) {
             )}
           </span>
           <span className="stage-content">
-            <span>{stageNames[stage.stage_name] || stage.stage_name}</span>
+            <span>{stageLabel(stage.stage_name, locale) || stage.stage_name}</span>
             {stage.error_message && (
               <small className="error-text">{stage.error_message}</small>
             )}
@@ -948,7 +1042,9 @@ function StageList({ run, demo }: { run: Run; demo: boolean }) {
           <Status value={stage.status} />
         </li>
       ))}
-      {!items.length && <li className="muted">暂无执行记录</li>}
+      {!items.length && (
+        <li className="muted">{t("No execution log yet", "暂无执行记录")}</li>
+      )}
     </ol>
   );
 }

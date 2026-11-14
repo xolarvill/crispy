@@ -1,3 +1,5 @@
+import { currentLocale, pick, type Localized, type Locale } from "./i18n";
+
 export type RunMedia = {
   uri: string;
   kind: "image" | "video";
@@ -59,35 +61,53 @@ export type Run = {
     error_message?: string | null;
   }[];
 };
-export const stageNames: Record<string, string> = {
-  intake: "需求确认",
-  planning: "策略规划",
-  divergence: "创意方向",
-  copy_image_generation: "图文生成",
-  video_scripting: "视频脚本",
-  storyboard_image_generation: "分镜生成",
-  video_generation: "视频生成",
-  visual_quality_assessment: "视觉质检",
-  evaluation_selection: "评估交付",
+export const stageNames: Record<string, Localized> = {
+  intake: { en: "Intake", zh: "需求确认" },
+  planning: { en: "Planning", zh: "策略规划" },
+  divergence: { en: "Creative direction", zh: "创意方向" },
+  copy_image_generation: { en: "Copy & image", zh: "图文生成" },
+  video_scripting: { en: "Video script", zh: "视频脚本" },
+  storyboard_image_generation: { en: "Storyboard", zh: "分镜生成" },
+  video_generation: { en: "Video", zh: "视频生成" },
+  visual_quality_assessment: { en: "Visual QA", zh: "视觉质检" },
+  evaluation_selection: { en: "Evaluation & delivery", zh: "评估交付" },
 };
-export const statusNames: Record<string, string> = {
-  waiting_review: "待审核",
-  running: "进行中",
-  queued: "排队中",
-  draft: "草稿",
-  not_started: "未开始",
-  approved: "已通过",
-  completed: "已完成",
-  failed: "失败",
-  rejected: "已驳回",
+export const statusNames: Record<string, Localized> = {
+  waiting_review: { en: "Needs review", zh: "待审核" },
+  running: { en: "Running", zh: "进行中" },
+  queued: { en: "Queued", zh: "排队中" },
+  draft: { en: "Draft", zh: "草稿" },
+  not_started: { en: "Not started", zh: "未开始" },
+  approved: { en: "Approved", zh: "已通过" },
+  completed: { en: "Completed", zh: "已完成" },
+  failed: { en: "Failed", zh: "失败" },
+  rejected: { en: "Rejected", zh: "已驳回" },
 };
-export const modes: Record<string, string> = {
-  copy_image_only: "图文",
-  video_only: "视频",
-  full_multimodal: "图文 + 视频",
-  marketplace_main_image: "电商主图",
-  tiktok_shop_video: "TikTok 视频",
+export const modes: Record<string, Localized> = {
+  copy_image_only: { en: "Copy & image", zh: "图文" },
+  video_only: { en: "Video", zh: "视频" },
+  full_multimodal: { en: "Copy, image & video", zh: "图文 + 视频" },
+  marketplace_main_image: { en: "Marketplace hero", zh: "电商主图" },
+  tiktok_shop_video: { en: "TikTok video", zh: "TikTok 视频" },
 };
+
+function localizedLabel(
+  labels: Record<string, Localized>,
+  key: string | null | undefined,
+  locale: Locale,
+): string {
+  const value = key ? labels[key] : undefined;
+  return value ? pick(value, locale) : "";
+}
+export function stageLabel(key: string | null | undefined, locale: Locale) {
+  return localizedLabel(stageNames, key, locale);
+}
+export function statusLabel(key: string | null | undefined, locale: Locale) {
+  return localizedLabel(statusNames, key, locale);
+}
+export function modeLabel(key: string | null | undefined, locale: Locale) {
+  return localizedLabel(modes, key, locale);
+}
 export function plan(run: Run) {
   const stages = ["intake", "planning", "divergence"];
   if (!["video_only", "tiktok_shop_video"].includes(run.pipeline_mode))
@@ -104,7 +124,7 @@ export function plan(run: Run) {
     );
   return [...stages, "visual_quality_assessment", "evaluation_selection"];
 }
-export function progress(run: Run) {
+export function progress(run: Run, locale: Locale) {
   const groups = [
     ["intake"],
     ["planning", "divergence"],
@@ -118,8 +138,15 @@ export function progress(run: Run) {
     ["evaluation_selection"],
   ];
   const active = groups.findIndex((g) => g.includes(run.current_stage || ""));
-  return ["需求", "策略", "生成", "质检", "交付"].map((label, i) => ({
-    label,
+  const labels: Localized[] = [
+    { en: "Brief", zh: "需求" },
+    { en: "Strategy", zh: "策略" },
+    { en: "Generate", zh: "生成" },
+    { en: "QA", zh: "质检" },
+    { en: "Deliver", zh: "交付" },
+  ];
+  return labels.map((label, i) => ({
+    label: pick(label, locale),
     state:
       run.status === "completed" || (active >= 0 && i < active)
         ? "done"
@@ -128,10 +155,12 @@ export function progress(run: Run) {
           : "",
   }));
 }
-export const demoRuns: Run[] = [
+export function demoRuns(locale: Locale): Run[] {
+  const name = (en: string, zh: string) => pick({ en, zh }, locale);
+  return [
   {
     id: "demo-0832",
-    name: "夏日亚麻连衣裙",
+    name: name("Summer linen dress", "夏日亚麻连衣裙"),
     product_code: "LINEN-032",
     status: "waiting_review",
     current_stage: "copy_image_generation",
@@ -142,7 +171,7 @@ export const demoRuns: Run[] = [
   },
   {
     id: "demo-0831",
-    name: "银色缎面长裙",
+    name: name("Silver satin gown", "银色缎面长裙"),
     product_code: "SATIN-031",
     status: "running",
     current_stage: "visual_quality_assessment",
@@ -153,7 +182,7 @@ export const demoRuns: Run[] = [
   },
   {
     id: "demo-0830",
-    name: "春夏服饰 · 参考素材",
+    name: name("Spring/summer reference set", "春夏服饰 · 参考素材"),
     product_code: "STYLE-030",
     status: "completed",
     current_stage: "evaluation_selection",
@@ -170,7 +199,7 @@ export const demoRuns: Run[] = [
   },
   {
     id: "demo-0829",
-    name: "秋季系列 · 短视频",
+    name: name("Autumn series · short video", "秋季系列 · 短视频"),
     product_code: "AUTUMN-029",
     status: "queued",
     current_stage: "video_scripting",
@@ -181,7 +210,7 @@ export const demoRuns: Run[] = [
   },
   {
     id: "demo-0828",
-    name: "缎面系列 · 主图",
+    name: name("Satin series · hero image", "缎面系列 · 主图"),
     product_code: "SATIN-028",
     status: "waiting_review",
     current_stage: "planning",
@@ -192,7 +221,7 @@ export const demoRuns: Run[] = [
   },
   {
     id: "demo-0827",
-    name: "冬日居家系列",
+    name: name("Winter home collection", "冬日居家系列"),
     product_code: "HOME-027",
     status: "failed",
     current_stage: "copy_image_generation",
@@ -201,7 +230,8 @@ export const demoRuns: Run[] = [
     project_id: "demo",
     image: "/robe.jpg",
   },
-];
+  ];
+}
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch("/api" + path, {
     ...options,
@@ -217,7 +247,9 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(
       typeof body?.detail === "string"
         ? body.detail
-        : `请求失败 (${res.status})`,
+        : currentLocale() === "zh"
+          ? `请求失败 (${res.status})`
+          : `Request failed (${res.status})`,
     );
   }
   if (res.status === 204) return undefined as T;

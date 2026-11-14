@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw, Search, ChevronRight, ArrowLeft } from "lucide-react";
 import { api } from "./data";
 import { demoShops, type Shop } from "./shop-data";
+import { pick, useI18n, type Localized, type Locale } from "./i18n";
 import { Button } from "./components/ui/button";
 import { IconButton } from "./components/console-controls";
 import "./operations.css";
@@ -22,81 +23,97 @@ type Row = {
   content?: Record<string, unknown>;
   error_message?: string;
 };
-const titles: Record<string, string> = {
-  "product-research": "产品研究",
-  "competitor-research": "竞品研究",
-  memory: "记忆库",
-  calendar: "发布排期",
-  data: "数据",
+const titles: Record<string, Localized> = {
+  "product-research": { en: "Product research", zh: "产品研究" },
+  "competitor-research": { en: "Competitor research", zh: "竞品研究" },
+  memory: { en: "Memory", zh: "记忆库" },
+  calendar: { en: "Publishing calendar", zh: "发布排期" },
+  data: { en: "Data", zh: "数据" },
 };
-const demoRows: Record<string, Row[]> = {
-  research: [
-    {
-      id: "r1",
-      shop_name: "Atelier Studio",
-      task_type: "store_context",
-      status: "completed",
-      created_at: "2026-11-01",
-      content: { summary: "店铺研究演示记录", evidence: [] },
-    },
-    {
-      id: "r2",
-      shop_name: "Northline",
-      task_type: "competitive_landscape",
-      status: "queued",
-      created_at: "2026-11-01",
-    },
-  ],
-  memory: [
-    {
-      id: "m1",
-      memory_type: "shop_profile",
-      memory_scope: "shop",
-      source_type: "research_intelligence",
-      status: "active",
-      content: {
-        summary: "自然光与面料细节作为产品表达重点。此条为演示记忆。",
+function demoRows(locale: Locale): Record<string, Row[]> {
+  const name = (en: string, zh: string) => pick({ en, zh }, locale);
+  return {
+    research: [
+      {
+        id: "r1",
+        shop_name: "Atelier Studio",
+        task_type: "store_context",
+        status: "completed",
+        created_at: "2026-11-01",
+        content: {
+          summary: name("Demo store research record", "店铺研究演示记录"),
+          evidence: [],
+        },
       },
-    },
-  ],
-  calendar: [
-    {
-      id: "s1",
-      title: "秋季系列 · 产品图文",
-      channel: "instagram",
-      scheduled_date: "2026-11-03",
-      scheduled_time: "10:00",
-      state: "draft",
-    },
-    {
-      id: "s2",
-      title: "新品短视频",
-      channel: "tiktok",
-      scheduled_date: "2026-11-05",
-      scheduled_time: "18:00",
-      state: "scheduled",
-    },
-  ],
+      {
+        id: "r2",
+        shop_name: "Northline",
+        task_type: "competitive_landscape",
+        status: "queued",
+        created_at: "2026-11-01",
+      },
+    ],
+    memory: [
+      {
+        id: "m1",
+        memory_type: "shop_profile",
+        memory_scope: "shop",
+        source_type: "research_intelligence",
+        status: "active",
+        content: {
+          summary: name(
+            "Natural light and fabric detail lead the product expression. This is a demo memory.",
+            "自然光与面料细节作为产品表达重点。此条为演示记忆。",
+          ),
+        },
+      },
+    ],
+    calendar: [
+      {
+        id: "s1",
+        title: name("Autumn series · product story", "秋季系列 · 产品图文"),
+        channel: "instagram",
+        scheduled_date: "2026-11-03",
+        scheduled_time: "10:00",
+        state: "draft",
+      },
+      {
+        id: "s2",
+        title: name("New product short video", "新品短视频"),
+        channel: "tiktok",
+        scheduled_date: "2026-11-05",
+        scheduled_time: "18:00",
+        state: "scheduled",
+      },
+    ],
+  };
+}
+const labels: Record<string, Localized> = {
+  completed: { en: "Completed", zh: "已完成" },
+  queued: { en: "Queued", zh: "排队中" },
+  running: { en: "Running", zh: "进行中" },
+  failed: { en: "Failed", zh: "失败" },
+  active: { en: "Active", zh: "有效" },
+  draft: { en: "Draft", zh: "草稿" },
+  scheduled: { en: "Scheduled", zh: "已排期" },
+  published: { en: "Published", zh: "已发布" },
+  store_context: { en: "Store research", zh: "店铺研究" },
+  full_intelligence: { en: "Full research", zh: "综合研究" },
+  industry_baseline: { en: "Industry research", zh: "行业研究" },
+  audience_pain_points: { en: "Audience research", zh: "受众研究" },
+  compliance_scan: { en: "Compliance research", zh: "合规研究" },
+  competitive_landscape: { en: "Competitor research", zh: "竞品研究" },
+  shop_profile: { en: "Shop profile", zh: "店铺画像" },
+  store_profile: { en: "Store profile", zh: "店铺画像" },
+  "product-research": { en: "Product research", zh: "产品研究" },
+  "competitor-research": { en: "Competitor research", zh: "竞品研究" },
+  memory: { en: "Memory", zh: "记忆库" },
+  calendar: { en: "Calendar", zh: "发布排期" },
+  data: { en: "Data", zh: "数据" },
 };
-const labels: Record<string, string> = {
-  completed: "已完成",
-  queued: "排队中",
-  running: "进行中",
-  failed: "失败",
-  active: "有效",
-  draft: "草稿",
-  scheduled: "已排期",
-  published: "已发布",
-  store_context: "店铺研究",
-  full_intelligence: "综合研究",
-  industry_baseline: "行业研究",
-  audience_pain_points: "受众研究",
-  compliance_scan: "合规研究",
-  competitive_landscape: "竞品研究",
-  shop_profile: "店铺画像",
-};
-function label(value?: string) {
-  return value ? labels[value] || value : "—";
+function label(value: string | undefined, locale: Locale) {
+  const entry = value ? labels[value] : undefined;
+  return entry ? pick(entry, locale) : value || "—";
 }
 export default function OperationsPage({
   section,
@@ -105,6 +122,7 @@ export default function OperationsPage({
   section: string;
   demo: boolean;
 }) {
+  const { t, locale } = useI18n();
   const [shops, setShops] = useState<Shop[]>(demo ? demoShops : []),
     [shop, setShop] = useState(demo ? demoShops[0].id : ""),
     [rows, setRows] = useState<Row[]>([]),
@@ -166,7 +184,9 @@ export default function OperationsPage({
     setRows([]);
     if (demo) {
       setRows(
-        demoRows[section.endsWith("-research") ? "research" : section] || [],
+        demoRows(locale)[
+          section.endsWith("-research") ? "research" : section
+        ] || [],
       );
       if (section === "data")
         setMetrics({
@@ -182,7 +202,7 @@ export default function OperationsPage({
     if (!shop && section !== "memory") return;
     if (section === "data" && !submittedProject) return;
     if (section === "calendar" && (!start || !end || start > end)) {
-      setError("请选择有效日期范围");
+      setError(t("Choose a valid date range", "请选择有效日期范围"));
       return;
     }
     const c = new AbortController();
@@ -221,7 +241,7 @@ export default function OperationsPage({
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [demo, section, shop, revision, start, end, submittedProject, shops]);
+  }, [demo, section, shop, revision, start, end, submittedProject, shops, locale]);
   const filtered = rows.filter(
     (r) =>
       (section === "competitor-research"
@@ -253,7 +273,9 @@ export default function OperationsPage({
       });
       setRevision((value) => value + 1);
     } catch (e) {
-      setDispatchError(e instanceof Error ? e.message : "派发失败");
+      setDispatchError(
+        e instanceof Error ? e.message : t("Dispatch failed", "派发失败"),
+      );
     } finally {
       setDispatching(false);
     }
@@ -262,18 +284,18 @@ export default function OperationsPage({
     <div className="operations-page">
       <div className="resource-header">
         <p className="page-title" tabIndex={-1}>
-          {titles[section]}
+          {pick(titles[section], locale)}
         </p>
         <IconButton
           icon={RefreshCw}
-          label="刷新"
+          label={t("Refresh", "刷新")}
           onClick={() => setRevision((v) => v + 1)}
         />
       </div>
       <div className="operations-toolbar">
         {section !== "memory" && (
           <label>
-            店铺
+            {t("Shop", "店铺")}
             <select
               value={shop}
               onChange={(e) => {
@@ -282,7 +304,7 @@ export default function OperationsPage({
               }}
             >
               <option value="" disabled>
-                选择店铺
+                {t("Choose a shop", "选择店铺")}
               </option>
               {shops.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -295,7 +317,7 @@ export default function OperationsPage({
         {section === "calendar" && (
           <>
             <label>
-              从
+              {t("From", "从")}
               <input
                 type="date"
                 value={start}
@@ -303,7 +325,7 @@ export default function OperationsPage({
               />
             </label>
             <label>
-              至
+              {t("To", "至")}
               <input
                 type="date"
                 value={end}
@@ -321,16 +343,16 @@ export default function OperationsPage({
             }}
           >
             <label>
-              项目
+              {t("Project", "项目")}
               <input
                 required
                 value={project}
                 onChange={(e) => setProject(e.target.value)}
-                placeholder="项目名称"
+                placeholder={t("Project name", "项目名称")}
               />
             </label>
             <Button variant="outline" type="submit">
-              查看
+              {t("View", "查看")}
             </Button>
           </form>
         )}
@@ -338,8 +360,8 @@ export default function OperationsPage({
           <label className="operations-search">
             <Search size={15} />
             <input
-              aria-label="搜索记录"
-              placeholder="搜索"
+              aria-label={t("Search records", "搜索记录")}
+              placeholder={t("Search", "搜索")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -348,31 +370,33 @@ export default function OperationsPage({
       </div>
       {(demo || section === "memory") && (
         <p className="muted operations-disclosure">
-          {demo ? "演示数据" : "全部店铺 · 有效记忆"}
+          {demo
+            ? t("Demo data", "演示数据")
+            : t("All shops · active memory", "全部店铺 · 有效记忆")}
         </p>
       )}
       {error && (
         <div role="alert" className="alert">
           {error}
           <Button variant="outline" onClick={() => setRevision((v) => v + 1)}>
-            重试
+            {t("Retry", "重试")}
           </Button>
         </div>
       )}
       {loading ? (
         <p role="status" className="empty-state">
-          加载中…
+          {t("Loading…", "加载中…")}
         </p>
       ) : selected ? (
         <section className="operations-detail">
           <Button variant="ghost" onClick={() => setSelected(null)}>
             <ArrowLeft size={15} />
-            返回列表
+            {t("Back to list", "返回列表")}
           </Button>
           <p className="operations-detail-title">
             {selected.title ||
               selected.shop_name ||
-              label(selected.memory_type)}
+              label(selected.memory_type, locale)}
           </p>
           <dl>
             {Object.entries(selected)
@@ -382,26 +406,26 @@ export default function OperationsPage({
                   <dt>
                     {(
                       {
-                        title: "名称",
-                        shop_name: "店铺",
-                        task_type: "研究类型",
-                        status: "状态",
-                        state: "状态",
-                        memory_type: "记忆类型",
-                        memory_scope: "作用域",
-                        source_type: "来源",
-                        scheduled_date: "日期",
-                        scheduled_time: "时间",
-                        channel: "渠道",
-                        created_at: "创建时间",
-                        error_message: "错误",
+                        title: t("Name", "名称"),
+                        shop_name: t("Shop", "店铺"),
+                        task_type: t("Research type", "研究类型"),
+                        status: t("Status", "状态"),
+                        state: t("Status", "状态"),
+                        memory_type: t("Memory type", "记忆类型"),
+                        memory_scope: t("Scope", "作用域"),
+                        source_type: t("Source", "来源"),
+                        scheduled_date: t("Date", "日期"),
+                        scheduled_time: t("Time", "时间"),
+                        channel: t("Channel", "渠道"),
+                        created_at: t("Created", "创建时间"),
+                        error_message: t("Error", "错误"),
                       } as Record<string, string>
                     )[k] || k}
                   </dt>
                   <dd>
                     {typeof v === "object"
                       ? JSON.stringify(v)
-                      : label(String(v ?? "—"))}
+                      : label(String(v ?? "—"), locale)}
                   </dd>
                 </div>
               ))}
@@ -415,25 +439,31 @@ export default function OperationsPage({
           {metrics ? (
             <dl className="operations-metrics">
               {[
-                ["product_count", "产品"],
-                ["shopify_revenue", "店铺收入"],
-                ["meta_spend", "广告花费"],
+                ["product_count", t("Products", "产品")],
+                ["shopify_revenue", t("Shop revenue", "店铺收入")],
+                ["meta_spend", t("Ad spend", "广告花费")],
                 ["overall_roas", "ROAS"],
-                ["total_impressions", "曝光"],
-                ["total_clicks", "点击"],
+                ["total_impressions", t("Impressions", "曝光")],
+                ["total_clicks", t("Clicks", "点击")],
               ].map(([id, name]) => (
                 <div key={id}>
                   <dt>{name}</dt>
                   <dd>
                     {metrics[id] === undefined
                       ? "—"
-                      : Number(metrics[id]).toLocaleString("zh-CN")}
+                      : Number(metrics[id]).toLocaleString(
+                          locale === "zh" ? "zh-CN" : "en-US",
+                        )}
                   </dd>
                 </div>
               ))}
             </dl>
           ) : (
-            !error && <p className="empty-state">选择店铺并输入项目名称</p>
+            !error && (
+              <p className="empty-state">
+                {t("Choose a shop and enter a project name", "选择店铺并输入项目名称")}
+              </p>
+            )
           )}
         </div>
       ) : (
@@ -447,13 +477,16 @@ export default function OperationsPage({
                 >
                   <span>
                     <strong>
-                      {r.title || r.shop_name || label(r.memory_type)}
+                      {r.title || r.shop_name || label(r.memory_type, locale)}
                     </strong>
                     <small>
-                      {label(r.channel || r.task_type || r.memory_scope)}
+                      {label(
+                        r.channel || r.task_type || r.memory_scope,
+                        locale,
+                      )}
                     </small>
                   </span>
-                  <span>{label(r.state || r.status)}</span>
+                  <span>{label(r.state || r.status, locale)}</span>
                   <time>
                     {r.scheduled_date || r.created_at?.slice(0, 10)}{" "}
                     {r.scheduled_time}
@@ -463,24 +496,34 @@ export default function OperationsPage({
               ))
             : !error &&
               (query ? (
-                <p className="empty-state">没有匹配记录</p>
+                <p className="empty-state">
+                  {t("No matching records", "没有匹配记录")}
+                </p>
               ) : section.endsWith("-research") ? (
                 <div className="operations-empty">
                   <p className="operations-empty-title">
-                    还没有{titles[section]}记录
+                    {t(
+                      `No ${pick(titles[section], locale).toLowerCase()} records yet`,
+                      `还没有${pick(titles[section], locale)}记录`,
+                    )}
                   </p>
                   <p className="operations-empty-copy">
-                    把店铺网址交给 agent，派发一次{titles[section]}
-                    。完成后，研究记录和证据会出现在这里。
+                    {t(
+                      `Hand the shop URL to an agent and dispatch ${pick(titles[section], locale).toLowerCase()}. Research records and evidence will appear here when it finishes.`,
+                      `把店铺网址交给 agent，派发一次${pick(titles[section], locale)}。完成后，研究记录和证据会出现在这里。`,
+                    )}
                   </p>
                   {demo ? (
                     <p className="operations-empty-note">
-                      演示模式下暂无可派发的研究。
+                      {t(
+                        "No research can be dispatched in demo mode.",
+                        "演示模式下暂无可派发的研究。",
+                      )}
                     </p>
                   ) : (
                     <div className="operations-dispatch">
                       <label>
-                        店铺网址
+                        {t("Shop URL", "店铺网址")}
                         <input
                           value={researchUrl}
                           placeholder="https://your-store.com"
@@ -489,16 +532,26 @@ export default function OperationsPage({
                       </label>
                       {section === "product-research" && (
                         <label>
-                          研究重点
+                          {t("Research focus", "研究重点")}
                           <select
                             value={researchFocus}
                             onChange={(e) => setResearchFocus(e.target.value)}
                           >
-                            <option value="full_intelligence">综合研究</option>
-                            <option value="store_context">店铺研究</option>
-                            <option value="industry_baseline">行业研究</option>
-                            <option value="audience_pain_points">受众研究</option>
-                            <option value="compliance_scan">合规研究</option>
+                            <option value="full_intelligence">
+                              {t("Full research", "综合研究")}
+                            </option>
+                            <option value="store_context">
+                              {t("Store research", "店铺研究")}
+                            </option>
+                            <option value="industry_baseline">
+                              {t("Industry research", "行业研究")}
+                            </option>
+                            <option value="audience_pain_points">
+                              {t("Audience research", "受众研究")}
+                            </option>
+                            <option value="compliance_scan">
+                              {t("Compliance research", "合规研究")}
+                            </option>
                           </select>
                         </label>
                       )}
@@ -506,7 +559,9 @@ export default function OperationsPage({
                         onClick={() => void dispatchResearch()}
                         disabled={dispatching || !researchUrl.trim()}
                       >
-                        {dispatching ? "派发中…" : "派发研究"}
+                        {dispatching
+                          ? t("Dispatching…", "派发中…")
+                          : t("Dispatch research", "派发研究")}
                       </Button>
                     </div>
                   )}
@@ -517,7 +572,7 @@ export default function OperationsPage({
                   )}
                 </div>
               ) : (
-                <p className="empty-state">暂无记录</p>
+                <p className="empty-state">{t("No records yet", "暂无记录")}</p>
               ))}
         </div>
       )}

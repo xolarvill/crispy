@@ -1,27 +1,34 @@
-<nav class="global-rail" aria-label="Global navigation">
+<nav class="global-rail" aria-label="{{ t('Global navigation', '全局导航') }}">
   <div class="rail-brand" aria-label="Crispy">
     <img class="rail-brand-mark" src="/static/crispy-mark.svg" alt="" aria-hidden="true" />
     <span class="rail-brand-text">Crispy</span>
   </div>
   <div class="rail-nav">
-    <a class="rail-link{% if rail_active == 'dashboard' %} active{% endif %}" href="/dashboard"{% if rail_active == 'dashboard' %} aria-current="page"{% endif %} title="Dashboard"><span class="rail-icon" aria-hidden="true">&#8962;</span><span class="rail-label">Dashboard</span></a>
-    <a class="rail-link{% if rail_active == 'shops' %} active{% endif %}" href="/dashboard/shops"{% if rail_active == 'shops' %} aria-current="page"{% endif %} title="Shops"><span class="rail-icon" aria-hidden="true">&#9635;</span><span class="rail-label">Shops</span></a>
-    <a class="rail-link{% if rail_active == 'data' %} active{% endif %}" href="/dashboard/data"{% if rail_active == 'data' %} aria-current="page"{% endif %} title="Data Dashboard"><span class="rail-icon" aria-hidden="true">&#9638;</span><span class="rail-label">Data</span></a>
-    <a class="rail-link{% if rail_active == 'research' %} active{% endif %}" href="/dashboard/research"{% if rail_active == 'research' %} aria-current="page"{% endif %} title="Research Intelligence"><span class="rail-icon" aria-hidden="true">&#9671;</span><span class="rail-label">Research</span></a>
-    <a class="rail-link{% if rail_active == 'gm-review' %} active{% endif %}" href="/dashboard/gm-review"{% if rail_active == 'gm-review' %} aria-current="page"{% endif %} title="GM Review"><span class="rail-icon" aria-hidden="true">&#9737;</span><span class="rail-label">GM Review</span></a>
-    <a class="rail-link{% if rail_active == 'calendar' %} active{% endif %}" href="/dashboard/calendar"{% if rail_active == 'calendar' %} aria-current="page"{% endif %} title="Content Calendar"><span class="rail-icon" aria-hidden="true">&#9716;</span><span class="rail-label">Calendar</span></a>
-    <a class="rail-link{% if rail_active == 'assets' %} active{% endif %}" href="/dashboard/assets"{% if rail_active == 'assets' %} aria-current="page"{% endif %} title="Asset Library"><span class="rail-icon" aria-hidden="true">&#9720;</span><span class="rail-label">Assets</span></a>
-    <a class="rail-link{% if rail_active == 'personas' %} active{% endif %}" href="/dashboard/personas"{% if rail_active == 'personas' %} aria-current="page"{% endif %} title="Personas"><span class="rail-icon" aria-hidden="true">&#9783;</span><span class="rail-label">Personas</span></a>
-    <a class="rail-link{% if rail_active == 'configs' %} active{% endif %}" href="/dashboard/agent-apis"{% if rail_active == 'configs' %} aria-current="page"{% endif %} title="API and Integration Configs"><span class="rail-icon" aria-hidden="true">&#9881;</span><span class="rail-label">Configs</span></a>
+    <a class="rail-link{% if rail_active == 'dashboard' %} active{% endif %}" href="/dashboard"{% if rail_active == 'dashboard' %} aria-current="page"{% endif %} title="{{ t('Dashboard', '工作台') }}"><span class="rail-icon" aria-hidden="true">&#8962;</span><span class="rail-label">{{ t('Dashboard', '工作台') }}</span></a>
+    <a class="rail-link{% if rail_active == 'shops' %} active{% endif %}" href="/dashboard/shops"{% if rail_active == 'shops' %} aria-current="page"{% endif %} title="{{ t('Shops', '店铺') }}"><span class="rail-icon" aria-hidden="true">&#9635;</span><span class="rail-label">{{ t('Shops', '店铺') }}</span></a>
+    <a class="rail-link{% if rail_active == 'data' %} active{% endif %}" href="/dashboard/data"{% if rail_active == 'data' %} aria-current="page"{% endif %} title="{{ t('Data Dashboard', '数据看板') }}"><span class="rail-icon" aria-hidden="true">&#9638;</span><span class="rail-label">{{ t('Data', '数据') }}</span></a>
+    <a class="rail-link{% if rail_active == 'research' %} active{% endif %}" href="/dashboard/research"{% if rail_active == 'research' %} aria-current="page"{% endif %} title="{{ t('Research Intelligence', '研究智能') }}"><span class="rail-icon" aria-hidden="true">&#9671;</span><span class="rail-label">{{ t('Research', '研究') }}</span></a>
+    <a class="rail-link{% if rail_active == 'gm-review' %} active{% endif %}" href="/dashboard/gm-review"{% if rail_active == 'gm-review' %} aria-current="page"{% endif %} title="{{ t('GM Review', 'GM 复盘') }}"><span class="rail-icon" aria-hidden="true">&#9737;</span><span class="rail-label">{{ t('GM Review', 'GM 复盘') }}</span></a>
+    <a class="rail-link{% if rail_active == 'calendar' %} active{% endif %}" href="/dashboard/calendar"{% if rail_active == 'calendar' %} aria-current="page"{% endif %} title="{{ t('Content Calendar', '内容日历') }}"><span class="rail-icon" aria-hidden="true">&#9716;</span><span class="rail-label">{{ t('Calendar', '日历') }}</span></a>
+    <a class="rail-link{% if rail_active == 'assets' %} active{% endif %}" href="/dashboard/assets"{% if rail_active == 'assets' %} aria-current="page"{% endif %} title="{{ t('Asset Library', '素材库') }}"><span class="rail-icon" aria-hidden="true">&#9720;</span><span class="rail-label">{{ t('Assets', '素材库') }}</span></a>
+    <a class="rail-link{% if rail_active == 'personas' %} active{% endif %}" href="/dashboard/personas"{% if rail_active == 'personas' %} aria-current="page"{% endif %} title="{{ t('Personas', '角色') }}"><span class="rail-icon" aria-hidden="true">&#9783;</span><span class="rail-label">{{ t('Personas', '角色') }}</span></a>
+    <a class="rail-link{% if rail_active == 'configs' %} active{% endif %}" href="/dashboard/agent-apis"{% if rail_active == 'configs' %} aria-current="page"{% endif %} title="{{ t('API and Integration Configs', 'API 与集成配置') }}"><span class="rail-icon" aria-hidden="true">&#9881;</span><span class="rail-label">{{ t('Configs', '配置') }}</span></a>
   </div>
+  <div class="rail-spacer"></div>
   {% if rail_show_database_actions | default(false) %}
-    <div class="rail-spacer"></div>
     <details class="rail-more">
-      <summary class="rail-summary" title="Database actions"><span class="rail-icon" aria-hidden="true">&#8943;</span><span class="rail-label">Database</span></summary>
+      <summary class="rail-summary" title="{{ t('Database actions', '数据库操作') }}"><span class="rail-icon" aria-hidden="true">&#8943;</span><span class="rail-label">{{ t('Database', '数据库') }}</span></summary>
       <div class="rail-more-panel">
-        <button class="rail-action" onclick="backupDatabase()" title="Save a timestamped copy to ~/.crispy/backups/"><span class="rail-icon" aria-hidden="true">&#8681;</span><span class="rail-label">Backup DB</span></button>
-        <button class="rail-action" onclick="showRestoreDialog()" title="Restore database from a backup"><span class="rail-icon" aria-hidden="true">&#8634;</span><span class="rail-label">Restore DB</span></button>
+        <button class="rail-action" onclick="backupDatabase()" title="{{ t('Save a timestamped copy to ~/.crispy/backups/', '保存带时间戳的副本到 ~/.crispy/backups/') }}"><span class="rail-icon" aria-hidden="true">&#8681;</span><span class="rail-label">{{ t('Backup DB', '备份数据库') }}</span></button>
+        <button class="rail-action" onclick="showRestoreDialog()" title="{{ t('Restore database from a backup', '从备份恢复数据库') }}"><span class="rail-icon" aria-hidden="true">&#8634;</span><span class="rail-label">{{ t('Restore DB', '恢复数据库') }}</span></button>
       </div>
     </details>
   {% endif %}
+  <details class="rail-more rail-locale">
+    <summary class="rail-summary" title="{{ t('Language', '语言') }}"><span class="rail-icon" aria-hidden="true">&#127760;</span><span class="rail-label">{{ t('Language', '语言') }}</span></summary>
+    <div class="rail-more-panel rail-locale-panel">
+      <button type="button" class="rail-action{% if legacy_locale() == 'en' %} active{% endif %}" onclick="setCrispyLocale('en')"><span class="rail-icon" aria-hidden="true">EN</span><span class="rail-label">English</span></button>
+      <button type="button" class="rail-action{% if legacy_locale() == 'zh' %} active{% endif %}" onclick="setCrispyLocale('zh')"><span class="rail-icon" aria-hidden="true">中</span><span class="rail-label">中文</span></button>
+    </div>
+  </details>
 </nav>

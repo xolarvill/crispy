@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 
@@ -16,6 +17,7 @@ from app.api.brand_creatives import router as brand_creatives_router
 from app.core.config import get_settings
 from app.data.models import Workspace
 from app.data.session import SessionLocal, init_db
+from app.i18n import LegacyLocaleMiddleware, i18n_script
 from app.orchestrator.research_worker import research_worker
 from app.orchestrator.worker import worker
 
@@ -90,7 +92,17 @@ async def lifespan(_: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
+    app.add_middleware(LegacyLocaleMiddleware)
     app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+
+    @app.get("/dashboard/i18n.js", include_in_schema=False)
+    def dashboard_i18n() -> Response:
+        return Response(
+            content=i18n_script(),
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-cache"},
+        )
+
     app.include_router(router)
     app.include_router(brand_creatives_router)
     return app

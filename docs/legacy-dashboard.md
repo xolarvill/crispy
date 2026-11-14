@@ -1,5 +1,7 @@
 > Legacy dashboard reference. For the current Workbench and setup, see [README](../README.md). Screenshots and navigation below describe the earlier dashboard.
 
+The legacy dashboard is bilingual. It starts in English; open **Language** at the bottom of the left rail to switch to **中文**.
+
 # crispy — the marketing workbench
 
 ![Crispy](../other/hero.png)

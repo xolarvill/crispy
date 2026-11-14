@@ -11,12 +11,13 @@ import {
   type BrandCreativeLayout,
   type BrandCreativeRegion,
 } from "./data";
+import { currentLocale, useI18n } from "./i18n";
 
 type Ratio = BrandCreativeLayout["ratio"];
-const ratios: { value: Ratio; label: string; valueNumber: number }[] = [
-  { value: "1:1", label: "方形 1:1", valueNumber: 1 },
-  { value: "3:4", label: "竖版 3:4", valueNumber: 3 / 4 },
-  { value: "16:9", label: "横版 16:9", valueNumber: 16 / 9 },
+const ratios: { value: Ratio; valueNumber: number }[] = [
+  { value: "1:1", valueNumber: 1 },
+  { value: "3:4", valueNumber: 3 / 4 },
+  { value: "16:9", valueNumber: 16 / 9 },
 ];
 
 const emptyLayout: BrandCreativeLayout = {
@@ -46,7 +47,12 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     const image = new Image();
     if (/^https?:\/\//i.test(src)) image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("图片加载失败"));
+    image.onerror = () =>
+      reject(
+        new Error(
+          currentLocale() === "zh" ? "图片加载失败" : "Image failed to load",
+        ),
+      );
     image.src = src;
   });
 }
@@ -59,7 +65,10 @@ async function toBaseDataUrl(src: string): Promise<string> {
   canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
   canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("无法创建画布");
+  if (!context)
+    throw new Error(
+      currentLocale() === "zh" ? "无法创建画布" : "Could not create a canvas",
+    );
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/jpeg", 0.9);
 }
@@ -88,7 +97,12 @@ async function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("读取图片失败"));
+    reader.onerror = () =>
+      reject(
+        new Error(
+          currentLocale() === "zh" ? "读取图片失败" : "Could not read the image",
+        ),
+      );
     reader.readAsDataURL(file);
   });
 }
@@ -121,6 +135,7 @@ export function BrandCreativeStudio({
   close: () => void;
   notify?: (message: string) => void;
 }) {
+  const { t, locale } = useI18n();
   const [original, setOriginal] = useState<BrandCreative | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -180,7 +195,11 @@ export function BrandCreativeStudio({
       )
         .then((creative) => {
           setOriginal(creative);
-          setName(`${creative.name} · 新版`);
+          setName(
+            locale === "zh"
+              ? `${creative.name} · 新版`
+              : `${creative.name} · new version`,
+          );
           setReason(creative.reason || "");
           setPrompt(creative.prompt || "");
           const legacy = !creative.base_image;
@@ -193,7 +212,11 @@ export function BrandCreativeStudio({
           setBaseSrc(creative.base_image || creative.image);
           setReplaced(false);
           if (legacy)
-            setStatus("母版只保留了成品图，标题或 Logo 可能已经叠在底图上；需要重新叠字时请换一张底图。");
+            setStatus(
+              locale === "zh"
+                ? "母版只保留了成品图，标题或 Logo 可能已经叠在底图上；需要重新叠字时请换一张底图。"
+                : "This template only kept the finished image, so the title or logo may already be baked in. Replace the base image if you need to overlay type again.",
+            );
         })
         .catch((e) => {
           if (e.name !== "AbortError") setError((e as Error).message);
@@ -216,7 +239,9 @@ export function BrandCreativeStudio({
           if (!controller.signal.aborted) {
             setBaseSrc(mediaUrl(target.uri));
             setError(
-              `${(e as Error).message}。这张图片可能来自跨域地址，可继续预览，但无法导出或保存模板。`,
+              locale === "zh"
+                ? `${(e as Error).message}。这张图片可能来自跨域地址，可继续预览，但无法导出或保存模板。`
+                : `${(e as Error).message}. This image may come from a cross-origin address. You can keep previewing, but it cannot be exported or saved as a template.`,
             );
           }
         }
@@ -310,7 +335,7 @@ export function BrandCreativeStudio({
     if (!region || region.width < 0.015 || region.height < 0.015) return;
     setPendingRegion(region);
     setNote("");
-    setStatus("给刚框出的区域写一句修改说明，再点“添加批注”。");
+    setStatus(t("Describe the change for the marked area, then choose “Add note”.", "给刚框出的区域写一句修改说明，再点“添加批注”。"));
   }
 
   function addRegion() {
@@ -318,13 +343,13 @@ export function BrandCreativeStudio({
     setRegions((items) => [...items, { ...pendingRegion, note: note.trim() }]);
     setPendingRegion(null);
     setNote("");
-    setStatus("批注已加入，可继续框选。");
+    setStatus(t("Note added. Keep marking areas if you need more.", "批注已加入，可继续框选。"));
   }
 
   async function pickReplacement(file: File | undefined) {
     if (!file) return;
     if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-      setStatus("请选择 PNG、JPG 或 WebP 图片");
+      setStatus(t("Choose a PNG, JPG or WebP image", "请选择 PNG、JPG 或 WebP 图片"));
       return;
     }
     const dataUrl = await toBaseDataUrl(await readFileAsDataUrl(file)).catch((e) => {
@@ -334,13 +359,13 @@ export function BrandCreativeStudio({
     if (!dataUrl) return;
     setBaseSrc(dataUrl);
     setReplaced(true);
-    setStatus("已换成新底图，裁切和标题位置保持不变。");
+    setStatus(t("Base image replaced. Crop and title positions are unchanged.", "已换成新底图，裁切和标题位置保持不变。"));
   }
 
   async function pickLogo(file: File | undefined) {
     if (!file) return;
     if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-      setStatus("Logo 需要 PNG、JPG 或 WebP");
+      setStatus(t("Logo must be a PNG, JPG or WebP image", "Logo 需要 PNG、JPG 或 WebP"));
       return;
     }
     const dataUrl = await logoDataUrl(file).catch((e) => {
@@ -366,7 +391,7 @@ export function BrandCreativeStudio({
 
   async function snapshot() {
     const image = capture("image/jpeg", 0.9);
-    if (!image) throw new Error("画布尚未就绪");
+    if (!image) throw new Error(t("The canvas is not ready yet", "画布尚未就绪"));
     return image;
   }
 
@@ -380,20 +405,20 @@ export function BrandCreativeStudio({
         link.href = image;
         link.download = `${(name || "brand-creative").replace(/[\\/:*?"<>|]/g, "-")}-${ratio.replace(":", "x")}.png`;
         link.click();
-        setStatus(`已导出 ${ratio} 图片`);
+        setStatus(t(`Exported ${ratio} image`, `已导出 ${ratio} 图片`));
       } catch {
-        setStatus("导出失败：图片可能来自跨域地址。");
+        setStatus(t("Export failed: the image may come from a cross-origin address.", "导出失败：图片可能来自跨域地址。"));
       }
     }, 90);
   }
 
   async function save() {
     if (!baseImage) {
-      setStatus("底图还没有加载完成");
+      setStatus(t("The base image has not finished loading", "底图还没有加载完成"));
       return;
     }
     if (!name.trim()) {
-      setStatus("请填写模板名称");
+      setStatus(t("Enter a template name", "请填写模板名称"));
       return;
     }
     setBusy(true);
@@ -414,8 +439,12 @@ export function BrandCreativeStudio({
           parent_id: original?.id || null,
         }),
       });
-      setStatus("已保存为品牌模板");
-      notify?.(original ? "已保存新的模板版本" : "已保存品牌模板");
+      setStatus(t("Saved as a brand template", "已保存为品牌模板"));
+      notify?.(
+        original
+          ? t("New template version saved", "已保存新的模板版本")
+          : t("Brand template saved", "已保存品牌模板"),
+      );
       close();
     } catch (e) {
       setStatus((e as Error).message);
@@ -425,21 +454,28 @@ export function BrandCreativeStudio({
   }
 
   const pendingField = pendingRegion ? (
-    <div className="brand-studio-pending" role="group" aria-label="新增批注">
-      <Field label="这条批注要改什么">
+    <div
+      className="brand-studio-pending"
+      role="group"
+      aria-label={t("New note", "新增批注")}
+    >
+      <Field label={t("What should this note change?", "这条批注要改什么")}>
         <input
           value={note}
           maxLength={500}
-          placeholder="例如：标题压住了折叠接缝，移到左上墙面"
+          placeholder={t(
+            "e.g. the title covers the fold seam — move it to the upper-left wall",
+            "例如：标题压住了折叠接缝，移到左上墙面",
+          )}
           onChange={(e) => setNote(e.target.value)}
         />
       </Field>
       <div className="brand-studio-inline-actions">
         <Button variant="outline" onClick={() => setPendingRegion(null)}>
-          取消
+          {t("Cancel", "取消")}
         </Button>
         <Button disabled={!note.trim()} onClick={addRegion}>
-          添加批注
+          {t("Add note", "添加批注")}
         </Button>
       </div>
     </div>
@@ -458,20 +494,33 @@ export function BrandCreativeStudio({
           <header className="brand-studio-header">
             <div>
               <Dialog.Title asChild>
-                <p>{original ? "用模板做新版" : "存为品牌模板"}</p>
+                <p>
+                  {original
+                    ? t("New version from a template", "用模板做新版")
+                    : t("Save as a brand template", "存为品牌模板")}
+                </p>
               </Dialog.Title>
               <span>
-                {original ? `母版：${original.name}` : "从当前素材建立可复用的版式"}
-                {replaced ? " · 已替换底图" : ""}
+                {original
+                  ? t(`Source: ${original.name}`, `母版：${original.name}`)
+                  : t(
+                      "Build a reusable layout from the current asset",
+                      "从当前素材建立可复用的版式",
+                    )}
+                {replaced ? t(" · base image replaced", " · 已替换底图") : ""}
               </span>
             </div>
             <div className="gallery-actions">
               <Button variant="outline" disabled={busy || !baseImage} onClick={() => download(layout.ratio)}>
                 <Download size={14} />
-                导出当前尺寸
+                {t("Export this size", "导出当前尺寸")}
               </Button>
               <Dialog.Close asChild>
-                <Button size="icon" variant="ghost" aria-label="关闭品牌模板编辑器">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t("Close the brand template editor", "关闭品牌模板编辑器")}
+                >
                   <X size={19} />
                 </Button>
               </Dialog.Close>
@@ -483,7 +532,7 @@ export function BrandCreativeStudio({
                 {loading ? (
                   <div className="brand-studio-loading">
                     <LoaderCircle className="spin" size={24} />
-                    正在读取素材
+                    {t("Reading asset", "正在读取素材")}
                   </div>
                 ) : baseImage ? (
                   <Stage
@@ -583,11 +632,15 @@ export function BrandCreativeStudio({
                 ) : (
                   <div className="brand-studio-loading">
                     <ImageIcon size={26} />
-                    {error || "暂无底图"}
+                    {error || t("No base image", "暂无底图")}
                   </div>
                 )}
               </div>
-              <div className="brand-studio-toolbar" role="group" aria-label="编辑模式">
+              <div
+                className="brand-studio-toolbar"
+                role="group"
+                aria-label={t("Edit mode", "编辑模式")}
+              >
                 <div className="brand-studio-tabs">
                   <button
                     type="button"
@@ -595,7 +648,7 @@ export function BrandCreativeStudio({
                     aria-pressed={mode === "layout"}
                     onClick={() => setMode("layout")}
                   >
-                    排版
+                    {t("Layout", "排版")}
                   </button>
                   <button
                     type="button"
@@ -603,7 +656,7 @@ export function BrandCreativeStudio({
                     aria-pressed={mode === "annotate"}
                     onClick={() => setMode("annotate")}
                   >
-                    批注
+                    {t("Notes", "批注")}
                   </button>
                 </div>
                 <div className="brand-studio-ratios">
@@ -614,52 +667,78 @@ export function BrandCreativeStudio({
                       variant={layout.ratio === item.value ? "default" : "outline"}
                       onClick={() => setLayout((value) => ({ ...value, ratio: item.value }))}
                     >
-                      {item.label}
+                      {t(
+                        item.value === "1:1"
+                          ? "Square 1:1"
+                          : item.value === "3:4"
+                            ? "Portrait 3:4"
+                            : "Landscape 16:9",
+                        item.value === "1:1"
+                          ? "方形 1:1"
+                          : item.value === "3:4"
+                            ? "竖版 3:4"
+                            : "横版 16:9",
+                      )}
                     </Button>
                   ))}
                 </div>
               </div>
               <p className="brand-studio-hint">
                 {mode === "annotate"
-                  ? "在画面上拖出要修改的区域，再写一句修改说明。批注跟模板一起保存。"
-                  : "拖动标题和 Logo 调整位置；用右侧的裁切滑块选择画面取景。"}
+                  ? t(
+                      "Drag an area on the canvas, then write a short change note. Notes are saved with the template.",
+                      "在画面上拖出要修改的区域，再写一句修改说明。批注跟模板一起保存。",
+                    )
+                  : t(
+                      "Drag the title and logo to reposition them; use the crop sliders on the right to choose the framing.",
+                      "拖动标题和 Logo 调整位置；用右侧的裁切滑块选择画面取景。",
+                    )}
               </p>
             </div>
             <aside className="brand-studio-side">
               {original && (
                 <section className="brand-studio-original">
-                  <span>母版对比</span>
-                  <img src={original.image} alt={`母版 ${original.name}`} />
+                  <span>{t("Compare with source", "母版对比")}</span>
+                  <img
+                    src={original.image}
+                    alt={t(`Source ${original.name}`, `母版 ${original.name}`)}
+                  />
                   {original.reason && <small>{original.reason}</small>}
                 </section>
               )}
-              <Field label="模板名称">
+              <Field label={t("Template name", "模板名称")}>
                 <input
                   value={name}
                   maxLength={160}
-                  placeholder="例如：鞋刷主图 · 侧光识别款"
+                  placeholder={t(
+                    "e.g. Shoe brush hero · side-lit recognisable",
+                    "例如：鞋刷主图 · 侧光识别款",
+                  )}
                   onChange={(e) => setName(e.target.value)}
                 />
               </Field>
-              <Field label="为什么选它">
+              <Field label={t("Why choose it", "为什么选它")}>
                 <textarea
                   rows={2}
                   maxLength={2000}
                   value={reason}
-                  placeholder="例如：柄尾标记和刷毛接触点都清楚，左上留白能放深色标题"
+                  placeholder={t(
+                    "e.g. the handle-end mark and bristle contact both read clearly, and the upper-left space holds dark type",
+                    "例如：柄尾标记和刷毛接触点都清楚，左上留白能放深色标题",
+                  )}
                   onChange={(e) => setReason(e.target.value)}
                 />
               </Field>
               <div className="brand-studio-grid">
-                <Field label="标题">
+                <Field label={t("Title", "标题")}>
                   <input
                     value={layout.title}
                     maxLength={120}
-                    placeholder="留空则不叠字"
+                    placeholder={t("Leave blank for no title", "留空则不叠字")}
                     onChange={(e) => setLayout((value) => ({ ...value, title: e.target.value }))}
                   />
                 </Field>
-                <Field label="标题颜色">
+                <Field label={t("Title color", "标题颜色")}>
                   <select
                     value={layout.color}
                     onChange={(e) =>
@@ -669,14 +748,14 @@ export function BrandCreativeStudio({
                       }))
                     }
                   >
-                    <option value="#ffffff">白色</option>
-                    <option value="#171717">深色</option>
+                    <option value="#ffffff">{t("White", "白色")}</option>
+                    <option value="#171717">{t("Dark", "深色")}</option>
                   </select>
                 </Field>
               </div>
               <div className="brand-studio-grid">
                 <label className="brand-studio-range">
-                  <span>左右取景</span>
+                  <span>{t("Framing left/right", "左右取景")}</span>
                   <input
                     type="range"
                     min={0}
@@ -689,7 +768,7 @@ export function BrandCreativeStudio({
                   />
                 </label>
                 <label className="brand-studio-range">
-                  <span>上下取景</span>
+                  <span>{t("Framing up/down", "上下取景")}</span>
                   <input
                     type="range"
                     min={0}
@@ -705,7 +784,7 @@ export function BrandCreativeStudio({
               <div className="brand-studio-actions">
                 <label className="brand-studio-upload">
                   <Upload size={14} />
-                  换一张新品底图
+                  {t("Replace the base image", "换一张新品底图")}
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -717,7 +796,9 @@ export function BrandCreativeStudio({
                 </label>
                 <label className="brand-studio-upload">
                   <Upload size={14} />
-                  {layout.logo ? "更换 Logo" : "叠加 Logo"}
+                  {layout.logo
+                    ? t("Change logo", "更换 Logo")
+                    : t("Overlay logo", "叠加 Logo")}
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -732,16 +813,22 @@ export function BrandCreativeStudio({
                     variant="outline"
                     onClick={() => setLayout((value) => ({ ...value, logo: "" }))}
                   >
-                    移除 Logo
+                    {t("Remove logo", "移除 Logo")}
                   </Button>
                 )}
               </div>
-              <section className="brand-studio-regions" aria-label="批注列表">
+              <section
+                className="brand-studio-regions"
+                aria-label={t("Note list", "批注列表")}
+              >
                 <div className="brand-studio-section-head">
-                  <span>批注 {regions.length ? `(${regions.length})` : ""}</span>
+                  <span>
+                    {t("Notes", "批注")}{" "}
+                    {regions.length ? `(${regions.length})` : ""}
+                  </span>
                   {mode !== "annotate" && regions.length > 0 && (
                     <button type="button" onClick={() => setMode("annotate")}>
-                      回到画面
+                      {t("Back to canvas", "回到画面")}
                     </button>
                   )}
                 </div>
@@ -753,7 +840,10 @@ export function BrandCreativeStudio({
                         <span>{region.note}</span>
                         <IconButton
                           icon={Trash2}
-                          label={`删除批注 ${index + 1}`}
+                          label={t(
+                            `Delete note ${index + 1}`,
+                            `删除批注 ${index + 1}`,
+                          )}
                           onClick={() =>
                             setRegions((items) => items.filter((_, itemIndex) => itemIndex !== index))
                           }
@@ -762,20 +852,28 @@ export function BrandCreativeStudio({
                     ))}
                   </ul>
                 ) : (
-                  <p className="muted">还没有批注。切到“批注”后在画面上拖出区域。</p>
+                  <p className="muted">
+                    {t(
+                      "No notes yet. Switch to “Notes” and drag an area on the canvas.",
+                      "还没有批注。切到“批注”后在画面上拖出区域。",
+                    )}
+                  </p>
                 )}
               </section>
-              <Field label="画面提示词">
+              <Field label={t("Image prompt", "画面提示词")}>
                 <textarea
                   rows={5}
                   maxLength={32000}
                   value={prompt}
-                  placeholder="保存时会连同生成这张图的提示词一起留档"
+                  placeholder={t(
+                    "The prompt that produced this image is saved with the template",
+                    "保存时会连同生成这张图的提示词一起留档",
+                  )}
                   onChange={(e) => setPrompt(e.target.value)}
                 />
               </Field>
               <div className="brand-studio-export">
-                <span>出其他尺寸</span>
+                <span>{t("Other sizes", "出其他尺寸")}</span>
                 <div>
                   {ratios.map((item) => (
                     <Button
@@ -802,7 +900,9 @@ export function BrandCreativeStudio({
                   data-testid="brand-studio-save"
                 >
                   {busy ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}
-                  {original ? "保存为新版本" : "保存品牌模板"}
+                  {original
+                    ? t("Save as new version", "保存为新版本")
+                    : t("Save brand template", "保存品牌模板")}
                 </Button>
               </div>
             </aside>

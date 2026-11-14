@@ -13,7 +13,8 @@ import { Button } from "./components/ui/button";
 import { Field, IconButton } from "./components/console-controls";
 import { go } from "./navigation";
 import { PromptEditor } from "./PromptEditor";
-import { api, modes, type Run } from "./data";
+import { api, modeLabel, modes, type Run } from "./data";
+import { useI18n } from "./i18n";
 type Draft = {
   name: string;
   code: string;
@@ -38,34 +39,32 @@ const initial: Draft = {
   preset: "",
   count: "3",
 };
-const approvals: Record<string, string> = {
-  manual: "逐阶段审核",
-  semi_auto: "创意阶段审核",
-  full_auto: "自动执行",
-};
 type Preset = { value: string; label: string; spec: Record<string, unknown> };
-const demoPresets: Preset[] = [
-  {
-    value: "demo_square",
-    label: "演示 · 方形图文",
-    spec: {
-      image_size: "1:1",
-      video_size: "1:1",
-      resolution: "720p",
-      video_duration_seconds: 5,
+function demoPresets(locale: "en" | "zh"): Preset[] {
+  return [
+    {
+      value: "demo_square",
+      label:
+        locale === "zh" ? "演示 · 方形图文" : "Demo · square copy & image",
+      spec: {
+        image_size: "1:1",
+        video_size: "1:1",
+        resolution: "720p",
+        video_duration_seconds: 5,
+      },
     },
-  },
-  {
-    value: "demo_vertical",
-    label: "演示 · 竖屏视频",
-    spec: {
-      image_size: "9:16",
-      video_size: "9:16",
-      resolution: "720p",
-      video_duration_seconds: 5,
+    {
+      value: "demo_vertical",
+      label: locale === "zh" ? "演示 · 竖屏视频" : "Demo · vertical video",
+      spec: {
+        image_size: "9:16",
+        video_size: "9:16",
+        resolution: "720p",
+        video_duration_seconds: 5,
+      },
     },
-  },
-];
+  ];
+}
 export default function CreatePage({
   demo,
   onCreated,
@@ -75,6 +74,12 @@ export default function CreatePage({
   onCreated: (run: Run) => void;
   onUseTemplate?: (templateId: string, workspace: string) => void;
 }) {
+  const { t, locale } = useI18n();
+  const approvals: Record<string, string> = {
+    manual: t("Review every stage", "逐阶段审核"),
+    semi_auto: t("Review creative stages", "创意阶段审核"),
+    full_auto: t("Run automatically", "自动执行"),
+  };
   const [step, setStep] = useState(0),
     [draft, setDraft] = useState<Draft>(initial),
     [busy, setBusy] = useState(false),
@@ -84,13 +89,15 @@ export default function CreatePage({
   const supportsImageDirection = ["copy_image_only", "full_multimodal", "dtc_site_image"].includes(draft.mode);
   const imageDirection = supportsImageDirection && useImagePrompt ? imagePrompt.trim() : "";
   const [files, setFiles] = useState<File[]>([]),
-    [presets, setPresets] = useState<Preset[]>(demo ? demoPresets : []),
+    [presets, setPresets] = useState<Preset[]>(() =>
+      demo ? demoPresets(locale) : [],
+    ),
     [presetError, setPresetError] = useState(""),
     [presetRefresh, setPresetRefresh] = useState(0),
     [warnings, setWarnings] = useState<string[]>([]);
   useEffect(() => {
     if (demo) {
-      setPresets(demoPresets);
+      setPresets(demoPresets(locale));
       return;
     }
     const controller = new AbortController();
@@ -126,7 +133,7 @@ export default function CreatePage({
         if (e.name !== "AbortError") setPresetError(e.message);
       });
     return () => controller.abort();
-  }, [demo, draft.workspace, presetRefresh]);
+  }, [demo, draft.workspace, presetRefresh, locale]);
   function selectFiles(selected: FileList | null) {
     if (!selected) return;
     const next = [...files, ...Array.from(selected)];
@@ -136,11 +143,11 @@ export default function CreatePage({
       next.some((f) => f.size > 50 * 1024 * 1024) ||
       next.reduce((sum, f) => sum + f.size, 0) > 200 * 1024 * 1024
     ) {
-      setError("最多 10 个文件，单个 50 MB，总计 200 MB");
+      setError(t("Up to 10 files, 50 MB each, 200 MB total", "最多 10 个文件，单个 50 MB，总计 200 MB"));
       return;
     }
     if (next.some((f) => !allowed.test(f.name))) {
-      setError("支持 CSV、XLSX、图片和视频");
+      setError(t("Use CSV, XLSX, images or video", "支持 CSV、XLSX、图片和视频"));
       return;
     }
     setFiles(next);
@@ -180,7 +187,7 @@ export default function CreatePage({
             ] as const)
           : (["preset"] as const);
       if (required.some((key) => !draft[key].trim())) {
-        setError("请填写必填项");
+        setError(t("Fill in the required fields", "请填写必填项"));
         return;
       }
       setStep((s) => s + 1);
@@ -236,7 +243,11 @@ export default function CreatePage({
           }),
         });
         if (preflight.severity === "error")
-          throw Error(preflight.checks.map((c) => c.message).join("；"));
+          throw Error(
+            preflight.checks
+              .map((c) => c.message)
+              .join(locale === "zh" ? "；" : "; "),
+          );
         const nextWarnings = preflight.checks
           .filter((c) => c.severity === "warn")
           .map((c) => c.message);
@@ -267,19 +278,21 @@ export default function CreatePage({
     }
   }
   const summary = [
-    ["产品", draft.name || "—"],
-    ["编号", draft.code || "—"],
-    ["店铺", draft.workspace || "—"],
-    ["项目", draft.project || "—"],
-    ["活动", draft.campaign || "—"],
-    ["行业", draft.industry || "—"],
-    ["创作模式", modes[draft.mode]],
-    ["审核方式", approvals[draft.approval]],
-    ["创意预设", draft.preset || "—"],
-    ["变体数量", draft.count],
-    ...(imageDirection ? [["画面提示词", imageDirection]] : []),
-    ["市场 / 语言", "US / en-US"],
-    ["参考文件", `${files.length} 个`],
+    [t("Product", "产品"), draft.name || "—"],
+    [t("Code", "编号"), draft.code || "—"],
+    [t("Shop", "店铺"), draft.workspace || "—"],
+    [t("Project", "项目"), draft.project || "—"],
+    [t("Campaign", "活动"), draft.campaign || "—"],
+    [t("Industry", "行业"), draft.industry || "—"],
+    [t("Creative mode", "创作模式"), modeLabel(draft.mode, locale)],
+    [t("Approval", "审核方式"), approvals[draft.approval]],
+    [t("Creative preset", "创意预设"), draft.preset || "—"],
+    [t("Variants", "变体数量"), draft.count],
+    ...(imageDirection
+      ? [[t("Image prompt", "画面提示词"), imageDirection]]
+      : []),
+    [t("Market / language", "市场 / 语言"), "US / en-US"],
+    [t("Reference files", "参考文件"), t(`${files.length} files`, `${files.length} 个`)],
   ];
   return (
     <>
@@ -287,12 +300,16 @@ export default function CreatePage({
         <div className="resource-name">
           <IconButton
             icon={ArrowLeft}
-            label="返回任务列表"
+            label={t("Back to tasks", "返回任务列表")}
             onClick={() => go("/tasks")}
           />
-          <p className="page-title">新建任务</p>
+          <p className="page-title">{t("New task", "新建任务")}</p>
         </div>
-        <span className="muted">{demo ? "演示 · 不执行生成" : "本地 API"}</span>
+        <span className="muted">
+          {demo
+            ? t("Demo · no generation runs", "演示 · 不执行生成")
+            : t("Local API", "本地 API")}
+        </span>
       </div>
       <PromptEditor
         demo={demo}
@@ -303,10 +320,19 @@ export default function CreatePage({
       />
       {imagePrompt.trim() && supportsImageDirection && (
         <label><input type="checkbox" checked={useImagePrompt}
-          onChange={(e) => setUseImagePrompt(e.target.checked)} /> 将当前提示词用于本任务的图文生成</label>
+          onChange={(e) => setUseImagePrompt(e.target.checked)} />{" "}
+          {t(
+            "Use this prompt for copy & image generation in this task",
+            "将当前提示词用于本任务的图文生成",
+          )}
+        </label>
       )}
-      <ol className="creation-steps" aria-label="创建步骤">
-        {["产品与项目", "创作设置", "确认创建"].map((label, i) => (
+      <ol className="creation-steps" aria-label={t("Creation steps", "创建步骤")}>
+        {[
+          t("Product & project", "产品与项目"),
+          t("Creative settings", "创作设置"),
+          t("Confirm", "确认创建"),
+        ].map((label, i) => (
           <li
             key={label}
             aria-current={step === i ? "step" : undefined}
@@ -323,7 +349,15 @@ export default function CreatePage({
       >
         <section className="surface creation-form">
           <div className="form-heading">
-            <p>{["产品与项目", "创作设置", "确认任务"][step]}</p>
+            <p>
+              {
+                [
+                  t("Product & project", "产品与项目"),
+                  t("Creative settings", "创作设置"),
+                  t("Confirm task", "确认任务"),
+                ][step]
+              }
+            </p>
             <span className="muted">{step + 1} / 3</span>
           </div>
           <div className="form-body">
@@ -331,28 +365,30 @@ export default function CreatePage({
               <>
                 <div className="form-group">
                   <div className="form-row">
-                    {input("name", "产品名称", "产品名称")}
-                    {input("code", "产品编号", "SKU / 产品编号")}
+                    {input("name", t("Product name", "产品名称"), t("Product name", "产品名称"))}
+                    {input("code", t("Product code", "产品编号"), t("SKU / product code", "SKU / 产品编号"))}
                   </div>
-                  {input("industry", "行业", "例如 apparel")}
+                  {input("industry", t("Industry", "行业"), t("e.g. apparel", "例如 apparel"))}
                 </div>
                 <div className="form-group">
                   <div className="form-row">
-                    {input("workspace", "店铺", "店铺名称")}
-                    {input("project", "项目", "项目名称")}
+                    {input("workspace", t("Shop", "店铺"), t("Shop name", "店铺名称"))}
+                    {input("project", t("Project", "项目"), t("Project name", "项目名称"))}
                   </div>
-                  {input("campaign", "推广活动", "活动名称")}
+                  {input("campaign", t("Campaign", "推广活动"), t("Campaign name", "活动名称"))}
                   <label className="upload-control">
                     <span>
                       <Upload size={16} />
-                      添加参考素材
+                      {t("Add reference assets", "添加参考素材")}
                     </span>
-                    <small className="muted">图片 / 视频 / 表格</small>
+                    <small className="muted">
+                      {t("Images / video / spreadsheets", "图片 / 视频 / 表格")}
+                    </small>
                     <input
                       type="file"
                       multiple
                       accept=".csv,.xlsx,.png,.jpg,.jpeg,.webp,.mp4,.mov,.m4v"
-                      aria-label="添加参考素材"
+                      aria-label={t("Add reference assets", "添加参考素材")}
                       onChange={(e) => {
                         selectFiles(e.target.files);
                         e.target.value = "";
@@ -366,7 +402,7 @@ export default function CreatePage({
                           <span>{file.name}</span>
                           <IconButton
                             icon={X}
-                            label={`移除 ${file.name}`}
+                            label={t(`Remove ${file.name}`, `移除 ${file.name}`)}
                             onClick={() => {
                               setFiles((list) =>
                                 list.filter((_, index) => index !== i),
@@ -383,19 +419,19 @@ export default function CreatePage({
             ) : step === 1 ? (
               <>
                 <div className="form-group">
-                  <Field label="创作模式">
+                  <Field label={t("Creative mode", "创作模式")}>
                     <select
                       value={draft.mode}
                       onChange={(e) => change("mode", e.target.value)}
                     >
-                      {Object.entries(modes).map(([value, label]) => (
+                      {Object.entries(modes).map(([value]) => (
                         <option key={value} value={value}>
-                          {label}
+                          {modeLabel(value, locale)}
                         </option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="审核方式">
+                  <Field label={t("Approval", "审核方式")}>
                     <select
                       value={draft.approval}
                       onChange={(e) => change("approval", e.target.value)}
@@ -410,13 +446,13 @@ export default function CreatePage({
                 </div>
                 <div className="form-group">
                   <div className="form-row">
-                    <Field label="创意预设">
+                    <Field label={t("Creative preset", "创意预设")}>
                       <select
                         required
                         value={draft.preset}
                         onChange={(e) => change("preset", e.target.value)}
                       >
-                        <option value="">选择预设</option>
+                        <option value="">{t("Choose a preset", "选择预设")}</option>
                         {presets.map((p) => (
                           <option key={p.value} value={p.value}>
                             {p.label}
@@ -424,7 +460,7 @@ export default function CreatePage({
                         ))}
                       </select>
                     </Field>
-                    <Field label="变体数量">
+                    <Field label={t("Number of variants", "变体数量")}>
                       <input
                         type="number"
                         required
@@ -437,22 +473,22 @@ export default function CreatePage({
                   </div>
                   <dl className="fixed-settings">
                     <div>
-                      <dt>市场</dt>
+                      <dt>{t("Market", "市场")}</dt>
                       <dd>US</dd>
                     </div>
                     <div>
-                      <dt>语言</dt>
+                      <dt>{t("Language", "语言")}</dt>
                       <dd>en-US</dd>
                     </div>
                   </dl>
                   {presetError && (
                     <div className="preset-error" role="alert">
-                      预设加载失败
+                      {t("Could not load presets", "预设加载失败")}
                       <Button
                         variant="outline"
                         onClick={() => setPresetRefresh((r) => r + 1)}
                       >
-                        重试
+                        {t("Retry", "重试")}
                       </Button>
                     </div>
                   )}
@@ -490,11 +526,11 @@ export default function CreatePage({
               }
             >
               {step === 0 ? (
-                "取消"
+                t("Cancel", "取消")
               ) : (
                 <>
                   <ArrowLeft size={14} />
-                  上一步
+                  {t("Back", "上一步")}
                 </>
               )}
             </Button>
@@ -506,19 +542,22 @@ export default function CreatePage({
               ) : null}
               {step === 2
                 ? warnings.length
-                  ? "仍然创建"
-                  : "创建任务"
-                : "下一步"}
+                  ? t("Create anyway", "仍然创建")
+                  : t("Create task", "创建任务")
+                : t("Next", "下一步")}
               {step < 2 && <ArrowRight size={14} />}
             </Button>
           </div>
         </section>
         {step < 2 && (
-          <aside className="creation-summary" aria-label="任务摘要">
+          <aside
+            className="creation-summary"
+            aria-label={t("Task summary", "任务摘要")}
+          >
             <div className="summary-symbol">
               <Layers size={22} />
             </div>
-            <p>任务摘要</p>
+            <p>{t("Task summary", "任务摘要")}</p>
             <dl>
               {summary.slice(0, step === 0 ? 4 : 10).map(([label, value]) => (
                 <div key={label}>

@@ -184,11 +184,6 @@ body {
 .nav-bottom {
   padding-top: 40px;
 }
-.environment {
-  padding-top: 18px;
-  margin-top: 20px;
-  font-size: 11px;
-}
 .console-main {
   grid-column: 2;
   grid-row: 1;
@@ -1308,13 +1303,98 @@ td:first-child {
 }
 
 /* Keep the workspace chrome out of the content's vertical flow. */
-.sidebar-data-mode {
-  display: block;
-  margin: 18px 10px 0;
+.sidebar-settings {
+  margin: 14px 10px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
 }
-.sidebar-data-mode select {
-  width: 100%;
-  max-width: none;
+.sidebar-settings summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 4px;
+  border-radius: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.sidebar-settings summary::-webkit-details-marker {
+  display: none;
+}
+.sidebar-settings summary > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.sidebar-settings summary:hover,
+.sidebar-settings[open] summary {
+  color: var(--foreground);
+  background: var(--muted);
+}
+.sidebar-settings-value {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.sidebar-settings-chevron {
+  transition: transform 150ms ease;
+}
+.sidebar-settings[open] .sidebar-settings-chevron {
+  transform: rotate(90deg);
+}
+.sidebar-settings-body {
+  display: grid;
+  gap: 10px;
+  padding: 10px 4px 4px;
+}
+.sidebar-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.sidebar-setting select {
+  font-size: 11px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  max-width: 126px;
+}
+.sidebar-setting .locale-switch {
+  margin: 0;
+  flex: 0 0 112px;
+}
+.locale-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  margin: 14px 10px 0;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel);
+}
+.locale-switch button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 11px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.locale-switch button:hover {
+  color: var(--foreground);
+}
+.locale-switch button.active {
+  background: var(--selected);
+  color: var(--primary);
+  font-weight: 650;
 }
 .mobile-nav-toggle {
   display: none;

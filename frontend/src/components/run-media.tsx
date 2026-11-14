@@ -13,6 +13,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Button } from "./ui/button";
 import { IconButton } from "./console-controls";
 import { api, type Run, type RunMedia } from "../data";
+import { useI18n } from "../i18n";
 export type MediaPreviewOptions = {
   complete?: boolean;
   onSelect?: (media: RunMedia) => void;
@@ -61,6 +62,7 @@ function MediaContent({
   full?: boolean;
   showError?: boolean;
 }) {
+  const { t } = useI18n();
   const [failed, setFailed] = useState(false),
     [visible, setVisible] = useState(full),
     ref = useRef<HTMLSpanElement>(null);
@@ -86,12 +88,14 @@ function MediaContent({
       {failed ? (
         <span className="media-fallback">
           <Image size={full ? 32 : 18} />
-          {(full || showError) && <span>媒体无法加载</span>}
+          {(full || showError) && (
+            <span>{t("Media could not load", "媒体无法加载")}</span>
+          )}
         </span>
       ) : media.kind === "image" ? (
         <img
           src={mediaUrl(media.uri, demo)}
-          alt={full ? "任务媒体素材" : ""}
+          alt={full ? t("Task media", "任务媒体素材") : ""}
           loading={full ? "eager" : "lazy"}
           decoding="async"
           onError={() => setFailed(true)}
@@ -135,11 +139,16 @@ export function RunMediaStrip({
   demo: boolean;
   open: (run: Run, media: RunMedia, trigger: HTMLElement) => void;
 }) {
+  const { t, locale } = useI18n();
   const media = mediaFor(run),
     count = run.media_count ?? media.length;
   if (!media.length)
     return (
-      <span className="empty-media" aria-label="暂无媒体" title="暂无媒体">
+      <span
+        className="empty-media"
+        aria-label={t("No media", "暂无媒体")}
+        title={t("No media", "暂无媒体")}
+      >
         <Image size={18} />
       </span>
     );
@@ -150,7 +159,11 @@ export function RunMediaStrip({
           key={`${item.kind}-${item.uri}`}
           type="button"
           className="run-media-thumb"
-          aria-label={`预览 ${run.name || run.product_code} ${item.kind === "video" ? "视频" : "图片"} ${i + 1}，共 ${count} 份媒体`}
+          aria-label={
+            locale === "zh"
+              ? `预览 ${run.name || run.product_code} ${item.kind === "video" ? "视频" : "图片"} ${i + 1}，共 ${count} 份媒体`
+              : `Preview ${run.name || run.product_code} ${item.kind === "video" ? "video" : "image"} ${i + 1} of ${count}`
+          }
           onClick={(event) => open(run, item, event.currentTarget)}
         >
           <MediaContent media={item} demo={demo} />
@@ -184,6 +197,7 @@ export function RunMediaGallery({
   onSelect?: (media: RunMedia) => void;
   saveTemplate?: (run: Run, media: RunMedia) => void;
 }) {
+  const { t } = useI18n();
   const [items, setItems] = useState(() => mediaFor(run)),
     [uri, setUri] = useState(initial.uri),
     [loading, setLoading] = useState(!demo && !complete),
@@ -254,11 +268,13 @@ export function RunMediaGallery({
           <div className="media-gallery-header">
             <div>
               <Dialog.Title asChild>
-                <p>{run.name || run.product_code || "任务媒体"}</p>
+                <p>{run.name || run.product_code || t("Task media", "任务媒体")}</p>
               </Dialog.Title>
               <span>
-                {active?.source === "generated" ? "生成素材" : "参考素材"}
-                {demo ? " · 演示" : ""}
+                {active?.source === "generated"
+                  ? t("Generated assets", "生成素材")
+                  : t("Reference assets", "参考素材")}
+                {demo ? t(" · Demo", " · 演示") : ""}
               </span>
             </div>
             <div className="gallery-actions">
@@ -269,11 +285,15 @@ export function RunMediaGallery({
                   data-testid="save-brand-template"
                 >
                   <LayoutTemplate size={14} />
-                  存为品牌模板
+                  {t("Save as brand template", "存为品牌模板")}
                 </Button>
               )}
               <Dialog.Close asChild>
-                <Button size="icon" variant="ghost" aria-label="关闭媒体预览">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t("Close media preview", "关闭媒体预览")}
+                >
                   <X size={19} />
                 </Button>
               </Dialog.Close>
@@ -281,9 +301,9 @@ export function RunMediaGallery({
           </div>
           {error && (
             <div className="gallery-error" role="alert">
-              <span>媒体列表加载失败</span>
+              <span>{t("Could not load the media list", "媒体列表加载失败")}</span>
               <Button variant="outline" onClick={() => setRetry((r) => r + 1)}>
-                重试
+                {t("Retry", "重试")}
               </Button>
             </div>
           )}
@@ -319,7 +339,9 @@ export function RunMediaGallery({
               <MediaContent key={active.uri} media={active} demo={demo} full />
             ) : (
               <span className="muted">
-                {loading ? "正在加载媒体" : "暂无媒体"}
+                {loading
+                  ? t("Loading media", "正在加载媒体")
+                  : t("No media", "暂无媒体")}
               </span>
             )}
           </div>
@@ -328,7 +350,7 @@ export function RunMediaGallery({
               {loading ? (
                 <>
                   <LoaderCircle size={13} className="spin" />
-                  加载媒体列表
+                  {t("Loading media list", "加载媒体列表")}
                 </>
               ) : (
                 `${items.length ? index + 1 : 0} / ${items.length}`
@@ -337,13 +359,13 @@ export function RunMediaGallery({
             <div>
               <IconButton
                 icon={ChevronLeft}
-                label="上一份媒体"
+                label={t("Previous media", "上一份媒体")}
                 disabled={items.length < 2}
                 onClick={() => select(-1)}
               />
               <IconButton
                 icon={ChevronRight}
-                label="下一份媒体"
+                label={t("Next media", "下一份媒体")}
                 disabled={items.length < 2}
                 onClick={() => select(1)}
               />
@@ -354,13 +376,13 @@ export function RunMediaGallery({
               className="gallery-filmstrip"
               role="group"
               ref={filmstrip}
-              aria-label="选择媒体"
+              aria-label={t("Choose media", "选择媒体")}
             >
               {items.map((item, i) => (
                 <button
                   key={`${item.kind}-${item.uri}`}
                   type="button"
-                  aria-label={`查看媒体 ${i + 1}`}
+                  aria-label={t(`View media ${i + 1}`, `查看媒体 ${i + 1}`)}
                   aria-pressed={index === i}
                   className={index === i ? "active" : ""}
                   onClick={() => choose(item)}
@@ -387,6 +409,7 @@ export function TaskMediaPanel({
   refreshKey?: number;
   open: OpenPreview;
 }) {
+  const { t } = useI18n();
   const [items, setItems] = useState(() => mediaFor(run)),
     [uri, setUri] = useState(() => mediaFor(run)[0]?.uri || ""),
     [loading, setLoading] = useState(!demo),
@@ -446,29 +469,29 @@ export function TaskMediaPanel({
   return (
     <section
       className="reference-section task-media-panel"
-      aria-label="任务素材"
+      aria-label={t("Task assets", "任务素材")}
     >
       <div className="section-toolbar">
-        <p>任务素材</p>
+        <p>{t("Task assets", "任务素材")}</p>
         <div className="detail-media-actions">
           <span aria-live="polite" className="muted">
             {items.length ? `${index + 1} / ${items.length}` : "0"}
           </span>
           <IconButton
             icon={ChevronLeft}
-            label="上一份任务素材"
+            label={t("Previous task asset", "上一份任务素材")}
             disabled={items.length < 2}
             onClick={() => select(-1)}
           />
           <IconButton
             icon={ChevronRight}
-            label="下一份任务素材"
+            label={t("Next task asset", "下一份任务素材")}
             disabled={items.length < 2}
             onClick={() => select(1)}
           />
           <IconButton
             icon={Maximize2}
-            label="放大当前素材"
+            label={t("Enlarge current asset", "放大当前素材")}
             disabled={!active}
             onClick={() => {
               const trigger = document.activeElement;
@@ -479,9 +502,9 @@ export function TaskMediaPanel({
       </div>
       {error && (
         <div className="gallery-error" role="alert">
-          <span>媒体加载失败</span>
+          <span>{t("Media could not load", "媒体加载失败")}</span>
           <Button variant="outline" onClick={() => setRetry((r) => r + 1)}>
-            重试
+            {t("Retry", "重试")}
           </Button>
         </div>
       )}
@@ -489,7 +512,10 @@ export function TaskMediaPanel({
         <button
           type="button"
           className="detail-media-canvas"
-          aria-label={`放大查看${active.kind === "video" ? "视频" : "图片"} ${index + 1}`}
+          aria-label={t(
+            `Enlarge ${active.kind === "video" ? "video" : "image"} ${index + 1}`,
+            `放大查看${active.kind === "video" ? "视频" : "图片"} ${index + 1}`,
+          )}
           onClick={(event) => enlarge(event.currentTarget)}
         >
           <MediaContent key={active.uri} media={active} demo={demo} showError />
@@ -504,7 +530,11 @@ export function TaskMediaPanel({
           ) : (
             <Image size={24} />
           )}
-          <span>{loading ? "正在加载素材" : "暂无媒体素材"}</span>
+          <span>
+            {loading
+              ? t("Loading assets", "正在加载素材")
+              : t("No media assets", "暂无媒体素材")}
+          </span>
         </div>
       )}
       {items.length > 1 && (
@@ -512,14 +542,14 @@ export function TaskMediaPanel({
           className="detail-media-filmstrip"
           role="group"
           ref={strip}
-          aria-label="任务素材缩略图"
+          aria-label={t("Task asset thumbnails", "任务素材缩略图")}
         >
           {items.map((item, i) => (
             <button
               type="button"
               key={`${item.kind}-${item.uri}`}
               className={index === i ? "active" : ""}
-              aria-label={`选择任务素材 ${i + 1}`}
+              aria-label={t(`Choose task asset ${i + 1}`, `选择任务素材 ${i + 1}`)}
               aria-pressed={index === i}
               onClick={() => setUri(item.uri)}
             >
@@ -533,10 +563,10 @@ export function TaskMediaPanel({
         <Image size={14} />
         <span>
           {active
-            ? `${active.source === "generated" ? "生成素材" : "参考素材"}${active.kind === "video" ? " · 视频" : ""}${demo ? " · 演示" : ""}`
+            ? `${active.source === "generated" ? t("Generated assets", "生成素材") : t("Reference assets", "参考素材")}${active.kind === "video" ? t(" · Video", " · 视频") : ""}${demo ? t(" · Demo", " · 演示") : ""}`
             : loading
-              ? "正在读取媒体"
-              : "未生成或上传媒体"}
+              ? t("Reading media", "正在读取媒体")
+              : t("No generated or uploaded media", "未生成或上传媒体")}
         </span>
       </div>
     </section>

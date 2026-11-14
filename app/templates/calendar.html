@@ -322,9 +322,10 @@
       const dates = getWeekDates();
       const start = fmtDate(dates[0]);
       const end = fmtDate(dates[6]);
+      const uiLocale = document.documentElement.lang === 'zh-CN' ? 'zh-CN' : 'en-US';
       document.getElementById('calendar-week-label').textContent =
-        dates[0].toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
-        dates[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        dates[0].toLocaleDateString(uiLocale,{month:'short',day:'numeric'}) + ' – ' +
+        dates[6].toLocaleDateString(uiLocale,{month:'short',day:'numeric',year:'numeric'});
 
       const wsId = getCalendarWorkspaceId();
 
@@ -354,7 +355,9 @@
       const dates = getWeekDates();
       const grouped = groupByDate(window.__currentSchedules || []);
       const channelFilter = document.getElementById('calendar-channel-filter')?.value || '';
-      const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const dayNames = document.documentElement.lang === 'zh-CN'
+        ? ['周一','周二','周三','周四','周五','周六','周日']
+        : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
       let html = '';
       dates.forEach(function(d,i){
         const key = fmtDate(d);
@@ -375,7 +378,7 @@
           if(s.publish_error) html += ' · <span class="publish-badge failed">Publish failed</span>';
           html += '</div></div>';
         });
-        html += '<button class="add-schedule-btn" onclick="openNewSchedule(\'' + fmtDate(d) + '\')">+ Add</button>';
+        html += '<button class="add-schedule-btn" onclick="openNewSchedule(\'' + fmtDate(d) + '\')">+ ' + (document.documentElement.lang === 'zh-CN' ? '添加' : 'Add') + '</button>';
         html += '</div>';
       });
       document.getElementById('calendar-week-grid').innerHTML = html;

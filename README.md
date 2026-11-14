@@ -3,6 +3,11 @@
 </p>
 
 <p align="center">
+  <a href="README.md">English</a> &nbsp;·&nbsp;
+  <a href="README.zh-CN.md">中文</a>
+</p>
+
+<p align="center">
   <a href="#the-workbench">The workbench</a> &nbsp;·&nbsp;
   <a href="#magpie-integration">Magpie</a> &nbsp;·&nbsp;
   <a href="#run-locally">Run locally</a> &nbsp;·&nbsp;
@@ -67,6 +72,8 @@ npm run dev -- --port 5174
 ```
 
 Open [the workbench](http://127.0.0.1:5174/?mode=demo#/tasks). It starts with labelled **demo data**; no provider credentials are needed to explore it. Open [live mode](http://127.0.0.1:5174/?mode=live#/tasks) to use the local backend. The Vite proxy expects the API on port **8000**.
+
+The console ships in **English by default**. Open **Settings** at the bottom of the workspace rail to switch between **EN** and **中文** and to change the data mode; the language choice is remembered in local storage. The legacy dashboard has a matching **English / 中文** switch under **Language** in its own rail and also starts in English.
 
 Demo records reset on reload. Live mode uses your database and configured providers; generation and research can incur provider charges.
 

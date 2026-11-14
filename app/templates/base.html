@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="{% if legacy_locale() == 'zh' %}zh-CN{% else %}en{% endif %}">
 <head>
   <meta charset="utf-8" />
   <title>{% block title %}Crispy Dashboard{% endblock %}</title>
@@ -464,6 +464,8 @@
     .global-rail:hover .rail-more, .global-rail:focus-within .rail-more { min-width: 204px; }
     .rail-more[open] .rail-summary { color: var(--accent-dark, #047857); background: var(--green-50, #ecfdf5); border-color: var(--green-200, #a7f3d0); }
     .rail-more-panel { display: grid; gap: 4px; padding: 4px 0 0; }
+    .rail-locale-panel .rail-action.active { color: var(--accent-dark, #047857); background: var(--green-50, #ecfdf5); border-color: var(--green-200, #a7f3d0); }
+    .rail-locale-panel .rail-icon { font-size: 10px; font-weight: 750; letter-spacing: 0.02em; }
     .rail-action { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 4px 7px; border: 1px solid transparent; border-radius: 8px; color: var(--text-secondary, #475569); background: transparent; font-size: 12px; font-weight: 650; text-align: left; cursor: pointer; }
     .rail-action:hover { color: var(--text, #0f172a); background: var(--gray-50, #f8fafc); border-color: var(--line-light, #f1f5f9); }
     @media (max-width: 860px) {
@@ -479,11 +481,16 @@
       .rail-more { min-width: 40px; }
       .global-rail:hover .rail-more, .global-rail:focus-within .rail-more { min-width: 40px; }
       .rail-more-panel { position: fixed; right: 10px; bottom: 68px; min-width: 170px; padding: 6px; border: 1px solid var(--line, #e2e8f0); border-radius: 10px; background: #fff; box-shadow: 0 12px 28px rgba(15,23,42,0.08); }
+      .global-rail:has(.rail-more[open]) { z-index: 999; }
+      .rail-locale .rail-more-panel { z-index: 999; }
       .rail-more-panel .rail-action { width: 100%; grid-template-columns: 28px 1fr; }
       .rail-more-panel .rail-label { display: inline; opacity: 1; transform: none; }
+      .global-rail:not(:hover):not(:focus-within) .rail-more-panel .rail-label { display: inline; opacity: 1; transform: none; }
       .fab-group { right: 18px; bottom: 76px; }
     }
   </style>
+  <script src="/dashboard/i18n.js?v={{ legacy_i18n_version() }}" defer></script>
+  <script src="/static/legacy-i18n.js" defer></script>
   {% block head_extra %}{% endblock %}
   <script>
     window.CrispyModal = window.CrispyModal || {

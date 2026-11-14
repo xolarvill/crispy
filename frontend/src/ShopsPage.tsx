@@ -28,22 +28,25 @@ import {
   type IntegrationConfig,
   type Shop,
 } from "./shop-data";
+import { pick, useI18n, type Locale } from "./i18n";
 import { PolishedSurface, AnimatedSelection } from "./components/polish";
 
 const enc = encodeURIComponent;
-function accountState(account: ChannelAccount) {
+function accountState(account: ChannelAccount, locale: Locale) {
+  const zh = locale === "zh";
   return account.status === "disabled"
-    ? { label: "已停用", kind: "disabled" }
+    ? { label: zh ? "已停用" : "Disabled", kind: "disabled" }
     : account.status === "archived"
-      ? { label: "已归档", kind: "disabled" }
+      ? { label: zh ? "已归档" : "Archived", kind: "disabled" }
       : account.status === "warning"
-        ? { label: "需检查", kind: "missing" }
+        ? { label: zh ? "需检查" : "Needs attention", kind: "missing" }
         : account.ready
-          ? { label: "配置齐备", kind: "ready" }
-          : { label: "缺少凭证", kind: "missing" };
+          ? { label: zh ? "配置齐备" : "Configured", kind: "ready" }
+          : { label: zh ? "缺少凭证" : "Missing credentials", kind: "missing" };
 }
 function CredentialState({ account }: { account: ChannelAccount }) {
-  const state = accountState(account);
+  const { locale } = useI18n();
+  const state = accountState(account, locale);
   return (
     <span className={`credential-state ${state.kind}`}>
       <span />
@@ -61,15 +64,16 @@ export default function ShopsPage({
   demo: boolean;
   notify: (text: string) => void;
 }) {
+  const { t, locale } = useI18n();
   const parts = path.split("/").filter(Boolean),
     shared = parts[1] === "shared",
     newShop = parts[1] === "new";
   const [shops, setShops] = useState<Shop[]>(demo ? demoShops : []),
-    [configs, setConfigs] = useState<IntegrationConfig[]>(
-      demo ? demoConfigs : [],
+    [configs, setConfigs] = useState<IntegrationConfig[]>(() =>
+      demo ? demoConfigs(locale) : [],
     ),
     [accounts, setAccounts] = useState<ChannelAccount[]>([]),
-    [demoMap, setDemoMap] = useState(demoAccounts);
+    [demoMap, setDemoMap] = useState(() => demoAccounts(locale));
   const [loading, setLoading] = useState(!demo),
     [accountLoading, setAccountLoading] = useState(false),
     [error, setError] = useState(""),
@@ -100,10 +104,19 @@ export default function ShopsPage({
         )
       : undefined;
   useEffect(() => {
-    document.title = `Crispy · ${accountEdit ? "账号凭证" : newShop ? "添加店铺" : "店铺与凭证"}`;
+    document.title = `Crispy · ${
+      accountEdit
+        ? t("Account credentials", "账号凭证")
+        : newShop
+          ? t("Add shop", "添加店铺")
+          : t("Shops & credentials", "店铺与凭证")
+    }`;
     setError("");
     setArchiveTarget(null);
-  }, [path, accountEdit, newShop]);
+  }, [path, accountEdit, newShop, t]);
+  useEffect(() => {
+    if (demo) setDemoMap(demoAccounts(locale));
+  }, [demo, locale]);
   useEffect(() => {
     const frame = requestAnimationFrame(() =>
       document.querySelector<HTMLElement>(".page-title")?.focus(),
@@ -160,7 +173,7 @@ export default function ShopsPage({
     return () => controller.abort();
   }, [shopId, demo, demoMap, revision, showArchived]);
   function notifySaved() {
-    notify(demo ? "演示配置已保存" : "已保存");
+    notify(demo ? t("Demo configuration saved", "演示配置已保存") : t("Saved", "已保存"));
   }
   async function saveShop(
     value: { name: string; industry_code: string; store_url: string },
@@ -213,7 +226,10 @@ export default function ShopsPage({
           ? [definition.tokenKey, definition.accountKey].filter((key) => {
               const env = value.credential_env_vars[key];
               const envReady =
-                !!env && demoConfigs.some((c) => c.env_var === env && c.is_set);
+                !!env &&
+                demoConfigs(locale).some(
+                  (c) => c.env_var === env && c.is_set,
+                );
               const accountFallback =
                 key === definition.accountKey &&
                 !!(
@@ -287,7 +303,11 @@ export default function ShopsPage({
         });
         setRevision((r) => r + 1);
       }
-      notify(demo ? "演示：已更新账号状态" : "已更新账号状态");
+      notify(
+        demo
+          ? t("Demo: account status updated", "演示：已更新账号状态")
+          : t("Account status updated", "已更新账号状态"),
+      );
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -306,7 +326,9 @@ export default function ShopsPage({
         ? {
             ...value,
             env_var,
-            is_set: demoConfigs.some((c) => c.env_var === env_var && c.is_set),
+            is_set: demoConfigs(locale).some(
+              (c) => c.env_var === env_var && c.is_set,
+            ),
           }
         : await api<IntegrationConfig>(
             `/integration-configs/${enc(value.platform)}/${enc(value.config_key)}`,
@@ -347,7 +369,12 @@ export default function ShopsPage({
         setRevision((r) => r + 1);
       }
       setArchiveTarget(null);
-      if (mounted.current) notify(demo ? "演示：账号已归档" : "账号已归档");
+      if (mounted.current)
+        notify(
+          demo
+            ? t("Demo: account archived", "演示：账号已归档")
+            : t("Account archived", "账号已归档"),
+        );
     } catch (e) {
       if (mounted.current) setError((e as Error).message);
     } finally {
@@ -359,20 +386,20 @@ export default function ShopsPage({
   return (
     <div className="shops-page">
       <div className="breadcrumb">
-        <a href="#/shops">设置</a>
+        <a href="#/shops">{t("Settings", "设置")}</a>
         <ChevronRight size={12} />
-        <a href="#/shops">店铺与凭证</a>
+        <a href="#/shops">{t("Shops & credentials", "店铺与凭证")}</a>
         {editing && (
           <>
             <ChevronRight size={12} />
             <span>
               {accountEdit
-                ? "账号配置"
+                ? t("Account setup", "账号配置")
                 : globalConfig
-                  ? "共享映射"
+                  ? t("Shared mapping", "共享映射")
                   : newShop
-                    ? "添加店铺"
-                    : "编辑店铺"}
+                    ? t("Add shop", "添加店铺")
+                    : t("Edit shop", "编辑店铺")}
             </span>
           </>
         )}
@@ -382,7 +409,7 @@ export default function ShopsPage({
           {editing && (
             <IconButton
               icon={ArrowLeft}
-              label="返回店铺凭证"
+              label={t("Back to shop credentials", "返回店铺凭证")}
               onClick={() =>
                 go(
                   shared
@@ -396,22 +423,22 @@ export default function ShopsPage({
           )}
           <p className="page-title" tabIndex={-1}>
             {newShop
-              ? "添加店铺"
+              ? t("Add shop", "添加店铺")
               : shopEdit
-                ? "编辑店铺"
+                ? t("Edit shop", "编辑店铺")
                 : accountEdit
                   ? accountId === "new"
-                    ? "添加渠道账号"
-                    : "编辑账号凭证"
+                    ? t("Add channel account", "添加渠道账号")
+                    : t("Edit account credentials", "编辑账号凭证")
                   : globalConfig
-                    ? "编辑共享映射"
-                    : "店铺与凭证"}
+                    ? t("Edit shared mapping", "编辑共享映射")
+                    : t("Shops & credentials", "店铺与凭证")}
           </p>
         </div>
         {!editing && (
           <Button onClick={() => go("/shops/new")}>
             <Plus size={15} />
-            添加店铺
+            {t("Add shop", "添加店铺")}
           </Button>
         )}
       </div>
@@ -431,14 +458,14 @@ export default function ShopsPage({
             <RefreshCw size={14} />
             {editing &&
             (newShop || !!account || (shopEdit && !!shop) || !!globalConfig)
-              ? "继续编辑"
-              : "重试"}
+              ? t("Keep editing", "继续编辑")
+              : t("Retry", "重试")}
           </Button>
         </div>
       )}
       {newShop || shopEdit ? (
         shopEdit && !shop ? (
-          <Empty loading={loading} text="找不到店铺" />
+          <Empty loading={loading} text={t("Shop not found", "找不到店铺")} />
         ) : (
           <ShopForm
             key={shop?.id || "new"}
@@ -449,11 +476,11 @@ export default function ShopsPage({
         )
       ) : accountEdit ? (
         accountLoading ? (
-          <Empty loading text="正在加载账号" />
+          <Empty loading text={t("Loading accounts", "正在加载账号")} />
         ) : !shop ? (
-          <Empty text="找不到店铺" />
+          <Empty text={t("Shop not found", "找不到店铺")} />
         ) : accountId !== "new" && !account ? (
-          <Empty text="找不到账号" />
+          <Empty text={t("Account not found", "找不到账号")} />
         ) : (
           <AccountForm
             key={`${shop.id}-${accountId}`}
@@ -473,7 +500,11 @@ export default function ShopsPage({
         />
       ) : (
         <>
-          <div className="resource-tabs" role="group" aria-label="凭证范围">
+          <div
+            className="resource-tabs"
+            role="group"
+            aria-label={t("Credential scope", "凭证范围")}
+          >
             <AnimatedSelection active={shared ? "shared" : "shops"}>
               <button
                 data-selection-id="shops"
@@ -481,7 +512,7 @@ export default function ShopsPage({
                 className={!shared ? "active" : ""}
                 onClick={() => go(shopId ? `/shops/${shopId}` : "/shops")}
               >
-                店铺账号
+                {t("Shop accounts", "店铺账号")}
               </button>
               <button
                 data-selection-id="shared"
@@ -489,7 +520,7 @@ export default function ShopsPage({
                 className={shared ? "active" : ""}
                 onClick={() => go("/shops/shared")}
               >
-                共享映射
+                {t("Shared mappings", "共享映射")}
               </button>
             </AnimatedSelection>
           </div>
@@ -497,7 +528,10 @@ export default function ShopsPage({
             <>
               <p className="credential-note">
                 <KeyRound size={14} />
-                共享环境变量映射，适用于所有店铺。
+                {t(
+                  "Shared environment-variable mappings apply to every shop.",
+                  "共享环境变量映射，适用于所有店铺。",
+                )}
               </p>
               {configError ? (
                 <div className="alert" role="alert">
@@ -506,7 +540,7 @@ export default function ShopsPage({
                     variant="outline"
                     onClick={() => setRevision((r) => r + 1)}
                   >
-                    重试
+                    {t("Retry", "重试")}
                   </Button>
                 </div>
               ) : (
@@ -515,11 +549,11 @@ export default function ShopsPage({
                     <table className="config-table">
                       <thead>
                         <tr>
-                          <th>平台 / 字段</th>
-                          <th>环境变量</th>
-                          <th>本地状态</th>
+                          <th>{t("Platform / field", "平台 / 字段")}</th>
+                          <th>{t("Environment variable", "环境变量")}</th>
+                          <th>{t("Local status", "本地状态")}</th>
                           <th>
-                            <span className="sr-only">编辑</span>
+                            <span className="sr-only">{t("Edit", "编辑")}</span>
                           </th>
                         </tr>
                       </thead>
@@ -533,25 +567,33 @@ export default function ShopsPage({
                               <small>
                                 {platforms[c.platform]?.accountKey ===
                                 c.config_key
-                                  ? platforms[c.platform].accountLabel
+                                  ? pick(
+                                      platforms[c.platform].accountLabel,
+                                      locale,
+                                    )
                                   : "Token"}
                               </small>
                             </td>
                             <td>
-                              <code>{c.env_var || "未绑定"}</code>
+                              <code>{c.env_var || t("Unbound", "未绑定")}</code>
                             </td>
                             <td>
                               <span
                                 className={`credential-state ${c.is_set ? "ready" : "missing"}`}
                               >
                                 <span />
-                                {c.is_set ? "环境变量已设置" : "未设置"}
+                                {c.is_set
+                                  ? t("Environment variable set", "环境变量已设置")
+                                  : t("Not set", "未设置")}
                               </span>
                             </td>
                             <td>
                               <IconButton
                                 icon={Pencil}
-                                label={`编辑 ${c.platform} ${c.config_key}`}
+                                label={t(
+                                  `Edit ${c.platform} ${c.config_key}`,
+                                  `编辑 ${c.platform} ${c.config_key}`,
+                                )}
                                 onClick={() =>
                                   go(
                                     `/shops/shared/${c.platform}/${c.config_key}`,
@@ -565,7 +607,10 @@ export default function ShopsPage({
                     </table>
                   </div>
                   {!configs.length && (
-                    <Empty loading={loading} text="暂无共享映射" />
+                    <Empty
+                      loading={loading}
+                      text={t("No shared mappings yet", "暂无共享映射")}
+                    />
                   )}
                 </section>
               )}
@@ -573,20 +618,22 @@ export default function ShopsPage({
           ) : (
             <>
               {loading ? (
-                <Empty loading text="正在加载店铺" />
+                <Empty loading text={t("Loading shops", "正在加载店铺")} />
               ) : !shops.length ? (
                 <div className="empty-state">
                   <Store size={28} />
-                  <p>尚未添加店铺</p>
+                  <p>{t("No shops yet", "尚未添加店铺")}</p>
                   <Button onClick={() => go("/shops/new")}>
                     <Plus size={15} />
-                    添加店铺
+                    {t("Add shop", "添加店铺")}
                   </Button>
                 </div>
               ) : (
                 <>
                   <div className="shop-picker">
-                    <label htmlFor="shop-selector">当前店铺</label>
+                    <label htmlFor="shop-selector">
+                      {t("Current shop", "当前店铺")}
+                    </label>
                     <select
                       id="shop-selector"
                       value={shopId || ""}
@@ -600,11 +647,16 @@ export default function ShopsPage({
                     </select>
                     <IconButton
                       icon={RefreshCw}
-                      label="检查本地配置"
+                      label={t("Check local configuration", "检查本地配置")}
                       disabled={accountLoading || busy}
                       onClick={() =>
                         demo
-                          ? notify("演示模式：未连接平台")
+                          ? notify(
+                              t(
+                                "Demo mode: no platform connected",
+                                "演示模式：未连接平台",
+                              ),
+                            )
                           : setRevision((r) => r + 1)
                       }
                     />
@@ -629,21 +681,21 @@ export default function ShopsPage({
                                 <ArrowUpRight size={12} />
                               </a>
                             ) : (
-                              <span>未填写店铺网址</span>
+                              <span>{t("No shop URL", "未填写店铺网址")}</span>
                             )}
                             <span>{shop.industry_code}</span>
                           </div>
                         </div>
                         <IconButton
                           icon={Pencil}
-                          label="编辑店铺"
+                          label={t("Edit shop", "编辑店铺")}
                           onClick={() => go(`/shops/${shop.id}/edit`)}
                         />
                       </PolishedSurface>
                       <section className="surface channel-surface">
                         <div className="section-toolbar">
                           <p>
-                            渠道账号{" "}
+                            {t("Channel accounts", "渠道账号")}{" "}
                             <span className="muted">{accounts.length}</span>
                           </p>
                           <label className="archive-filter">
@@ -654,7 +706,7 @@ export default function ShopsPage({
                                 setShowArchived(e.target.checked)
                               }
                             />
-                            已归档
+                            {t("Archived", "已归档")}
                           </label>
                           <Button
                             variant="outline"
@@ -662,18 +714,18 @@ export default function ShopsPage({
                             onClick={() => go(`/shops/${shop.id}/accounts/new`)}
                           >
                             <Plus size={14} />
-                            添加账号
+                            {t("Add account", "添加账号")}
                           </Button>
                         </div>
                         <div className="table-scroll">
                           <table className="accounts-table">
                             <thead>
                               <tr>
-                                <th>平台 / 账号</th>
-                                <th>本地配置</th>
-                                <th>凭证绑定</th>
+                                <th>{t("Platform / account", "平台 / 账号")}</th>
+                                <th>{t("Local configuration", "本地配置")}</th>
+                                <th>{t("Credential binding", "凭证绑定")}</th>
                                 <th>
-                                  <span className="sr-only">操作</span>
+                                  <span className="sr-only">{t("Actions", "操作")}</span>
                                 </th>
                               </tr>
                             </thead>
@@ -709,8 +761,10 @@ export default function ShopsPage({
                                     {a.status !== "disabled" &&
                                       !!a.missing_credentials.length && (
                                         <small className="missing-field">
-                                          缺少{" "}
-                                          {a.missing_credentials.join("、")}
+                                          {t("Missing", "缺少")}{" "}
+                                          {a.missing_credentials.join(
+                                            locale === "zh" ? "、" : ", ",
+                                          )}
                                         </small>
                                       )}
                                   </td>
@@ -719,14 +773,17 @@ export default function ShopsPage({
                                       {a.credential_env_vars[
                                         platforms[a.platform]?.tokenKey ||
                                           "access_token"
-                                      ] || "未绑定"}
+                                      ] || t("Unbound", "未绑定")}
                                     </code>
                                   </td>
                                   <td>
                                     <div className="row-actions">
                                       <IconButton
                                         icon={Pencil}
-                                        label={`编辑 ${a.label || a.account_key}`}
+                                        label={t(
+                                          `Edit ${a.label || a.account_key}`,
+                                          `编辑 ${a.label || a.account_key}`,
+                                        )}
                                         disabled={busy}
                                         onClick={() =>
                                           go(
@@ -736,14 +793,32 @@ export default function ShopsPage({
                                       />
                                       <IconButton
                                         icon={Power}
-                                        label={`${a.status === "archived" ? "恢复" : a.status === "disabled" ? "启用" : "停用"} ${a.label || a.account_key}`}
+                                        label={
+                                          a.status === "archived"
+                                            ? t(
+                                                `Restore ${a.label || a.account_key}`,
+                                                `恢复 ${a.label || a.account_key}`,
+                                              )
+                                            : a.status === "disabled"
+                                              ? t(
+                                                  `Enable ${a.label || a.account_key}`,
+                                                  `启用 ${a.label || a.account_key}`,
+                                                )
+                                              : t(
+                                                  `Disable ${a.label || a.account_key}`,
+                                                  `停用 ${a.label || a.account_key}`,
+                                                )
+                                        }
                                         disabled={busy}
                                         onClick={() => void toggleAccount(a)}
                                       />
                                       {a.status !== "archived" && (
                                         <IconButton
                                           icon={Archive}
-                                          label={`归档 ${a.label || a.account_key}`}
+                                          label={t(
+                                            `Archive ${a.label || a.account_key}`,
+                                            `归档 ${a.label || a.account_key}`,
+                                          )}
                                           disabled={busy}
                                           onClick={() => setArchiveTarget(a.id)}
                                         />
@@ -751,19 +826,19 @@ export default function ShopsPage({
                                     </div>
                                     {archiveTarget === a.id && (
                                       <div className="archive-confirm">
-                                        <span>归档此账号？</span>
+                                        <span>{t("Archive this account?", "归档此账号？")}</span>
                                         <Button
                                           variant="outline"
                                           disabled={busy}
                                           onClick={() => setArchiveTarget(null)}
                                         >
-                                          取消
+                                          {t("Cancel", "取消")}
                                         </Button>
                                         <Button
                                           disabled={busy}
                                           onClick={() => void archiveAccount(a)}
                                         >
-                                          归档
+                                          {t("Archive", "归档")}
                                         </Button>
                                       </div>
                                     )}
@@ -776,7 +851,7 @@ export default function ShopsPage({
                         {!accounts.length && (
                           <Empty
                             loading={accountLoading}
-                            text="尚未添加渠道账号"
+                            text={t("No channel accounts yet", "尚未添加渠道账号")}
                           />
                         )}
                       </section>
@@ -823,6 +898,7 @@ function ShopForm({
     existing?: Shop,
   ) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState(shop?.name || ""),
     [industry, setIndustry] = useState(shop?.industry_code || ""),
     [url, setUrl] = useState(shop?.store_url || "");
@@ -843,7 +919,7 @@ function ShopForm({
       }}
     >
       <div className="form-body">
-        <Field label="店铺名称">
+        <Field label={t("Shop name", "店铺名称")}>
           <input
             required
             maxLength={128}
@@ -852,15 +928,15 @@ function ShopForm({
           />
         </Field>
         <div className="form-row">
-          <Field label="行业">
+          <Field label={t("Industry", "行业")}>
             <input
               value={industry}
               maxLength={128}
-              placeholder="例如 apparel"
+              placeholder={t("e.g. apparel", "例如 apparel")}
               onChange={(e) => setIndustry(e.target.value)}
             />
           </Field>
-          <Field label="店铺网址">
+          <Field label={t("Shop URL", "店铺网址")}>
             <input
               type="url"
               value={url}
@@ -894,6 +970,7 @@ function AccountForm({
     existing?: ChannelAccount,
   ) => Promise<void>;
 }) {
+  const { t, locale } = useI18n();
   const [platform, setPlatform] = useState(account?.platform || "shopify"),
     [label, setLabel] = useState(account?.label || ""),
     [key, setKey] = useState(account?.account_key || ""),
@@ -914,8 +991,8 @@ function AccountForm({
     name: platform,
     tokenKey: "access_token",
     accountKey: "account_id",
-    accountLabel: "账号 ID",
-    placeholder: "账号 ID",
+    accountLabel: { en: "Account ID", zh: "账号 ID" },
+    placeholder: { en: "Account ID", zh: "账号 ID" },
   };
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -943,11 +1020,11 @@ function AccountForm({
     <form className="surface credential-form" onSubmit={submit}>
       <div className="form-heading">
         <p>{shop.name}</p>
-        <span className="muted">店铺专属绑定</span>
+        <span className="muted">{t("Shop-specific binding", "店铺专属绑定")}</span>
       </div>
       <div className="form-body">
         <div className="form-row">
-          <Field label="平台">
+          <Field label={t("Platform", "平台")}>
             <select
               disabled={!!account}
               value={platform}
@@ -968,32 +1045,32 @@ function AccountForm({
               ))}
             </select>
           </Field>
-          <Field label="账号名称">
+          <Field label={t("Account name", "账号名称")}>
             <input
               required
               maxLength={128}
               value={label}
-              placeholder="例如 Shopify 主账号"
+              placeholder={t("e.g. Shopify primary", "例如 Shopify 主账号")}
               onChange={(e) => setLabel(e.target.value)}
             />
           </Field>
         </div>
         <div className="form-row">
-          <Field label="账号标识">
+          <Field label={t("Account key", "账号标识")}>
             <input
               required
               maxLength={128}
               value={key}
-              placeholder="例如 shopify-main"
+              placeholder={t("e.g. shopify-main", "例如 shopify-main")}
               onChange={(e) => setKey(e.target.value)}
             />
           </Field>
-          <Field label={definition.accountLabel}>
+          <Field label={pick(definition.accountLabel, locale)}>
             <input
               required={!accountEnv.trim()}
               maxLength={128}
               value={id}
-              placeholder={definition.placeholder}
+              placeholder={pick(definition.placeholder, locale)}
               onChange={(e) => setId(e.target.value)}
             />
           </Field>
@@ -1001,7 +1078,9 @@ function AccountForm({
         <div className="credential-divider" />
         <Field
           label={
-            platform === "notion" ? "API Key 环境变量" : "Access Token 环境变量"
+            platform === "notion"
+              ? t("API key environment variable", "API Key 环境变量")
+              : t("Access token environment variable", "Access Token 环境变量")
           }
         >
           <input
@@ -1013,13 +1092,18 @@ function AccountForm({
             onChange={(e) => setToken(e.target.value)}
           />
         </Field>
-        <Field label={`${definition.accountLabel}环境变量（可选）`}>
+        <Field
+          label={t(
+            `${pick(definition.accountLabel, locale)} environment variable (optional)`,
+            `${pick(definition.accountLabel, locale)}环境变量（可选）`,
+          )}
+        >
           <input
             pattern={envPattern}
             maxLength={128}
             value={accountEnv}
             list="credential-env-suggestions"
-            placeholder="留空时使用上方账号信息"
+            placeholder={t("Leave blank to use the account info above", "留空时使用上方账号信息")}
             onChange={(e) => setAccountEnv(e.target.value)}
           />
         </Field>
@@ -1031,14 +1115,17 @@ function AccountForm({
             ))}
         </datalist>
         <p className="inline-note">
-          填写 CRISPY_API_KEY_* 变量名，不填写密钥值。
+          {t(
+            "Enter the CRISPY_API_KEY_* variable name, not the secret value.",
+            "填写 CRISPY_API_KEY_* 变量名，不填写密钥值。",
+          )}
         </p>
         <div className="credential-divider" />
         <div className="form-row">
-          <Field label="账号状态">
+          <Field label={t("Account status", "账号状态")}>
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="active">启用</option>
-              <option value="disabled">停用</option>
+              <option value="active">{t("Enabled", "启用")}</option>
+              <option value="disabled">{t("Disabled", "停用")}</option>
               {!["active", "disabled"].includes(status) && (
                 <option value={status}>{status}</option>
               )}
@@ -1050,7 +1137,7 @@ function AccountForm({
               checked={primary}
               onChange={(e) => setPrimary(e.target.checked)}
             />
-            设为该平台主账号
+            {t("Set as the primary account for this platform", "设为该平台主账号")}
           </label>
         </div>
       </div>
@@ -1067,6 +1154,7 @@ function GlobalForm({
   busy: boolean;
   save: (config: IntegrationConfig, env: string) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [env, setEnv] = useState(config.env_var);
   return (
     <form
@@ -1083,7 +1171,7 @@ function GlobalForm({
         </p>
       </div>
       <div className="form-body">
-        <Field label="环境变量名">
+        <Field label={t("Environment variable name", "环境变量名")}>
           <input
             pattern={envPattern}
             value={env}
@@ -1092,7 +1180,10 @@ function GlobalForm({
           />
         </Field>
         <p className="inline-note">
-          共享映射适用于所有店铺。店铺专属绑定在账号页面配置。
+          {t(
+            "Shared mappings apply to every shop. Shop-specific bindings are configured on the account page.",
+            "共享映射适用于所有店铺。店铺专属绑定在账号页面配置。",
+          )}
         </p>
       </div>
       <FormActions busy={busy} cancel={() => go("/shops/shared")} />
@@ -1100,10 +1191,11 @@ function GlobalForm({
   );
 }
 function FormActions({ busy, cancel }: { busy: boolean; cancel: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="form-actions">
       <Button variant="outline" disabled={busy} onClick={cancel}>
-        取消
+        {t("Cancel", "取消")}
       </Button>
       <Button type="submit" disabled={busy}>
         {busy ? (
@@ -1111,7 +1203,7 @@ function FormActions({ busy, cancel }: { busy: boolean; cancel: () => void }) {
         ) : (
           <Save size={15} />
         )}
-        保存
+        {t("Save", "保存")}
       </Button>
     </div>
   );

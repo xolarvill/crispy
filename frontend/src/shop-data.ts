@@ -1,3 +1,5 @@
+import { pick, type Localized, type Locale } from "./i18n";
+
 export type Shop = {
   id: string;
   name: string;
@@ -37,37 +39,37 @@ export const platforms: Record<
     name: string;
     tokenKey: string;
     accountKey: string;
-    accountLabel: string;
-    placeholder: string;
+    accountLabel: Localized;
+    placeholder: Localized;
   }
 > = {
   shopify: {
     name: "Shopify",
     tokenKey: "access_token",
     accountKey: "store_domain",
-    accountLabel: "店铺域名",
-    placeholder: "store.myshopify.com",
+    accountLabel: { en: "Store domain", zh: "店铺域名" },
+    placeholder: { en: "store.myshopify.com", zh: "store.myshopify.com" },
   },
   meta: {
     name: "Meta Ads",
     tokenKey: "access_token",
     accountKey: "ad_account_id",
-    accountLabel: "广告账号 ID",
-    placeholder: "act_123456789",
+    accountLabel: { en: "Ad account ID", zh: "广告账号 ID" },
+    placeholder: { en: "act_123456789", zh: "act_123456789" },
   },
   tiktok: {
     name: "TikTok",
     tokenKey: "access_token",
     accountKey: "advertiser_id",
-    accountLabel: "广告主 ID",
-    placeholder: "广告主 ID",
+    accountLabel: { en: "Advertiser ID", zh: "广告主 ID" },
+    placeholder: { en: "Advertiser ID", zh: "广告主 ID" },
   },
   notion: {
     name: "Notion",
     tokenKey: "api_key",
     accountKey: "database_id",
-    accountLabel: "数据库 ID",
-    placeholder: "数据库 ID",
+    accountLabel: { en: "Database ID", zh: "数据库 ID" },
+    placeholder: { en: "Database ID", zh: "数据库 ID" },
   },
 };
 export const envPattern = "CRISPY_API_KEY_[A-Za-z0-9_]+";
@@ -85,40 +87,47 @@ export const demoShops: Shop[] = [
     store_url: "https://northline.example",
   },
 ];
-export const demoConfigs: IntegrationConfig[] = Object.entries(
-  platforms,
-).flatMap(([platform, definition]) =>
-  [definition.tokenKey, definition.accountKey].map((config_key, i) => ({
-    id: `${platform}-${config_key}`,
-    platform,
-    config_key,
-    label: i === 0 ? "Token" : definition.accountLabel,
-    env_var: `CRISPY_API_KEY_${platform.toUpperCase()}${i === 0 ? "" : "_ACCOUNT"}`,
-    is_required: true,
-    is_set: platform === "shopify" || platform === "meta",
-  })),
-);
-export const demoAccounts: Record<string, ChannelAccount[]> = {
-  "demo-shop-1": Object.entries(platforms).map(([platform, definition], i) => ({
-    id: `demo-account-${platform}`,
-    workspace_id: "demo-shop-1",
-    platform,
-    account_key: `${platform}-main`,
-    label: `${definition.name} 主账号`,
-    account_id: [
-      "atelier.myshopify.com",
-      "act_123456789",
-      "adv_789012",
-      "db_123456",
-    ][i],
-    account_url: null,
-    credential_env_vars: {
-      [definition.tokenKey]: `CRISPY_API_KEY_${platform.toUpperCase()}`,
-    },
-    status: platform === "notion" ? "disabled" : "active",
-    is_primary: true,
-    ready: i < 2,
-    missing_credentials: i < 2 ? [] : [definition.tokenKey],
-  })),
-  "demo-shop-2": [],
-};
+export function demoConfigs(locale: Locale): IntegrationConfig[] {
+  return Object.entries(platforms).flatMap(([platform, definition]) =>
+    [definition.tokenKey, definition.accountKey].map((config_key, i) => ({
+      id: `${platform}-${config_key}`,
+      platform,
+      config_key,
+      label: i === 0 ? "Token" : pick(definition.accountLabel, locale),
+      env_var: `CRISPY_API_KEY_${platform.toUpperCase()}${i === 0 ? "" : "_ACCOUNT"}`,
+      is_required: true,
+      is_set: platform === "shopify" || platform === "meta",
+    })),
+  );
+}
+export function demoAccounts(locale: Locale): Record<string, ChannelAccount[]> {
+  return {
+    "demo-shop-1": Object.entries(platforms).map(
+      ([platform, definition], i) => ({
+        id: `demo-account-${platform}`,
+        workspace_id: "demo-shop-1",
+        platform,
+        account_key: `${platform}-main`,
+        label:
+          locale === "zh"
+            ? `${definition.name} 主账号`
+            : `${definition.name} primary`,
+        account_id: [
+          "atelier.myshopify.com",
+          "act_123456789",
+          "adv_789012",
+          "db_123456",
+        ][i],
+        account_url: null,
+        credential_env_vars: {
+          [definition.tokenKey]: `CRISPY_API_KEY_${platform.toUpperCase()}`,
+        },
+        status: platform === "notion" ? "disabled" : "active",
+        is_primary: true,
+        ready: i < 2,
+        missing_credentials: i < 2 ? [] : [definition.tokenKey],
+      }),
+    ),
+    "demo-shop-2": [],
+  };
+}
