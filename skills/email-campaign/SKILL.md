@@ -25,4 +25,4 @@ description: 撰写营销邮件、newsletter 或欢迎、购后、召回等序�
 
 ## 按任务读取
 
-- [邮件序列](../../third_party/marketing/marketingskills/skills/emails/SKILL.md)
+- [单封邮件与序列](../../third_party/marketing/marketingskills/skills/emails/SKILL.md)
