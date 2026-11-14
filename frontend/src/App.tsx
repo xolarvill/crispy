@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Search,
   Settings2,
+  SwatchBook,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -278,7 +279,7 @@ export default function App() {
             onClick={() => navigate("/tasks")}
           >
             <span className="brand-mark">
-              <Layers size={25} />
+              <SwatchBook size={24} strokeWidth={1.8} />
             </span>
             <span>
               <strong>crispy</strong>
