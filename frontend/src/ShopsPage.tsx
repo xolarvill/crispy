@@ -12,7 +12,6 @@ import {
   Power,
   RefreshCw,
   Save,
-  ShieldCheck,
   Store,
 } from "lucide-react";
 import { Button } from "./components/ui/button";
@@ -787,10 +786,6 @@ export default function ShopsPage({
               )}
             </>
           )}
-          <p className="credential-note">
-            <ShieldCheck size={14} />
-            仅保存环境变量名，密钥由本地环境提供。配置齐备不代表平台连接已验证。
-          </p>
         </>
       )}
     </div>

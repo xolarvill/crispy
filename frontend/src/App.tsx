@@ -610,11 +610,7 @@ export default function App() {
                                   通过阶段
                                 </Button>
                               </div>
-                            ) : (
-                              <span className="muted">
-                                {demo ? "演示状态" : "实时同步"}
-                              </span>
-                            )}
+                            ) : null}
                           </div>
                         </section>
                       </div>
@@ -867,9 +863,6 @@ export default function App() {
                   )}
                   <div className="index-footer">
                     <span>{visible.length} 个任务</span>
-                    <span>
-                      {demo ? "演示数据 · 非真实执行结果" : "实时同步"}
-                    </span>
                   </div>
                 </section>
               </>
