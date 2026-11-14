@@ -1910,3 +1910,7 @@ dd {
 .prompt-editor summary { cursor: pointer; font-weight: 600; }
 .prompt-editor .form-group { margin-top: 12px; align-items: start; }
 .prompt-editor textarea { width: 100%; padding: 8px; border: 1px solid #aebbb4; border-radius: 6px; resize: vertical; font: inherit; }
+.prompt-library { width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.prompt-library-body { display: grid; gap: 10px; margin-top: 12px; }
+.prompt-library-body .button { justify-self: start; }
+.prompt-preview { margin: 0; max-width: 75ch; line-height: 1.7; }
