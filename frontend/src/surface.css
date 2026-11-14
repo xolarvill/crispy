@@ -1373,27 +1373,32 @@ td:first-child {
 }
 .sidebar-settings-body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 .sidebar-setting {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  gap: 6px;
   font-size: 11px;
   color: var(--muted-foreground);
 }
+.sidebar-setting > span {
+  white-space: nowrap;
+}
 .sidebar-setting select {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   font-size: 11px;
   padding: 7px 9px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
-  max-width: 126px;
 }
 .sidebar-setting .locale-switch {
+  width: 100%;
+  min-width: 0;
   margin: 0;
-  flex: 0 0 112px;
 }
 .locale-switch {
   position: relative;
