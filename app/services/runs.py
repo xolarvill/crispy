@@ -2853,6 +2853,11 @@ def _qa_repair_context(
         "product_fill_low": "Make the product larger and clearly inspectable in frame.",
     }
     actions = [text for key, text in rules.items() if key in flag_set]
+    review = visual_quality.get("visual_proof_qa") or {}
+    if target_stage == "copy_image_generation" and isinstance(review, dict) and review.get("status") == "fail":
+        repair = review.get("repair_instruction")
+        if isinstance(repair, str) and repair.strip():
+            actions.insert(0, repair.strip()[:320])
     for flag in flag_set:
         if flag.startswith("segment_blocked:"):
             actions.append(f"Resume from {flag.split(':', 1)[1]} and keep previous completed segments unchanged.")

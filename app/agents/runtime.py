@@ -832,17 +832,17 @@ class AgentsRuntime:
         styles = [
             {
                 "name": "single in-use moment",
-                "composition": "one realistic scene, no split panels or symbolic icons",
+                "composition": "one scene, no split panels or symbolic icons; frame the product's point of use and the surrounding action",
                 "proof_language": "product benefit is shown through body posture, placement, and natural interaction",
             },
             {
                 "name": "product detail close-up",
-                "composition": "macro or near-product composition with surrounding use context",
+                "composition": "bring the verified working detail into focus; angle the camera and light across its surface so its shape separates from the background",
                 "proof_language": "material, component, or attachment detail carries the proof",
             },
             {
                 "name": "lifestyle outcome",
-                "composition": "aspirational but plausible scene after the product is already in use",
+                "composition": "show the product and the visible outcome together; place supporting objects where they explain how it was used",
                 "proof_language": "buyer outcome is legible from the calmer/easier scene, not from labels",
             },
             {
@@ -2580,13 +2580,17 @@ class AgentsRuntime:
                 )
                 + f"{self._dtc_surface_prompt_block(creative_specs)}"
                 + self._variant_visual_proof_prompt_block(item)
-                + "Show the product in a realistic commercial composition that matches the intended use case. "
+                + f"Subject: {product_name}. Frame this shot around the variant's intended moment: {item.hook or item.angle}. "
+                + "Choose a viewpoint that reveals the supported product detail or action. Use light and background contrast "
+                + "to separate that detail at the final crop. Keep identifying features in frame when the placement needs product recognition. "
+                + "Give any specified copy area a quiet background; keep it clear of the working detail. "
+                + "Include props or graphic treatments when they explain the action or express the supplied creative direction. "
                 + "Keep product details aligned with this summary: "
                 + f"{visual_summary}. "
                 + f"Product truth contract: {product_truth}. "
-                + f"Style: realistic, brand-safe, no text overlay, sharp product visibility, conversion-oriented. "
+                + "Preserve reference markings and material appearance. No text overlay. "
                 + f"Use aspect ratio {image_size}, target resolution {resolution}. "
-                + "Visual QA gate: product must be clearly inspectable, physically plausible, not malformed, and not a generic stock image."
+                + "Keep the product physically plausible and inspectable."
                 + self._qa_repair_prompt_block(runtime_config)
             )
             image_uri = ""
@@ -3278,6 +3282,11 @@ class AgentsRuntime:
                         f"{self._video_prompt_quality_block(product_context)}"
                         f"{self._qa_repair_prompt_block(runtime_config)}"
                     )
+                frame_prompt += (
+                    " Frame the shot's intended action so its contact point or outcome reads clearly. "
+                    "Carry product scale, light direction and distinguishing details across adjacent shots "
+                    "where the scene is continuous. Preserve planned changes in viewpoint."
+                )
                 source = "placeholder"
                 image_provider = ""
                 image_model = ""
@@ -4197,7 +4206,11 @@ class AgentsRuntime:
                 "Do not make claim-safety, policy, legal, or platform-compliance decisions; leave those to Evaluation. "
                 "When product_truth_flags are present, compare attached media against the product_truth_contract before passing the candidate. "
                 "When visual_proof_spec is present, check whether the media proves the desired_scene/proof_mechanism and avoids semantic_fail_conditions. "
-                "Return ONLY valid JSON shaped as {\"model_summary\":\"...\",\"visual_proof_reviews\":[{\"variant_id\":\"V1\",\"status\":\"pass|warn|fail\",\"visual_score\":0-100,\"evidence\":\"...\",\"failed_conditions\":[\"...\"]}]}. "
+                "For inspected still images judge the intended placement: can the viewer identify the product and see the proof at the intended crop? "
+                "Check any requested copy area for collisions. Identify distracting props or effects only when they obscure that proof or conflict with the brief. "
+                "Describe the visible region and its impact in evidence. For a failed still image give one concrete repair_instruction naming the region and edit. "
+                "Leave it empty for other assets or when pixels cannot be inspected. Style preference alone is not a failure. "
+                "Return ONLY valid JSON shaped as {\"model_summary\":\"...\",\"visual_proof_reviews\":[{\"variant_id\":\"V1\",\"status\":\"pass|warn|fail\",\"visual_score\":0-100,\"evidence\":\"...\",\"failed_conditions\":[\"...\"],\"repair_instruction\":\"\"}]}. "
                 "Use status=fail when the media expresses a semantic_fail_condition. Do not choose the final winner.\n"
                 f"intake_facts={json.dumps(intake, ensure_ascii=False)[:3000]}\n"
                 f"product_truth_contract={json.dumps(product_truth, ensure_ascii=False)[:2000]}\n"

@@ -21,4 +21,8 @@ description: 审阅具体营销内容的事实依据、品牌表达、素材和�
 
 ## 按任务读取
 
+审营销图片时按最终展示尺寸看一次。先指出观众从哪个细节认出商品、从哪个动作理解卖点。再看裁切是否损失识别特征，道具或特效是否抢走该细节。需要叠字时用实际标题检查遮挡，优先调整文字位置、景别或取景。返修意见写清画面区域、读者会错过什么、该移动或保留哪个元素。保留符合品牌简报的夸张、色彩和质感。
+
+这一审阅方法参考了歸藏设计对配图用途与标题区域的处理。见[配图提示词](https://github.com/op7418/dsh-guizang-design/blob/e275f1e4d4a81bd4875c251d33c643c242a8a8fd/skills/guizang-ppt-skill/references/image-prompts.md)和[图文叠加](https://github.com/op7418/dsh-guizang-design/blob/e275f1e4d4a81bd4875c251d33c643c242a8a8fd/skills/guizang-social-card-skill/references/image-overlay.md)。
+
 - [品牌审阅](../../third_party/marketing/knowledge-work-plugins/marketing/skills/brand-review/SKILL.md)

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from app.data.models import VariantAsset
 from app.data.session import SessionLocal
 from app.providers.llm import GeneratedImage, GeneratedVideo, ImageGenResult, VideoGenResult
@@ -139,7 +141,8 @@ def test_qa_repair_context_maps_visual_qa_flags_to_actions():
     assert "Regeneration repair instructions" in repair["prompt"]
 
 
-def test_qa_repair_context_maps_visual_proof_failure_to_action():
+@pytest.mark.parametrize("repair_note", ["", "Move the handle clear of the working edge."])
+def test_qa_repair_context_maps_visual_proof_failure_to_action(repair_note):
     class EmptyRows:
         def all(self):
             return []
@@ -152,6 +155,7 @@ def test_qa_repair_context_maps_visual_proof_failure_to_action():
         id="variant-row",
         metadata_json={
             "visual_quality": {
+                "visual_proof_qa": {"status": "fail", "repair_instruction": repair_note},
                 "blocking_issues": [
                     "visual_qa_visual_proof_failed",
                     "visual_proof_failed:image communicates active pulling instead of controlled anti-pull redirection",
@@ -168,7 +172,10 @@ def test_qa_repair_context_maps_visual_proof_failure_to_action():
         target_stage="copy_image_generation",
     )
 
-    assert "Regenerate with the visual proof mechanism clearly shown" in repair["actions"][0]
+    assert any("Regenerate with the visual proof mechanism clearly shown" in action for action in repair["actions"])
+    if repair_note:
+        assert repair["actions"][0] == repair_note
+        assert repair_note in repair["prompt"]
     assert any("Avoid semantic failure" in action for action in repair["actions"])
     assert "visual_qa_visual_proof_failed" in repair["evidence_flags"]
 
