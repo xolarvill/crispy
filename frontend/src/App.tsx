@@ -141,10 +141,37 @@ export default function App() {
   }, [demo, revision, isShops, operation]);
   useEffect(() => {
     if (demo || isShops || operation) return;
-    const timer = setInterval(() => {
+    let queued: number | undefined;
+    const bump = () => {
       if (!document.hidden) setRevision((r) => r + 1);
-    }, 10000);
-    return () => clearInterval(timer);
+    };
+    const scheduleBump = () => {
+      if (document.hidden || queued) return;
+      queued = window.setTimeout(() => {
+        queued = undefined;
+        bump();
+      }, 250);
+    };
+    const source =
+      typeof EventSource === "undefined"
+        ? null
+        : new EventSource("/api/runs/stream");
+    source?.addEventListener("runs_changed", scheduleBump);
+    const onVisible = () => {
+      if (!document.hidden) bump();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    // Safety net if the stream is unavailable or the connection has dropped.
+    const fallback = window.setInterval(() => {
+      if (!document.hidden) bump();
+    }, 30000);
+    return () => {
+      source?.removeEventListener("runs_changed", scheduleBump);
+      source?.close();
+      if (queued) window.clearTimeout(queued);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(fallback);
+    };
   }, [demo, isShops, operation]);
   useEffect(() => {
     setDetail(null);
@@ -585,7 +612,7 @@ export default function App() {
                               </div>
                             ) : (
                               <span className="muted">
-                                {demo ? "演示状态" : "每 10 秒刷新"}
+                                {demo ? "演示状态" : "实时同步"}
                               </span>
                             )}
                           </div>
@@ -841,7 +868,7 @@ export default function App() {
                   <div className="index-footer">
                     <span>{visible.length} 个任务</span>
                     <span>
-                      {demo ? "演示数据 · 非真实执行结果" : "每 10 秒刷新"}
+                      {demo ? "演示数据 · 非真实执行结果" : "实时同步"}
                     </span>
                   </div>
                 </section>

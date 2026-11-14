@@ -21,7 +21,7 @@ from app.agents.runtime import AgentsRuntime
 from app.schemas.api import ImagePromptExpansionRequest, ImagePromptExpansionResponse
 from app.services.agent_api_configs import resolve_agent_config, resolve_agent_runtime
 from app.core.config import get_settings
-from app.data.models import Artifact, Campaign, ContentSchedule, GmMemory, GmPolicyVersion, GmReflection, IntegrationSync, PerformanceSnapshot, PipelineRun, Product, Project, RunVariant, ScoreCard as ScoreCardModel, ShopChannelAccount, ShopSite, StageTask, VariantAsset, Workspace
+from app.data.models import AgentTraceEvent, Artifact, Campaign, ContentSchedule, GmMemory, GmPolicyVersion, GmReflection, IntegrationSync, PerformanceSnapshot, PipelineRun, Product, Project, RunVariant, ScoreCard as ScoreCardModel, ShopChannelAccount, ShopSite, StageTask, VariantAsset, Workspace
 from app.data.session import (
     SessionLocal,
     get_active_database_url,
@@ -4216,6 +4216,122 @@ async def create_pipeline_run_rich(
     result = _serialize_run(db, run).model_dump()
     result["_preflight"] = preflight_result
     return result
+
+
+def _run_stream_signature(db: Session) -> tuple:
+    runs = [
+        tuple(row)
+        for row in db.execute(
+            select(
+                PipelineRun.id,
+                PipelineRun.status,
+                PipelineRun.current_stage,
+                PipelineRun.updated_at,
+                PipelineRun.budget_used,
+            )
+            .order_by(PipelineRun.updated_at.desc())
+            .limit(200)
+        ).all()
+    ]
+    run_ids = [row[0] for row in runs]
+    if not run_ids:
+        return (tuple(runs), (), (), (), ())
+    tasks = [
+        tuple(row)
+        for row in db.execute(
+            select(
+                StageTask.run_id,
+                StageTask.stage_name,
+                StageTask.status,
+                StageTask.attempt,
+                StageTask.started_at,
+                StageTask.completed_at,
+                StageTask.approved_at,
+                StageTask.rejected_at,
+                StageTask.review_notes,
+            )
+            .where(StageTask.run_id.in_(run_ids))
+            .order_by(StageTask.run_id, StageTask.stage_name)
+        ).all()
+    ]
+    variants = [
+        tuple(row)
+        for row in db.execute(
+            select(
+                RunVariant.run_id,
+                RunVariant.variant_id,
+                RunVariant.status,
+                RunVariant.updated_at,
+                RunVariant.is_winner,
+                RunVariant.shortlisted,
+            )
+            .where(RunVariant.run_id.in_(run_ids))
+            .order_by(RunVariant.run_id, RunVariant.variant_id)
+        ).all()
+    ]
+    assets = [
+        tuple(row)
+        for row in db.execute(
+            select(
+                VariantAsset.run_id,
+                VariantAsset.idempotency_key,
+                VariantAsset.uri,
+                VariantAsset.created_at,
+            )
+            .where(VariantAsset.run_id.in_(run_ids))
+            .order_by(VariantAsset.run_id, VariantAsset.idempotency_key)
+        ).all()
+    ]
+    traces = [
+        tuple(row)
+        for row in db.execute(
+            select(
+                AgentTraceEvent.run_id,
+                func.count(AgentTraceEvent.id),
+                func.max(AgentTraceEvent.created_at),
+            )
+            .where(AgentTraceEvent.run_id.in_(run_ids))
+            .group_by(AgentTraceEvent.run_id)
+        ).all()
+    ]
+    return (tuple(runs), tuple(tasks), tuple(variants), tuple(assets), tuple(traces))
+
+
+@router.get("/runs/stream")
+async def stream_runs(
+    request: Request,
+    poll_seconds: float = Query(default=1.0, ge=0.2, le=10.0),
+) -> StreamingResponse:
+    """Push a change signal whenever the run list or any recent run changes.
+
+    The stream carries a lightweight signal instead of the full run payload so
+    the workbench can reuse its existing list and detail requests.
+    """
+
+    async def event_generator():
+        with SessionLocal() as db:
+            last_signature = _run_stream_signature(db)
+        yield _sse_event("ready", {})
+        while True:
+            if await request.is_disconnected():
+                break
+            try:
+                with SessionLocal() as db:
+                    signature = _run_stream_signature(db)
+                if signature != last_signature:
+                    last_signature = signature
+                    yield _sse_event("runs_changed", {"at": datetime.now(UTC).isoformat()})
+                else:
+                    yield _sse_event("heartbeat", {"at": datetime.now(UTC).isoformat()})
+            except Exception as exc:  # Keep the stream alive across a transient DB error.
+                yield _sse_event("error", {"detail": str(exc)})
+            await asyncio.sleep(poll_seconds)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/runs/{run_id}", response_model=RunView)
