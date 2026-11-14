@@ -5,10 +5,6 @@
 - Use Conventional Commits. Match the language used by prior commits; if there is no precedent, use English.
 - When communicating with Figma, use `figwright` to share and discuss design drafts.
 
-## Local marketing methods
-
-For substantive marketing work, consult [skills/README.md](skills/README.md) and read the relevant `SKILL.md` before applying its method. Choose and combine methods from the user's current goal, decisions, artifacts and evidence; the index is not a mandatory stage sequence. Reuse adequate context and ask only for essential gaps. These repository-local methods are for agent use; their presence does not register them in the backend pipeline or grant publishing permission.
-
 # Crispy — Technical Reference
 
 ## Architecture Snapshot

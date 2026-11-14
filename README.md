@@ -108,11 +108,7 @@ The original dashboard remains available on the API server. The standalone launc
 
 Workbench development integrates into **`workbench/main`**. It will merge into the repository's main release line, currently **`master`**, when ready.
 
-The [marketing coverage and upstream vendor document](docs/marketing-skills-research.md) records the proposed work areas, user priorities, page boundaries, human–agent collaboration and social/email skill sources. It distinguishes user direction from pending proposals; those integrations have not shipped.
-
 ## Development
-
-Coding agents can use the [local marketing methods](skills/README.md) for product knowledge, research, social/email/video content, review, analysis and publication handoff. These are repository-local instructions, not an installed backend or Magpie integration. See the [coverage and source design](docs/local-skills-design.md).
 
 ```bash
 # Frontend: TypeScript checks and production build
