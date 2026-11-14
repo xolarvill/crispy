@@ -18,3 +18,7 @@ description: 审阅具体营销内容的事实依据、品牌表达、素材和�
 输出按请求给出修订稿或审阅意见，保留关键事实变更依据。明确被检查版本及尚影响交付的缺项；不要例行附加没有实际问题支持的免责声明。
 
 人工批准必须对应具体版本。后续修改正文、媒体、优惠、受众或发布目标时检查原批准是否仍适用，按真实授权处理。自己的“检查通过”不写成人已批准，现有 `VariantReview`/审阅 API 的写入也不自动执行。
+
+## 按任务读取
+
+- [品牌审阅](../../third_party/marketing/knowledge-work-plugins/marketing/skills/brand-review/SKILL.md)

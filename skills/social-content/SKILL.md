@@ -22,3 +22,9 @@ description: 写作或修改社媒帖文、设计内容批次和日历、将已�
 批次草稿可包含：内容 ID、主题、渠道/账号、正文、素材引用与缺项、行动入口、计划时间与时区、来源版本。只在已有真实 ID 时关联 campaign/run/asset；排期建议与已创建的发布记录分开。
 
 局部改稿直接交付所需文本，不附无关全套策略。批次交付应使人能选择、修改和审阅每条内容；实际发送/发布交由已授权的执行路径。
+
+## 按任务读取
+
+- [社媒内容批次](../../third_party/marketing/marketingskills/skills/social/SKILL.md)
+- [内容日历](../../third_party/marketing/social-media-skills/skills/content-calendar-sms/SKILL.md)
+- [内容复用](../../third_party/marketing/social-media-skills/skills/content-repurposer-sms/SKILL.md)

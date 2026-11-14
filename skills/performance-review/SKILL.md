@@ -26,3 +26,8 @@ description: 分析内容、渠道或广告的表现变化，核对指标口径�
 围绕问题给出可比表现、证据范围及优先行动。每项行动说明对象、依据、预期观察指标与复查条件；不以通用花费倍数或少量点击自动关停广告。修改预算、暂停投放或发布新素材依当前授权使用真实执行工具，诊断本身不触发写操作。
 
 不自动覆盖品牌知识。值得保留的结论作为带观察窗口的候选经验，人确认后再维护长期知识。
+
+## 按任务读取
+
+- [活动复盘](../../third_party/marketing/knowledge-work-plugins/marketing/skills/performance-report/SKILL.md)
+- [社媒表现分析](../../third_party/marketing/social-media-skills/skills/performance-analyzer-sms/SKILL.md)

@@ -15,13 +15,14 @@ def files(root: Path) -> dict[str, str]:
     def fingerprint(path: Path) -> str:
         # Avoid false changes after Git's LF/CRLF conversion on another checkout.
         content = path.read_bytes()
-        if path.suffix.lower() in {".md", ".yaml", ".yml", ".json", ".py"}:
+        if path.name == "LICENSE" or path.suffix.lower() in {".md", ".yaml", ".yml", ".json", ".py", ".html"}:
             content = content.replace(b"\r\n", b"\n")
         return hashlib.sha256(content).hexdigest()
 
     return {
         path.relative_to(root).as_posix(): fingerprint(path)
-        for path in sorted((root / "skills").rglob("*"))
+        for folder in ("skills", "third_party/marketing")
+        for path in sorted((root / folder).rglob("*"))
         if path.is_file()
     }
 
@@ -49,7 +50,7 @@ def run(mode: str, root: Path = ROOT) -> list[str]:
             if not all(upstream.get(k) for k in ("repository", "path", "commit", "license")):
                 errors.append(f"Incomplete upstream provenance: {record['path']}")
         if record["path"] in actual:
-            if mode == "refresh":
+            if mode == "refresh" and record["source_id"] == "workbench_native":
                 record["sha256"] = actual[record["path"]]
             elif record.get("sha256") != actual[record["path"]]:
                 errors.append(f"Changed file: {record['path']}")

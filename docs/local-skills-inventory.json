@@ -4,68 +4,932 @@
   "sources": {
     "workbench_native": {
       "description": "Original crispy task methods; no upstream skill text or assets imported. Git tracks local revisions."
+    },
+    "knowledge-work-plugins": {
+      "repository": "https://github.com/anthropics/knowledge-work-plugins",
+      "commit": "e91a134584eb798bac7fb0379358006a2b63b965",
+      "license": "Apache-2.0",
+      "license_path": "marketing/LICENSE"
+    },
+    "marketingskills": {
+      "repository": "https://github.com/coreyhaines31/marketingskills",
+      "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+      "license": "MIT",
+      "license_path": "LICENSE"
+    },
+    "social-media-skills": {
+      "repository": "https://github.com/blacktwist/social-media-skills",
+      "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+      "license": "MIT",
+      "license_path": "LICENSE"
+    },
+    "resend-skills": {
+      "repository": "https://github.com/resend/resend-skills",
+      "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+      "license": "MIT",
+      "license_path": "LICENSE"
     }
   },
   "files": [
     {
-      "path": "skills/README.md",
+      "path": "skills/ad-creative/SKILL.md",
+      "sha256": "696cd2c943db0eed11f759326d959dad926a92de165855f33864dd091f2ecc24",
       "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "5675285a777c607602f5c178ffaaef82c66a16ae19d7bee2d17449bb396e2df7"
+      "upstream": null
     },
     {
       "path": "skills/brand-context/SKILL.md",
+      "sha256": "f426e5f8ad092c690fc270ba3a851639d6de885733f08929ba2e6b4d5797aeb3",
       "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "f426e5f8ad092c690fc270ba3a851639d6de885733f08929ba2e6b4d5797aeb3"
+      "upstream": null
     },
     {
-      "path": "skills/market-research/SKILL.md",
+      "path": "skills/campaign-plan/SKILL.md",
+      "sha256": "44e09081856a37486e28f572ea41ae79a8e2310af1386abfb12b602b95e79523",
       "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "d992f23def3f94b4c0baceb7d4160f39c62b5663c5f1a56739ba970648d85427"
-    },
-    {
-      "path": "skills/social-content/SKILL.md",
-      "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "80e2081f11a256aef598000dfe819a17ebd5f8d3bc5ada228670783176e69a6e"
-    },
-    {
-      "path": "skills/email-campaign/SKILL.md",
-      "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "cfd615e6ba9a9a7f39384d97f30e213cf733ac5fffdda78ee5406ae5478fb348"
-    },
-    {
-      "path": "skills/creative-video/SKILL.md",
-      "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "884239aa605aef56d7d4ee146dfa742cb4d1baa3fba9dbfb6ac9586ee9364a10"
+      "upstream": null
     },
     {
       "path": "skills/content-review/SKILL.md",
+      "sha256": "5d42352066bdd6ac55a50bf59a2240be2056df6d06f0526b9586e00301d6a402",
       "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "705f57c7a479e78f5f430f67057aae518e7b0268603754af6344b647bb6965a4"
-    },
-    {
-      "path": "skills/performance-review/SKILL.md",
-      "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "15bfb907db9dde44688cd7caa44373e7f777feedbf8328796b56d99f6767819c"
+      "upstream": null
     },
     {
       "path": "skills/conversion-review/SKILL.md",
+      "sha256": "13a249aba88b33eb8504fe02d8ea4e11c1d89b52c24d9c37cc5ac90a66b153c9",
       "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "13a249aba88b33eb8504fe02d8ea4e11c1d89b52c24d9c37cc5ac90a66b153c9"
+      "upstream": null
+    },
+    {
+      "path": "skills/creative-video/SKILL.md",
+      "sha256": "884239aa605aef56d7d4ee146dfa742cb4d1baa3fba9dbfb6ac9586ee9364a10",
+      "source_id": "workbench_native",
+      "upstream": null
+    },
+    {
+      "path": "skills/email-campaign/SKILL.md",
+      "sha256": "31fe08bb40b67a5f3aa4f4c37b623c6d97a4045c47ea78b526b7b0b9e35ce009",
+      "source_id": "workbench_native",
+      "upstream": null
+    },
+    {
+      "path": "skills/email-template/SKILL.md",
+      "sha256": "7ff5029967d906d41d167be3225d1c51319c74d88b1818511369ddfb7b3f5491",
+      "source_id": "workbench_native",
+      "upstream": null
+    },
+    {
+      "path": "skills/experiment-design/SKILL.md",
+      "sha256": "f2aba84264d7f153f00896b06a4b9ecd04590cef6e16db73e7e2b358d057a371",
+      "source_id": "workbench_native",
+      "upstream": null
+    },
+    {
+      "path": "skills/market-research/SKILL.md",
+      "sha256": "d992f23def3f94b4c0baceb7d4160f39c62b5663c5f1a56739ba970648d85427",
+      "source_id": "workbench_native",
+      "upstream": null
+    },
+    {
+      "path": "skills/performance-review/SKILL.md",
+      "sha256": "3ef842a8d00ae5c716008437bd8b179bf0d53f729f6f2dc837116cce1edc7964",
+      "source_id": "workbench_native",
+      "upstream": null
     },
     {
       "path": "skills/publication-handoff/SKILL.md",
+      "sha256": "a28d5db8168af396b5ddc3e5a873a88a9b788b648d98780d86ed9aaaff00e295",
       "source_id": "workbench_native",
-      "upstream": null,
-      "sha256": "a28d5db8168af396b5ddc3e5a873a88a9b788b648d98780d86ed9aaaff00e295"
+      "upstream": null
+    },
+    {
+      "path": "skills/README.md",
+      "sha256": "df12c40773469cc0d5ff1880e71a9b1aad4b9da57dcf6026112a8ed022efa0ed",
+      "source_id": "workbench_native",
+      "upstream": null
+    },
+    {
+      "path": "skills/social-content/SKILL.md",
+      "sha256": "6f1430ac918726172e88a58907f11914150f90c2e115effdc11b4f9369148ee7",
+      "source_id": "workbench_native",
+      "upstream": null
+    },
+    {
+      "path": "third_party/marketing/knowledge-work-plugins/marketing/CONNECTORS.md",
+      "sha256": "e85d04dde99b220ba438cf1345212e7414da536fb7d781d83a4ad57270586630",
+      "source_id": "knowledge-work-plugins",
+      "upstream": {
+        "repository": "https://github.com/anthropics/knowledge-work-plugins",
+        "commit": "e91a134584eb798bac7fb0379358006a2b63b965",
+        "license": "Apache-2.0",
+        "license_path": "marketing/LICENSE",
+        "path": "marketing/CONNECTORS.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/knowledge-work-plugins/marketing/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "source_id": "knowledge-work-plugins",
+      "upstream": {
+        "repository": "https://github.com/anthropics/knowledge-work-plugins",
+        "commit": "e91a134584eb798bac7fb0379358006a2b63b965",
+        "license": "Apache-2.0",
+        "license_path": "marketing/LICENSE",
+        "path": "marketing/LICENSE"
+      }
+    },
+    {
+      "path": "third_party/marketing/knowledge-work-plugins/marketing/skills/brand-review/SKILL.md",
+      "sha256": "759f29397a908c32521080247292a4e1c52ac01643bea70ccd6e807e86c1fa4b",
+      "source_id": "knowledge-work-plugins",
+      "upstream": {
+        "repository": "https://github.com/anthropics/knowledge-work-plugins",
+        "commit": "e91a134584eb798bac7fb0379358006a2b63b965",
+        "license": "Apache-2.0",
+        "license_path": "marketing/LICENSE",
+        "path": "marketing/skills/brand-review/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/knowledge-work-plugins/marketing/skills/campaign-plan/SKILL.md",
+      "sha256": "f0b146074b64ee0fd52f7864e30191eab83878c8c1e3e7cf24754e13c7dbfad3",
+      "source_id": "knowledge-work-plugins",
+      "upstream": {
+        "repository": "https://github.com/anthropics/knowledge-work-plugins",
+        "commit": "e91a134584eb798bac7fb0379358006a2b63b965",
+        "license": "Apache-2.0",
+        "license_path": "marketing/LICENSE",
+        "path": "marketing/skills/campaign-plan/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/knowledge-work-plugins/marketing/skills/performance-report/SKILL.md",
+      "sha256": "997397e23ba5124cdcbbf17e4be9f5cb36f2a2145b5648e02b2852c91c3cc140",
+      "source_id": "knowledge-work-plugins",
+      "upstream": {
+        "repository": "https://github.com/anthropics/knowledge-work-plugins",
+        "commit": "e91a134584eb798bac7fb0379358006a2b63b965",
+        "license": "Apache-2.0",
+        "license_path": "marketing/LICENSE",
+        "path": "marketing/skills/performance-report/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/LICENSE",
+      "sha256": "b70d71e24e40fce5da8f4b6f9cd862096a048e433db7f3c8cac5e348e6d34591",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "LICENSE"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ab-testing/evals/evals.json",
+      "sha256": "fb32e1f75fc70e339e71f88b1cf10bd9f3d1835178a62d1156ed7dddc278f061",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ab-testing/evals/evals.json"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ab-testing/references/sample-size-guide.md",
+      "sha256": "53525ddf0e904477262dc3dbc89d4bd4205f2e07d655616de91e22a310f768c4",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ab-testing/references/sample-size-guide.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ab-testing/references/test-templates.md",
+      "sha256": "761a40b9de8d16f18fa7f60b59e77aa749607ac8014af43e0b022f47fa87c812",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ab-testing/references/test-templates.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ab-testing/SKILL.md",
+      "sha256": "938a9a9246c6b05657f509e7ab181f1c961dc14f9dcb5d452c574d3e44a39be2",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ab-testing/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/assets/creative-review-template.html",
+      "sha256": "0ca7cce4fa809235aee776606205925d8dc01bde8a8325e2af7197d86394d3b7",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/assets/creative-review-template.html"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/evals/evals.json",
+      "sha256": "a688328a32f7ff3ffd975a2e4a31b5bc2a2c5dae86af0656f8b0ec61e9f8c916",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/evals/evals.json"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/awareness-headlines.md",
+      "sha256": "0f9b2408e402ad03956ff84bf31e5c594371dd3e2974c5390c42af4e3c60ed4d",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/awareness-headlines.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/creative-review-page.md",
+      "sha256": "03518911b1648bce12a3d579c5979b97442af50de24ff74809a43ba3395dcb3a",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/creative-review-page.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/creative-roadmap.md",
+      "sha256": "a0be737841d8a73f0cf02094c9ed1e3f7c050e1c6f867794b1fa8b64dbf3b50e",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/creative-roadmap.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/generative-tools.md",
+      "sha256": "9c977cb5a0e5c841ebf98bc1fd531aa0fb1b949aef14093d4a0146f19606f7a5",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/generative-tools.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/hook-system.md",
+      "sha256": "2967ecbf32423bbb70ca9587b0af8d257466c852106fe909f6447bbab9a18002",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/hook-system.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/imessage-video-ads.md",
+      "sha256": "99627f4a43f9ee8394be49c95bb865496037cf9901dfcdc1d1b0af9d86396aec",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/imessage-video-ads.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/meta-creative-formats.md",
+      "sha256": "46f6261b368f720f960367f7c164bf9ac23520504331d3b325215d100edccbdf",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/meta-creative-formats.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/motion-video-ads.md",
+      "sha256": "c64e83199f0316e12e7811667f09a6475a34044c8eec2e3ba549faf9c33fc28c",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/motion-video-ads.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/platform-specs.md",
+      "sha256": "de69753161071a8d3e4d244280562810a6c4d6ae2696c5a21940f983abd0aa8e",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/platform-specs.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/short-form-video-specs.md",
+      "sha256": "1aa1cc498e350ed00ec4783b60d2eddee5bc98f25750761f6086742d0758f953",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/short-form-video-specs.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/references/static-ad-templates.md",
+      "sha256": "0f09a356486c906a0d7f1ea87473e1c782b5f6c50ec44dc6756cd719d4de0217",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/references/static-ad-templates.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/ad-creative/SKILL.md",
+      "sha256": "152bba221b0f25ee0d5068dbe9818bf44fa114353e42ae756b41c97fc325c86f",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/ad-creative/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/emails/evals/evals.json",
+      "sha256": "b90182c8b6edbb866ef82ad022db3d2fe8598e7329469117fb39edd9ab069f67",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/emails/evals/evals.json"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/emails/references/copy-guidelines.md",
+      "sha256": "02f08897e4aa99ecc4ec1893d61d0c26d0c5e62e09af26f175087455e9b68e01",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/emails/references/copy-guidelines.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/emails/references/email-types.md",
+      "sha256": "a5dd4f0555a7b21d2ff426948d15657825b9d16265652563f5e272d2e1879bfd",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/emails/references/email-types.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/emails/references/sequence-templates.md",
+      "sha256": "f8f318f10e29abcd009cbee29e2bd178981d96c973099b508d30af6c10ab8d79",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/emails/references/sequence-templates.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/emails/SKILL.md",
+      "sha256": "47769dd5085b8f32c1ab276d7c19b95e2919fc4de699c3823ceaea48809edfcc",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/emails/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/evals/evals.json",
+      "sha256": "4d7a21a7675efc30d24ee276a6d38f004d483d4142e2a49c944aa355ed2ba686",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/evals/evals.json"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/carousel-frameworks.md",
+      "sha256": "e703aa530ec9f68cdf5b58e8e0d4d1a5cc3f22b9e2d3e3222f16a9763d423247",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/carousel-frameworks.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/listening-sources-template.md",
+      "sha256": "c68bc6f57b0a48c432b1ce72c9324d41a04d0e7784d0bab91afb4a6065a43e38",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/listening-sources-template.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/listening.md",
+      "sha256": "52cf68aaaa57a69b69b3587ffd9b848a6f1ca7e0d51378f566339ad7f2b730e0",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/listening.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/platform-limits.md",
+      "sha256": "6ecc6b40ff82b95c48906341f7d3c58337671d4d94f624c858764f1ed5a77c3c",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/platform-limits.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/platforms.md",
+      "sha256": "bb8c2f466184518a1290edbea99eef6b7dcad8e1f8091453d4dc5a21831b66b9",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/platforms.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/post-templates.md",
+      "sha256": "9cca4680c95801daedfd8acadf9089d0083784c2567784888807569896f71d9b",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/post-templates.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/reverse-engineering.md",
+      "sha256": "c27bef59d463b3b11331c1770f4a23e9e6bbce7d7c8db1e7f7f4f14ba206243f",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/reverse-engineering.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/ship-post.md",
+      "sha256": "b9c60b300bc72d2540aef367bb1588b0e955dc1423303c5265b27a3dfb75f9b6",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/ship-post.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/short-form-video.md",
+      "sha256": "04b567900eaac90833f3abf370a3e1c4d650f83a0672108e07a7f01bde3a64ad",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/short-form-video.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/references/x-algorithm.md",
+      "sha256": "943b2c5a819aad53ebf62a1652adc47956d6fdf738e18cd98eeb609819a66180",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/references/x-algorithm.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/marketingskills/skills/social/SKILL.md",
+      "sha256": "2e259195e4e72e475609feebaae810a386f4e2896a1889af62f7f158a8fecd79",
+      "source_id": "marketingskills",
+      "upstream": {
+        "repository": "https://github.com/coreyhaines31/marketingskills",
+        "commit": "1f837447b20bb6f0e72d87b80ece1c221c362c7d",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/social/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/LICENSE",
+      "sha256": "f71cc2b0a8199ff748415642e1006c760f017d8defbc29237ce43ae1e8fa8197",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "LICENSE"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/accessibility.md",
+      "sha256": "bda4563062562f60acaddae95d422e533f894b453eb2d41c5ce370e202e3bc47",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/accessibility.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/compliance.md",
+      "sha256": "8e4e695118713593c0ddbf4ebeeebae1f5c1362d98e7884ea03930749f17ff42",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/compliance.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/deliverability.md",
+      "sha256": "f98bc3072c780deccf15fd128dcbd134663811264a3cec5c9fbb9c7d7ab7e503",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/deliverability.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/email-capture.md",
+      "sha256": "231644ab8e24464aae1455a934b77ecfdffeaad2a17ef4ee1c84b80f118eb9f0",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/email-capture.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/email-types.md",
+      "sha256": "f73a80274bfab6f356de35703c23e946941bf97f8d261a13f1bf3e2c3e71f3fc",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/email-types.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/list-management.md",
+      "sha256": "2578129410450a562e9f0ec3f26e69da24e8eb75255f63737b3c251ca58bd77b",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/list-management.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/marketing-emails.md",
+      "sha256": "6b05077c614f419b51e792638303ecd184c8c2ec7411b5c0667c3e7234869a05",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/marketing-emails.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/sending-reliability.md",
+      "sha256": "732fe1d380c76411b70b4eb913d95d289c05bd25a7724897222ae7ae1e50962a",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/sending-reliability.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/transactional-email-catalog.md",
+      "sha256": "31e8f776dadf2f0cf4a915752fd168b6d7be36b5d1cdc16f2d0efae74e21f9ee",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/transactional-email-catalog.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/transactional-emails.md",
+      "sha256": "c9b94a17aac6e11ad4d9209228f911e294abe65906ef35f409ffba5727ee7a47",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/transactional-emails.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/references/webhooks-events.md",
+      "sha256": "fb135c1801dd3fd1b5a13c193ff54b0d4bc147226e3e70cddee779c17ed8086d",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/references/webhooks-events.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/email-best-practices/SKILL.md",
+      "sha256": "f1b957138619784e2c22f7ae689bde6e903a8134ee52d626d8846809382ef0c8",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/email-best-practices/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/react-email/references/COMPONENTS.md",
+      "sha256": "c70a474382ec0a32711d9c56e28681adf8f1bad5bdb1d2f04b89c968a2c5fd21",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/react-email/references/COMPONENTS.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/react-email/references/EDITOR.md",
+      "sha256": "d19fec375947b6a7abb749c87bb674e287672718c19c08096f2dd549ae9d1973",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/react-email/references/EDITOR.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/react-email/references/I18N.md",
+      "sha256": "28fb07aac6c1dd6133cb2c2dfd59f74452f5e3d81de862da19631bffe9cee721",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/react-email/references/I18N.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/react-email/references/PATTERNS.md",
+      "sha256": "b84e5f80daa412257ee526d225008907ed4b47397b40a75739e1a81ad32f6268",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/react-email/references/PATTERNS.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/react-email/references/SENDING.md",
+      "sha256": "868bca6cece17c500344a4b9ad81b78bc2dea90984a133d8cc1cdb9ef0e1ad45",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/react-email/references/SENDING.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/react-email/references/STYLING.md",
+      "sha256": "e373032522151ac5887196ce360f196ddd3e120e3fafeb8e7ada6b0fc43412f8",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/react-email/references/STYLING.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/resend-skills/skills/react-email/SKILL.md",
+      "sha256": "6316bdbe822e49f93a709e81bc011569d1a1ea20f7de78cd33ea8a0501ad79b7",
+      "source_id": "resend-skills",
+      "upstream": {
+        "repository": "https://github.com/resend/resend-skills",
+        "commit": "f3e86d84960887bfc6e76e504c642ab6bc748f0c",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/react-email/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/social-media-skills/LICENSE",
+      "sha256": "3f23da352b4bb86d77ac2bf9c7e57c205d12d5c8dbb47c27075f379cdbc90f98",
+      "source_id": "social-media-skills",
+      "upstream": {
+        "repository": "https://github.com/blacktwist/social-media-skills",
+        "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "LICENSE"
+      }
+    },
+    {
+      "path": "third_party/marketing/social-media-skills/skills/content-calendar-sms/evals/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_id": "social-media-skills",
+      "upstream": {
+        "repository": "https://github.com/blacktwist/social-media-skills",
+        "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/content-calendar-sms/evals/.gitkeep"
+      }
+    },
+    {
+      "path": "third_party/marketing/social-media-skills/skills/content-calendar-sms/SKILL.md",
+      "sha256": "51b38b2d285d88c1ed07be11df70064d0e45d9ecd16be97624a5c06c0b631704",
+      "source_id": "social-media-skills",
+      "upstream": {
+        "repository": "https://github.com/blacktwist/social-media-skills",
+        "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/content-calendar-sms/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/social-media-skills/skills/content-repurposer-sms/evals/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_id": "social-media-skills",
+      "upstream": {
+        "repository": "https://github.com/blacktwist/social-media-skills",
+        "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/content-repurposer-sms/evals/.gitkeep"
+      }
+    },
+    {
+      "path": "third_party/marketing/social-media-skills/skills/content-repurposer-sms/SKILL.md",
+      "sha256": "5e4a4b04f4b48dd448800ae74396d94521b37545dffa1df762988653d2d66b59",
+      "source_id": "social-media-skills",
+      "upstream": {
+        "repository": "https://github.com/blacktwist/social-media-skills",
+        "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/content-repurposer-sms/SKILL.md"
+      }
+    },
+    {
+      "path": "third_party/marketing/social-media-skills/skills/performance-analyzer-sms/evals/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_id": "social-media-skills",
+      "upstream": {
+        "repository": "https://github.com/blacktwist/social-media-skills",
+        "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/performance-analyzer-sms/evals/.gitkeep"
+      }
+    },
+    {
+      "path": "third_party/marketing/social-media-skills/skills/performance-analyzer-sms/SKILL.md",
+      "sha256": "754788350be10b3303dee3fa6cc8f261332899a0b6eee0b8c980a08fe4eeda84",
+      "source_id": "social-media-skills",
+      "upstream": {
+        "repository": "https://github.com/blacktwist/social-media-skills",
+        "commit": "4f85b07069983b3b0b9bbe6519fed7017edcce81",
+        "license": "MIT",
+        "license_path": "LICENSE",
+        "path": "skills/performance-analyzer-sms/SKILL.md"
+      }
     }
   ]
 }

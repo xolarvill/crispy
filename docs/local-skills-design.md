@@ -24,15 +24,15 @@
 | --- | --- | --- |
 | 本地 SEO workbench | 参考其任务索引、来源登记和目标驱动选择的组织模式；不复制技能正文 | 比较其中 social-content、email-sequence、paid-ads 等方法；保留其真实上游归属 |
 | crispy personas | 保留现有运行职责；技能作为可由编码 agent 读取的方法，未改变 persona 版本或 stage registry | product/planning persona 的上下文与 brand-context、market-research 分工；copy/video persona 的制作职责与内容技能关联 |
-| Anthropic Marketing | 候选；未导入 | 比较活动、品牌审阅和报告方法 |
-| Corey marketingskills | 候选；未导入 | 比较社媒、邮件、文案、转化和分析方法 |
-| Resend skills | 候选；未导入 | 邮件模板工程、投递与发送工具能力 |
-| BlackTwist social-media-skills | 候选；未导入 | 社媒细分方法和服务连接 |
+| Anthropic Marketing | 已引入 3 项 | 活动策划、品牌审阅、活动复盘 |
+| Corey marketingskills | 已引入 4 项 | 社媒内容、邮件序列、广告变体、实验设计 |
+| Resend skills | 已引入 2 项 | 邮件模板与质量检查 |
+| BlackTwist social-media-skills | 已引入 3 项 | 内容日历、内容复用、社媒表现分析 |
 | Agency Agents / alirezarezvani | 候选；未导入 | 平台角色、需求获取及分析补缺 |
 | Composio | 连接候选；未导入 | 有具体执行需求时验证许可、账户和工具覆盖 |
 | aronhy/marketing-skill-hub | 专项评估线索；没有复制、翻译、改写其 Markdown 或导入配套资产 | 相关任务由本地原创技能处理；其技能正文为 CC BY-NC 4.0，不作为可直接商用的 vendor |
 
-具体仓库链接、调研日期和观察到的许可见 [上游清单](marketing-skills-research.md)。本次技能均登记为 `workbench_native`，没有上游导入 SHA；后续实际吸收外部文件时，应记录精确仓库、路径、固定提交、许可、修改及派生关系。上游名称相似不等于本地文件来自该项目。
+13 个本地方法入口通过任务索引发现。其中 8 个入口按具体任务链接 12 份上游技能正文。原文、配套文件和许可证保存在 third_party/marketing；逐文件来源、固定提交及指纹见 [来源清单](local-skills-inventory.json)。更新时从同一来源提取目标版本、审查差异与随附许可，更新提交及指纹后执行 check。refresh 只更新本地原创文件。
 
 ## 发现与执行
 

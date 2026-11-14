@@ -51,3 +51,22 @@ def test_refresh_refuses_unreviewed_inventory_changes(package: Path, change: str
     before = inventory.read_bytes()
     assert any(error.startswith(message) for error in run("refresh", package))
     assert inventory.read_bytes() == before
+
+
+def test_refresh_preserves_pinned_vendor_content(package: Path):
+    vendor = package / "third_party/marketing/example/SKILL.md"
+    vendor.parent.mkdir(parents=True)
+    vendor.write_text("unexpected vendor change")
+    inventory = package / "docs/local-skills-inventory.json"
+    data = json.loads(inventory.read_text())
+    data["sources"]["example"] = {}
+    data["files"].append({
+        "path": vendor.relative_to(package).as_posix(),
+        "source_id": "example",
+        "sha256": "previously-reviewed-digest",
+        "upstream": dict(repository="vendor", path="SKILL.md", commit="pinned", license="MIT"),
+    })
+    inventory.write_text(json.dumps(data))
+    before = inventory.read_bytes()
+    assert run("refresh", package) == ["Changed file: third_party/marketing/example/SKILL.md"]
+    assert inventory.read_bytes() == before
