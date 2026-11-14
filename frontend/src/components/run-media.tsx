@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  LayoutTemplate,
   Maximize2,
   Image,
   LoaderCircle,
@@ -172,6 +173,7 @@ export function RunMediaGallery({
   trigger,
   complete = false,
   onSelect,
+  saveTemplate,
 }: {
   run: Run;
   initial: RunMedia;
@@ -180,6 +182,7 @@ export function RunMediaGallery({
   trigger: HTMLElement | null;
   complete?: boolean;
   onSelect?: (media: RunMedia) => void;
+  saveTemplate?: (run: Run, media: RunMedia) => void;
 }) {
   const [items, setItems] = useState(() => mediaFor(run)),
     [uri, setUri] = useState(initial.uri),
@@ -259,6 +262,16 @@ export function RunMediaGallery({
               </span>
             </div>
             <div className="gallery-actions">
+              {!demo && saveTemplate && active?.kind === "image" && (
+                <Button
+                  variant="outline"
+                  onClick={() => saveTemplate(run, active)}
+                  data-testid="save-brand-template"
+                >
+                  <LayoutTemplate size={14} />
+                  存为品牌模板
+                </Button>
+              )}
               <Dialog.Close asChild>
                 <Button size="icon" variant="ghost" aria-label="关闭媒体预览">
                   <X size={19} />

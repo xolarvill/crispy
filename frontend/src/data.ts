@@ -3,6 +3,43 @@ export type RunMedia = {
   kind: "image" | "video";
   source: "generated" | "input";
 };
+export type BrandCreativeLayout = {
+  ratio: "1:1" | "3:4" | "16:9";
+  title: string;
+  titleX: number;
+  titleY: number;
+  color: "#ffffff" | "#171717";
+  cropX: number;
+  cropY: number;
+  logo: string;
+  logoX: number;
+  logoY: number;
+};
+export type BrandCreativeRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  note: string;
+};
+export type BrandCreativeSummary = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  run_id: string;
+  reason: string;
+  ratio: BrandCreativeLayout["ratio"];
+  thumbnail: string;
+  created_at: string | null;
+};
+export type BrandCreative = BrandCreativeSummary & {
+  uri: string;
+  prompt: string;
+  image: string;
+  base_image?: string;
+  layout: BrandCreativeLayout;
+  regions: BrandCreativeRegion[];
+};
 export type Run = {
   id: string;
   product_code: string;

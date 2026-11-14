@@ -69,9 +69,11 @@ const demoPresets: Preset[] = [
 export default function CreatePage({
   demo,
   onCreated,
+  onUseTemplate,
 }: {
   demo: boolean;
   onCreated: (run: Run) => void;
+  onUseTemplate?: (templateId: string, workspace: string) => void;
 }) {
   const [step, setStep] = useState(0),
     [draft, setDraft] = useState<Draft>(initial),
@@ -292,7 +294,13 @@ export default function CreatePage({
         </div>
         <span className="muted">{demo ? "演示 · 不执行生成" : "本地 API"}</span>
       </div>
-      <PromptEditor demo={demo} prompt={imagePrompt} onChange={setImagePrompt} />
+      <PromptEditor
+        demo={demo}
+        prompt={imagePrompt}
+        onChange={setImagePrompt}
+        workspace={draft.workspace.trim()}
+        onUseTemplate={onUseTemplate}
+      />
       {imagePrompt.trim() && supportsImageDirection && (
         <label><input type="checkbox" checked={useImagePrompt}
           onChange={(e) => setUseImagePrompt(e.target.checked)} /> 将当前提示词用于本任务的图文生成</label>

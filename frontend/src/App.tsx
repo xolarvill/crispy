@@ -27,6 +27,7 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { Button } from "./components/ui/button";
 import { api, demoRuns, modes, plan, stageNames, type Run } from "./data";
 import CreatePage from "./CreatePage";
+import { BrandCreativeStudio, type StudioTarget } from "./BrandCreativeStudio";
 const OperationsPage = lazy(() => import("./OperationsPage"));
 const ShopsPage = lazy(() => import("./ShopsPage"));
 import { AnimatedSelection, PolishedAsset } from "./components/polish";
@@ -65,6 +66,7 @@ export default function App() {
     trigger: HTMLElement;
     options?: MediaPreviewOptions;
   } | null>(null);
+  const [studio, setStudio] = useState<StudioTarget | null>(null);
   const [path, setPath] = useState(route),
     [demo, setDemo] = useState(
       () => new URLSearchParams(location.search).get("mode") !== "live",
@@ -105,6 +107,7 @@ export default function App() {
       setMobileNav(false);
       setError("");
       setPreview(null);
+      setStudio(null);
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
@@ -435,6 +438,9 @@ export default function App() {
                   setToast(demo ? "演示任务已创建" : "任务已创建");
                   go(`/tasks/${run.id}`);
                 }}
+                onUseTemplate={(templateId, workspace) =>
+                  setStudio({ kind: "template", templateId, workspace })
+                }
               />
             ) : selectedId ? (
               <>
@@ -851,7 +857,18 @@ export default function App() {
             demo={demo}
             complete={preview.options?.complete}
             onSelect={preview.options?.onSelect}
+            saveTemplate={(run, media) => {
+              setStudio({ kind: "asset", runId: run.id, uri: media.uri });
+              setPreview(null);
+            }}
             close={() => setPreview(null)}
+          />
+        )}
+        {studio && (
+          <BrandCreativeStudio
+            target={studio}
+            close={() => setStudio(null)}
+            notify={setToast}
           />
         )}
         {toast && (

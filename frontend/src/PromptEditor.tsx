@@ -1,20 +1,65 @@
-import { useState } from "react";
-import { api } from "./data";
+import { useEffect, useState } from "react";
+import { LayoutTemplate, RefreshCw } from "lucide-react";
+import { api, type BrandCreativeSummary } from "./data";
 import { Field } from "./components/console-controls";
 import { Button } from "./components/ui/button";
 import { promptTemplates } from "./prompt-templates";
 
-export function PromptEditor({ demo, prompt, onChange }: {
+export function PromptEditor({
+  demo,
+  prompt,
+  onChange,
+  workspace,
+  onUseTemplate,
+}: {
   demo: boolean;
   prompt: string;
   onChange: (value: string) => void;
+  workspace?: string;
+  onUseTemplate?: (templateId: string, workspace: string) => void;
 }) {
   const [idea, setIdea] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [hasResult, setHasResult] = useState(false);
   const [selection, setSelection] = useState(0);
+  const [creatives, setCreatives] = useState<BrandCreativeSummary[]>([]);
+  const [creativeId, setCreativeId] = useState("");
+  const [creativeError, setCreativeError] = useState("");
+  const [creativeRefresh, setCreativeRefresh] = useState(0);
   const selected = promptTemplates[selection];
+  const selectedCreative = creatives.find((item) => item.id === creativeId);
+
+  useEffect(() => {
+    if (demo || !workspace) {
+      setCreatives([]);
+      setCreativeId("");
+      setCreativeError("");
+      return;
+    }
+    const controller = new AbortController();
+    setCreativeError("");
+    api<BrandCreativeSummary[]>(
+      `/brand-creatives?workspace=${encodeURIComponent(workspace)}`,
+      { signal: controller.signal },
+    )
+      .then((items) => {
+        setCreatives(items);
+        setCreativeId((current) =>
+          items.some((item) => item.id === current) ? current : items[0]?.id || "",
+        );
+      })
+      .catch((e) => {
+        if (e.name !== "AbortError") setCreativeError(e.message);
+      });
+    return () => controller.abort();
+  }, [demo, workspace, creativeRefresh]);
+
+  useEffect(() => {
+    const refresh = () => setCreativeRefresh((value) => value + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
 
   async function expand() {
     setBusy(true);
@@ -63,6 +108,80 @@ export function PromptEditor({ demo, prompt, onChange }: {
               setHasResult(true);
               setStatus("模板已载入，可编辑下方的完整提示词");
             }}>{prompt.trim() ? "用此模板替换当前提示词" : "使用此模板"}</Button>
+          </div>
+        </details>
+        <details className="prompt-library brand-library">
+          <summary>品牌模板库 · 从成品复用版式</summary>
+          <div className="prompt-library-body">
+            {demo ? (
+              <p className="muted">演示模式不读取本地品牌模板。</p>
+            ) : !workspace ? (
+              <p className="muted">先在第一步填写店铺名称，才能读取这家店的品牌模板。</p>
+            ) : creativeError ? (
+              <div className="preset-error" role="alert">
+                模板读取失败
+                <Button variant="outline" onClick={() => setCreativeRefresh((value) => value + 1)}>
+                  <RefreshCw size={14} />
+                  重试
+                </Button>
+              </div>
+            ) : creatives.length ? (
+              <>
+                <Field label="选择品牌模板">
+                  <select value={creativeId} onChange={(e) => setCreativeId(e.target.value)}>
+                    {creatives.map((creative) => (
+                      <option key={creative.id} value={creative.id}>
+                        {creative.name} · {creative.ratio}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {selectedCreative && (
+                  <div className="brand-library-preview">
+                    {selectedCreative.thumbnail ? (
+                      <img src={selectedCreative.thumbnail} alt={`${selectedCreative.name} 预览`} />
+                    ) : (
+                      <span className="brand-library-empty">
+                        <LayoutTemplate size={22} />
+                      </span>
+                    )}
+                    <div>
+                      <p>{selectedCreative.reason || "还没有记录选用理由"}</p>
+                      <small>
+                        母版任务 {selectedCreative.run_id.slice(0, 8)}
+                        {selectedCreative.parent_id ? " · 派生版本" : ""}
+                      </small>
+                    </div>
+                  </div>
+                )}
+                <div className="brand-library-actions">
+                  <Button
+                    disabled={!selectedCreative || !onUseTemplate}
+                    onClick={() => {
+                      if (selectedCreative && onUseTemplate)
+                        onUseTemplate(selectedCreative.id, workspace);
+                    }}
+                  >
+                    <LayoutTemplate size={14} />
+                    用此模板做新品
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCreativeRefresh((value) => value + 1);
+                      setStatus("已刷新品牌模板");
+                    }}
+                  >
+                    <RefreshCw size={14} />
+                    刷新
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="muted">
+                这家店还没有品牌模板。打开任务素材预览，选一张满意的图片，点“存为品牌模板”。
+              </p>
+            )}
           </div>
         </details>
         <Field label="画面想法">
