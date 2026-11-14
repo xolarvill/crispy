@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { LayoutGroup, motion } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { GlowingEffect } from "./ui/glowing-effect";
 function useQuietMotion() {
   const [reduced, setReduced] = useState(
@@ -119,5 +119,44 @@ export function AnimatedSelection({
         );
       })}
     </LayoutGroup>
+  );
+}
+/**
+ * Crossfades tab content while the outgoing panel is pulled out of layout, so
+ * the page settles at its new height immediately instead of collapsing first.
+ */
+export function TabPanel({
+  active,
+  children,
+  className = "",
+}: {
+  active: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const reduced = useQuietMotion();
+  return (
+    <div className={`tab-panel ${className}`.trim()}>
+      {reduced ? (
+        <div className="tab-panel-content">{children}</div>
+      ) : (
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div
+            key={active}
+            className="tab-panel-content"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -3 }}
+            transition={{
+              duration: 0.18,
+              ease: [0.22, 1, 0.36, 1],
+              layout: { duration: 0.18, ease: [0.22, 1, 0.36, 1] },
+            }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      )}
+    </div>
   );
 }

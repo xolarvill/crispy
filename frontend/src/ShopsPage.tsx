@@ -29,7 +29,7 @@ import {
   type Shop,
 } from "./shop-data";
 import { pick, useI18n, type Locale } from "./i18n";
-import { PolishedSurface, AnimatedSelection } from "./components/polish";
+import { PolishedSurface, AnimatedSelection, TabPanel } from "./components/polish";
 
 const enc = encodeURIComponent;
 function accountState(account: ChannelAccount, locale: Locale) {
@@ -524,6 +524,7 @@ export default function ShopsPage({
               </button>
             </AnimatedSelection>
           </div>
+          <TabPanel active={shared ? "shared" : "shops"}>
           {shared ? (
             <>
               <p className="credential-note">
@@ -861,6 +862,7 @@ export default function ShopsPage({
               )}
             </>
           )}
+          </TabPanel>
         </>
       )}
     </div>

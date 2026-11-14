@@ -3,10 +3,12 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
+import { motion, useReducedMotion } from "motion/react";
 
 export type Locale = "en" | "zh";
 
@@ -85,28 +87,41 @@ export function formatDateTime(locale: Locale, value: string): string {
 /** Compact EN / 中文 switch used in the workspace rail. */
 export function LocaleSwitch({ className = "" }: { className?: string }) {
   const { locale, setLocale, t } = useI18n();
+  const reduced = useReducedMotion() ?? false;
+  const pillId = useId();
+  const options = [
+    ["en", "EN"],
+    ["zh", "中文"],
+  ] as const;
   return (
     <div
       className={`locale-switch ${className}`.trim()}
       role="group"
       aria-label={t("Language", "语言")}
     >
-      <button
-        type="button"
-        aria-pressed={locale === "en"}
-        className={locale === "en" ? "active" : ""}
-        onClick={() => setLocale("en")}
-      >
-        EN
-      </button>
-      <button
-        type="button"
-        aria-pressed={locale === "zh"}
-        className={locale === "zh" ? "active" : ""}
-        onClick={() => setLocale("zh")}
-      >
-        中文
-      </button>
+      {options.map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={locale === value}
+          className={locale === value ? "active" : ""}
+          onClick={() => setLocale(value)}
+        >
+          {locale === value && (
+            <motion.span
+              className="locale-pill"
+              layoutId={`locale-pill-${pillId}`}
+              transition={
+                reduced
+                  ? { duration: 0 }
+                  : { type: "spring", stiffness: 520, damping: 42 }
+              }
+              aria-hidden="true"
+            />
+          )}
+          <span className="locale-label">{label}</span>
+        </button>
+      ))}
     </div>
   );
 }

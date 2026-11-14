@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   ArrowDown,
@@ -26,14 +26,15 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Button } from "./components/ui/button";
 import { api, demoRuns, modeLabel, modes, plan, stageLabel, type Run } from "./data";
 import { LocaleSwitch, formatDateTime, useI18n } from "./i18n";
 import CreatePage from "./CreatePage";
 import { BrandCreativeStudio, type StudioTarget } from "./BrandCreativeStudio";
-const OperationsPage = lazy(() => import("./OperationsPage"));
-const ShopsPage = lazy(() => import("./ShopsPage"));
-import { AnimatedSelection, PolishedAsset } from "./components/polish";
+import OperationsPage from "./OperationsPage";
+import ShopsPage from "./ShopsPage";
+import { AnimatedSelection, PolishedAsset, TabPanel } from "./components/polish";
 import { IconButton, Status } from "./components/console-controls";
 import { go } from "./navigation";
 import {
@@ -49,6 +50,9 @@ function route() {
 }
 export default function App() {
   const { locale, t } = useI18n();
+  const reduced = useReducedMotion() ?? false;
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [preview, setPreview] = useState<{
     run: Run;
     media: RunMedia;
@@ -72,7 +76,8 @@ export default function App() {
     [toast, setToast] = useState(""),
     [busy, setBusy] = useState(false),
     [mobileNav, setMobileNav] = useState(false),
-    [detailTab, setDetailTab] = useState("overview");
+    [detailTab, setDetailTab] = useState("overview"),
+    [settingsOpen, setSettingsOpen] = useState(false);
   const operation = [
     "product-research",
     "competitor-research",
@@ -90,10 +95,22 @@ export default function App() {
       detail?.id === selectedId
         ? detail
         : runs.find((r) => r.id === selectedId);
+  const viewKey = operation
+    ? `operation:${operation}:${demo}`
+    : isShops
+      ? `shops:${demo}`
+      : isNew
+        ? `new:${demo}`
+        : selectedId
+          ? `task:${selectedId}:${demo}`
+          : isAssets
+            ? `assets:${demo}`
+            : `tasks:${demo}`;
   useEffect(() => {
     const update = () => {
       setPath(route());
       setMobileNav(false);
+      setSettingsOpen(false);
       setError("");
       setPreview(null);
       setStudio(null);
@@ -101,6 +118,24 @@ export default function App() {
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!settingsRef.current?.contains(event.target as Node))
+        setSettingsOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setSettingsOpen(false);
+      settingsButtonRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [settingsOpen]);
   const filters = [
     ["all", t("All", "全部")],
     ["running", t("Active", "进行中")],
@@ -228,6 +263,7 @@ export default function App() {
   }, [path]);
   function switchMode(value: string) {
     setPreview(null);
+    setSettingsOpen(false);
     const next = value === "demo";
     setDemo(next);
     setRuns(next ? demoRuns(locale) : []);
@@ -409,8 +445,15 @@ export default function App() {
               <Settings2 size={16} />
               {t("Shops & credentials", "店铺与凭证")}
             </a>
-            <details className="sidebar-settings">
-              <summary>
+            <div className="sidebar-settings" ref={settingsRef}>
+              <button
+                ref={settingsButtonRef}
+                type="button"
+                className="sidebar-settings-toggle"
+                aria-expanded={settingsOpen}
+                aria-controls="workspace-settings"
+                onClick={() => setSettingsOpen((open) => !open)}
+              >
                 <span>
                   <SlidersHorizontal size={16} />
                   {t("Settings", "设置")}
@@ -418,25 +461,63 @@ export default function App() {
                 <span className="sidebar-settings-value">
                   {demo ? t("Demo", "演示") : t("Live", "本地")}
                 </span>
-                <ChevronRight size={13} className="sidebar-settings-chevron" />
-              </summary>
-              <div className="sidebar-settings-body">
-                <div className="sidebar-setting">
-                  <span>{t("Language", "语言")}</span>
-                  <LocaleSwitch />
-                </div>
-                <label className="sidebar-setting">
-                  <span>{t("Data mode", "数据模式")}</span>
-                  <select
-                    value={demo ? "demo" : "live"}
-                    onChange={(e) => switchMode(e.target.value)}
+                <motion.span
+                  className="sidebar-settings-chevron"
+                  animate={{ rotate: settingsOpen ? 90 : 0 }}
+                  transition={
+                    reduced
+                      ? { duration: 0 }
+                      : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }
+                  }
+                >
+                  <ChevronRight size={13} />
+                </motion.span>
+              </button>
+              <AnimatePresence initial={false}>
+                {settingsOpen && (
+                  <motion.div
+                    id="workspace-settings"
+                    className="sidebar-settings-panel"
+                    role="group"
+                    aria-label={t("Settings", "设置")}
+                    initial={
+                      reduced ? false : { opacity: 0, y: 8, scale: 0.98 }
+                    }
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={
+                      reduced
+                        ? { opacity: 0 }
+                        : { opacity: 0, y: 6, scale: 0.98 }
+                    }
+                    transition={{
+                      duration: reduced ? 0 : 0.18,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
                   >
-                    <option value="demo">{t("Demo data", "演示数据")}</option>
-                    <option value="live">{t("Local API", "本地 API")}</option>
-                  </select>
-                </label>
-              </div>
-            </details>
+                    <div className="sidebar-settings-body">
+                      <div className="sidebar-setting">
+                        <span>{t("Language", "语言")}</span>
+                        <LocaleSwitch />
+                      </div>
+                      <label className="sidebar-setting">
+                        <span>{t("Data mode", "数据模式")}</span>
+                        <select
+                          value={demo ? "demo" : "live"}
+                          onChange={(e) => switchMode(e.target.value)}
+                        >
+                          <option value="demo">
+                            {t("Demo data", "演示数据")}
+                          </option>
+                          <option value="live">
+                            {t("Local API", "本地 API")}
+                          </option>
+                        </select>
+                      </label>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </aside>
         {mobileNav && (
@@ -448,6 +529,16 @@ export default function App() {
         )}
         <main className="console-main">
           <div className={`page ${isNew ? "creation-page" : ""}`}>
+            <motion.div
+              key={viewKey}
+              className="view-panel"
+              initial={reduced ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: reduced ? 0 : 0.22,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
             {!isShops && !operation && (
               <div className="breadcrumb">
                 <a href="#/tasks" onClick={() => navigate("/tasks")}>
@@ -488,33 +579,18 @@ export default function App() {
               </div>
             )}
             {operation ? (
-              <Suspense
-                fallback={
-                  <p role="status">{t("Loading…", "加载中…")}</p>
-                }
-              >
-                <OperationsPage
-                  key={`${operation}-${demo}`}
-                  section={operation}
-                  demo={demo}
-                />
-              </Suspense>
+              <OperationsPage
+                key={`${operation}-${demo}`}
+                section={operation}
+                demo={demo}
+              />
             ) : isShops ? (
-              <Suspense
-                fallback={
-                  <div className="empty-state">
-                    <LoaderCircle size={24} className="spin" />
-                    <p>{t("Loading shop credentials", "正在加载店铺凭证")}</p>
-                  </div>
-                }
-              >
-                <ShopsPage
-                  key={demo ? "demo" : "live"}
-                  path={path}
-                  demo={demo}
-                  notify={setToast}
-                />
-              </Suspense>
+              <ShopsPage
+                key={demo ? "demo" : "live"}
+                path={path}
+                demo={demo}
+                notify={setToast}
+              />
             ) : isNew ? (
               <CreatePage
                 demo={demo}
@@ -616,7 +692,7 @@ export default function App() {
                   </AnimatedSelection>
                 </div>
                 {current ? (
-                  <>
+                  <TabPanel active={detailTab}>
                     {detailTab === "overview" ? (
                       <div className="review-workspace">
                         <TaskMediaPanel
@@ -711,7 +787,7 @@ export default function App() {
                         </dl>
                       </section>
                     )}
-                  </>
+                  </TabPanel>
                 ) : (
                   <div className="empty-state">
                     {detailLoading ? (
@@ -770,13 +846,14 @@ export default function App() {
                     ))}
                   </AnimatedSelection>
                 </div>
-                <section
-                  className={isAssets ? "material-index" : "surface task-index"}
-                  aria-label={
-                    isAssets ? t("Product asset list", "产品素材列表") : t("Task list", "任务列表")
-                  }
-                  aria-busy={loading}
-                >
+                <TabPanel active={filter}>
+                  <section
+                    className={isAssets ? "material-index" : "surface task-index"}
+                    aria-label={
+                      isAssets ? t("Product asset list", "产品素材列表") : t("Task list", "任务列表")
+                    }
+                    aria-busy={loading}
+                  >
                   <div className="index-toolbar">
                     <label className="search">
                       <Search size={16} />
@@ -957,9 +1034,11 @@ export default function App() {
                       )}
                     </span>
                   </div>
-                </section>
+                  </section>
+                </TabPanel>
               </>
             )}
+            </motion.div>
           </div>
         </main>
         {preview && (

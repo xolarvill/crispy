@@ -35,6 +35,10 @@
 body {
   margin: 0;
 }
+/* Reserve the scrollbar track so tab and page changes never shift the layout sideways. */
+html {
+  scrollbar-gutter: stable;
+}
 button,
 input,
 select {
