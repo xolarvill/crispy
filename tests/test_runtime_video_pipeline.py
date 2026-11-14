@@ -3637,9 +3637,14 @@ def test_storyboard_llm_success_path_uses_llm_prompts():
     assert ":fallback_to_template" not in output.model_used
     frames = output.payload["frames"]
     assert len(frames) == 3
-    assert frames[0]["prompt"] == "LLM storyboard prompt for frame 1"
-    assert frames[1]["prompt"] == "LLM storyboard prompt for frame 2"
-    assert frames[2]["prompt"] == "LLM storyboard prompt for frame 3"
+    llm_prompts = [
+        "LLM storyboard prompt for frame 1",
+        "LLM storyboard prompt for frame 2",
+        "LLM storyboard prompt for frame 3",
+    ]
+    for frame, llm_prompt in zip(frames, llm_prompts):
+        assert frame["prompt"].startswith(llm_prompt)
+        assert "Frame the shot's intended action" in frame["prompt"]
     # Template content must NOT appear in LLM success path
     assert "Create a realistic storyboard frame" not in frames[0]["prompt"]
 
@@ -3817,8 +3822,8 @@ def test_storyboard_llm_partial_frame_match_uses_llm_for_match_fallback_for_miss
     frames = output.payload["frames"]
     assert len(frames) == 3
     # Frame 1 and 3 should use LLM prompts
-    assert frames[0]["prompt"] == "LLM frame 1 prompt"
-    assert frames[2]["prompt"] == "LLM frame 3 prompt"
+    assert frames[0]["prompt"].startswith("LLM frame 1 prompt")
+    assert frames[2]["prompt"].startswith("LLM frame 3 prompt")
     # Frame 2 should use template (fallback)
     assert "Create a realistic storyboard frame" in frames[1]["prompt"]
 
