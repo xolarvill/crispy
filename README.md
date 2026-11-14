@@ -112,6 +112,8 @@ The [marketing coverage and upstream vendor document](docs/marketing-skills-rese
 
 ## Development
 
+Coding agents can use the [local marketing methods](skills/README.md) for product knowledge, research, social/email/video content, review, analysis and publication handoff. These are repository-local instructions, not an installed backend or Magpie integration. See the [coverage and source design](docs/local-skills-design.md).
+
 ```bash
 # Frontend: TypeScript checks and production build
 cd frontend

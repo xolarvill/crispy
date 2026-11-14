@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-11-14",
+  "sources": {
+    "workbench_native": {
+      "description": "Original crispy task methods; no upstream skill text or assets imported. Git tracks local revisions."
+    }
+  },
+  "files": [
+    {
+      "path": "skills/README.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "5675285a777c607602f5c178ffaaef82c66a16ae19d7bee2d17449bb396e2df7"
+    },
+    {
+      "path": "skills/brand-context/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "f426e5f8ad092c690fc270ba3a851639d6de885733f08929ba2e6b4d5797aeb3"
+    },
+    {
+      "path": "skills/market-research/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "d992f23def3f94b4c0baceb7d4160f39c62b5663c5f1a56739ba970648d85427"
+    },
+    {
+      "path": "skills/social-content/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "80e2081f11a256aef598000dfe819a17ebd5f8d3bc5ada228670783176e69a6e"
+    },
+    {
+      "path": "skills/email-campaign/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "cfd615e6ba9a9a7f39384d97f30e213cf733ac5fffdda78ee5406ae5478fb348"
+    },
+    {
+      "path": "skills/creative-video/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "884239aa605aef56d7d4ee146dfa742cb4d1baa3fba9dbfb6ac9586ee9364a10"
+    },
+    {
+      "path": "skills/content-review/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "705f57c7a479e78f5f430f67057aae518e7b0268603754af6344b647bb6965a4"
+    },
+    {
+      "path": "skills/performance-review/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "15bfb907db9dde44688cd7caa44373e7f777feedbf8328796b56d99f6767819c"
+    },
+    {
+      "path": "skills/conversion-review/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "13a249aba88b33eb8504fe02d8ea4e11c1d89b52c24d9c37cc5ac90a66b153c9"
+    },
+    {
+      "path": "skills/publication-handoff/SKILL.md",
+      "source_id": "workbench_native",
+      "upstream": null,
+      "sha256": "a28d5db8168af396b5ddc3e5a873a88a9b788b648d98780d86ed9aaaff00e295"
+    }
+  ]
+}
