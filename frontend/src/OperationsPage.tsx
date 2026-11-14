@@ -116,6 +116,10 @@ export default function OperationsPage({
     [revision, setRevision] = useState(0),
     [project, setProject] = useState(""),
     [submittedProject, setSubmittedProject] = useState("");
+  const [researchUrl, setResearchUrl] = useState("");
+  const [researchFocus, setResearchFocus] = useState("full_intelligence");
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchError, setDispatchError] = useState("");
   const [start, setStart] = useState(
       () =>
         new Date()
@@ -143,6 +147,17 @@ export default function OperationsPage({
       });
     return () => c.abort();
   }, [demo]);
+  useEffect(() => {
+    setResearchUrl(shops.find((s) => s.id === shop)?.store_url || "");
+  }, [shops, shop]);
+  useEffect(() => {
+    setResearchFocus(
+      section === "competitor-research"
+        ? "competitive_landscape"
+        : "full_intelligence",
+    );
+    setDispatchError("");
+  }, [section, shop]);
   useEffect(() => {
     setLoading(false);
     setSelected(null);
@@ -216,6 +231,33 @@ export default function OperationsPage({
           : true) &&
       JSON.stringify(r).toLowerCase().includes(query.toLowerCase()),
   );
+  async function dispatchResearch() {
+    const storeUrl = researchUrl.trim();
+    if (!shop || !storeUrl || dispatching) return;
+    setDispatching(true);
+    setDispatchError("");
+    try {
+      await api("/shop-analysis/run", {
+        method: "POST",
+        body: JSON.stringify({
+          shop_id: shop,
+          store_url: storeUrl,
+          industry_code:
+            shops.find((s) => s.id === shop)?.industry_code || "general",
+          research_focus:
+            section === "competitor-research"
+              ? "competitive_landscape"
+              : researchFocus,
+          execution_mode: "queued",
+        }),
+      });
+      setRevision((value) => value + 1);
+    } catch (e) {
+      setDispatchError(e instanceof Error ? e.message : "派发失败");
+    } finally {
+      setDispatching(false);
+    }
+  }
   return (
     <div className="operations-page">
       <div className="resource-header">
@@ -419,11 +461,64 @@ export default function OperationsPage({
                   <ChevronRight size={16} />
                 </button>
               ))
-            : !error && (
-                <p className="empty-state">
-                  {query ? "没有匹配记录" : "暂无记录"}
-                </p>
-              )}
+            : !error &&
+              (query ? (
+                <p className="empty-state">没有匹配记录</p>
+              ) : section.endsWith("-research") ? (
+                <div className="operations-empty">
+                  <p className="operations-empty-title">
+                    还没有{titles[section]}记录
+                  </p>
+                  <p className="operations-empty-copy">
+                    把店铺网址交给 agent，派发一次{titles[section]}
+                    。完成后，研究记录和证据会出现在这里。
+                  </p>
+                  {demo ? (
+                    <p className="operations-empty-note">
+                      演示模式下暂无可派发的研究。
+                    </p>
+                  ) : (
+                    <div className="operations-dispatch">
+                      <label>
+                        店铺网址
+                        <input
+                          value={researchUrl}
+                          placeholder="https://your-store.com"
+                          onChange={(e) => setResearchUrl(e.target.value)}
+                        />
+                      </label>
+                      {section === "product-research" && (
+                        <label>
+                          研究重点
+                          <select
+                            value={researchFocus}
+                            onChange={(e) => setResearchFocus(e.target.value)}
+                          >
+                            <option value="full_intelligence">综合研究</option>
+                            <option value="store_context">店铺研究</option>
+                            <option value="industry_baseline">行业研究</option>
+                            <option value="audience_pain_points">受众研究</option>
+                            <option value="compliance_scan">合规研究</option>
+                          </select>
+                        </label>
+                      )}
+                      <Button
+                        onClick={() => void dispatchResearch()}
+                        disabled={dispatching || !researchUrl.trim()}
+                      >
+                        {dispatching ? "派发中…" : "派发研究"}
+                      </Button>
+                    </div>
+                  )}
+                  {dispatchError && (
+                    <p className="operations-empty-error" role="alert">
+                      {dispatchError}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="empty-state">暂无记录</p>
+              ))}
         </div>
       )}
     </div>
