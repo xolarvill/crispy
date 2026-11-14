@@ -40,4 +40,4 @@
 
 本包不自动注册到全局 Codex 配置，也不安装隐藏技能副本。FastAPI/PipelineWorker 仍使用原运行时；没有新增自动选路服务、MCP gateway、数据库写入或平台连接。后续运行时集成需要单独实现并验证，不以“文件已存在”冒充已上线。
 
-来源登记保存在 `docs/local-skills-inventory.json`，`scripts/skill_inventory.py check` 检查文件集合、身份和指纹；有意编辑后用 `refresh` 更新记录再检查。Git 历史记录逐层变更。结构检查不证明任务效果；代表性任务和人工审读结论见后续验收记录。
+来源登记保存在 `docs/local-skills-inventory.json`，`scripts/skill_inventory.py check` 检查文件集合、身份和指纹；有意编辑后用 `refresh` 更新记录再检查。文本指纹先将 CRLF 统一为 LF，以便跨平台 checkout；其他文件按原始字节计算。新增材料先显式登记身份，refresh 不自动将未知文件标成原创。Git 历史记录逐层变更。结构检查不证明任务效果；代表性任务和审读结论见 [验收记录](local-skills-validation.md)。

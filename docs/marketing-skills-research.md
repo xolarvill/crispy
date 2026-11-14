@@ -2,6 +2,8 @@
 
 更新日期：2026-11-01。本文合并保存上游 vendor 调研、用户调整后的工作覆盖与优先级，以及页面边界、人和 agent 分工、首版范围的讨论建议。未安装上游 skills、未接通发送/发布，也未改变现有运行时。
 
+2026-11-14 实施补充：已按用户授权建立 [本地营销技能包](../skills/README.md)，首批为原创方法，未导入上游技能正文；[设计与来源对照](local-skills-design.md) 记录覆盖及当前边界。下面的页面与功能建议仍保留其原讨论状态。
+
 目标：与 agent 协作的 marketing all-in-one workbench，首批聚焦社媒和 EDM，再扩展广告、转化、社区与营销分析。参照本地独立项目 `D:\CODING\seo-workbench` 的方法融合模式；该项目位于 crispy 仓库之外。
 
 ## 决策状态与阅读顺序
@@ -135,6 +137,8 @@ Stars 是本次访问 GitHub 页面显示的约数，可能含缓存；它只说
 | [social-media-skills/skills](https://github.com/social-media-skills/skills) | 约 226；MIT；规模较小 | 更细的平台策略、短视频、发布与分析目录 | 观察：适合补缺；本轮以目录筛选为主，尚未逐个审阅 |
 
 ## 你提到的 commerce-agents
+
+新增评估候选：[aronhy/marketing-skill-hub](https://github.com/aronhy/marketing-skill-hub)。2026-11-14 抽查了社媒、UGC、广告优化入口及复盘参考，作为出海营销任务的补缺线索；其 LICENSE 标注 Markdown 为 CC BY-NC 4.0、辅助脚本为 MIT。本次没有复制、翻译或以其正文作改写底稿，相关本地任务由原创技能覆盖；商业产品内置该上游正文需要另行解决适用授权。
 
 [anthropics/commerce-agents](https://github.com/anthropics/commerce-agents) 是官方购物助手与商家后台助手的参考蓝图，约 3.4k Stars，Apache-2.0。它与电商营销有交集，但主要处理购物与商家业务。README 明确说明它是 **不持续维护、不接受贡献的参考实现**。
 
