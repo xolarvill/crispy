@@ -249,6 +249,9 @@ export function InstructionBoard({
   const [digestOpen, setDigestOpen] = useState(false);
   const [trace, setTrace] = useState<BoardEvent[]>([]);
   const [traceError, setTraceError] = useState("");
+  const [openAssets, setOpenAssets] = useState(true);
+  const [openOutline, setOpenOutline] = useState(true);
+  const [openTrace, setOpenTrace] = useState(true);
   const [assets, setAssets] = useState<RunMedia[]>([]);
   const [selected, setSelected] = useState<TLShape[]>([]);
   const [version, setVersion] = useState(0);
@@ -820,62 +823,93 @@ export function InstructionBoard({
 
             <section className="board-section">
               <div className="board-section-head">
-                <p>{t("Run assets", "任务素材")}</p>
+                <button
+                  type="button"
+                  className="board-section-toggle"
+                  aria-expanded={openAssets}
+                  onClick={() => setOpenAssets((value) => !value)}
+                >
+                  {openAssets ? (
+                    <ChevronDown size={13} />
+                  ) : (
+                    <ChevronRight size={13} />
+                  )}
+                  <span className="board-section-name">
+                    {t("Run assets", "任务素材")}
+                  </span>
+                </button>
                 <span>{assets.length}</span>
               </div>
-              {assets.length ? (
-                <div className="board-asset-picker">
-                  {assets.map((media) => {
-                    const used = onBoardUris.has(media.uri);
-                    return (
-                      <button
-                        key={`${media.uri}-${media.source}`}
-                        type="button"
-                        className={`board-asset-chip${used ? " is-used" : ""}`}
-                        title={media.uri}
-                        onClick={() => void addAsset(media)}
-                      >
-                        <span className="board-asset-chip-media">
-                          {isVideoUri(media.uri) ? (
-                            <Video size={16} />
-                          ) : (
-                            <img src={mediaUrl(media.uri)} alt="" loading="lazy" />
-                          )}
-                          {used ? (
-                            <span className="board-asset-chip-check">
-                              <Check size={11} />
-                            </span>
-                          ) : (
-                            <span className="board-asset-chip-add">
-                              <Plus size={11} />
-                            </span>
-                          )}
-                        </span>
-                        <span className="board-asset-chip-label">
-                          {media.source === "generated"
-                            ? t("Generated", "生成")
-                            : t("Input", "素材")}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="board-empty-note">
-                  {t(
-                    "This run has no media yet. Upload assets on the run first.",
-                    "这个任务还没有素材，请先在任务里上传。",
-                  )}
-                </p>
-              )}
+              {openAssets ? (
+                assets.length ? (
+                  <div className="board-asset-picker">
+                    {assets.map((media) => {
+                      const used = onBoardUris.has(media.uri);
+                      return (
+                        <button
+                          key={`${media.uri}-${media.source}`}
+                          type="button"
+                          className={`board-asset-chip${used ? " is-used" : ""}`}
+                          title={media.uri}
+                          onClick={() => void addAsset(media)}
+                        >
+                          <span className="board-asset-chip-media">
+                            {isVideoUri(media.uri) ? (
+                              <Video size={16} />
+                            ) : (
+                              <img src={mediaUrl(media.uri)} alt="" loading="lazy" />
+                            )}
+                            {used ? (
+                              <span className="board-asset-chip-check">
+                                <Check size={11} />
+                              </span>
+                            ) : (
+                              <span className="board-asset-chip-add">
+                                <Plus size={11} />
+                              </span>
+                            )}
+                          </span>
+                          <span className="board-asset-chip-label">
+                            {media.source === "generated"
+                              ? t("Generated", "生成")
+                              : t("Input", "素材")}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="board-empty-note">
+                    {t(
+                      "This run has no media yet. Upload assets on the run first.",
+                      "这个任务还没有素材，请先在任务里上传。",
+                    )}
+                  </p>
+                )
+              ) : null}
             </section>
 
             <section className="board-section">
               <div className="board-section-head">
-                <p>{t("On the board", "画板内容")}</p>
+                <button
+                  type="button"
+                  className="board-section-toggle"
+                  aria-expanded={openOutline}
+                  onClick={() => setOpenOutline((value) => !value)}
+                >
+                  {openOutline ? (
+                    <ChevronDown size={13} />
+                  ) : (
+                    <ChevronRight size={13} />
+                  )}
+                  <span className="board-section-name">
+                    {t("On the board", "画板内容")}
+                  </span>
+                </button>
                 <span>{assetShapes.length + notedShapes.length + stageShapes.length}</span>
               </div>
-              <div className="board-outline">
+              {openOutline ? (
+                <div className="board-outline">
                 {assetShapes.map((shape) => {
                   const props = shape.props as {
                     mark: number;
@@ -948,6 +982,7 @@ export function InstructionBoard({
                   </p>
                 ) : null}
               </div>
+              ) : null}
             </section>
 
             {selectedAsset ? (
@@ -995,10 +1030,25 @@ export function InstructionBoard({
 
             <section className="board-section board-trace">
               <div className="board-section-head">
-                <p>{t("Agent trace", "Agent 记录")}</p>
+                <button
+                  type="button"
+                  className="board-section-toggle"
+                  aria-expanded={openTrace}
+                  onClick={() => setOpenTrace((value) => !value)}
+                >
+                  {openTrace ? (
+                    <ChevronDown size={13} />
+                  ) : (
+                    <ChevronRight size={13} />
+                  )}
+                  <span className="board-section-name">
+                    {t("Agent trace", "Agent 记录")}
+                  </span>
+                </button>
                 <span>{trace.length}</span>
               </div>
-              {traceView.length ? (
+              {openTrace ? (
+                traceView.length ? (
                 <ol className="board-trace-list">
                   {traceView.map(({ event, op, detail, time, actor }) => (
                     <li
@@ -1046,7 +1096,8 @@ export function InstructionBoard({
                       "还没有 agent 活动。阶段 agent 每次读取这块白板，这里都会留下记录。",
                     )}
                 </p>
-              )}
+              )
+              ) : null}
             </section>
 
             <section className="board-section board-digest">

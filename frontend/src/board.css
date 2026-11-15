@@ -159,6 +159,27 @@
   align-items: center;
   gap: 4px;
 }
+.board-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.board-section-toggle svg {
+  color: var(--muted-foreground);
+}
+.board-section-toggle:hover .board-section-name {
+  color: var(--primary);
+}
+.board-section-name {
+  font-size: 12px;
+  font-weight: 600;
+}
 /* Agent trace: one line per tool call the board saw. */
 .board-trace-list {
   display: flex;
@@ -428,6 +449,8 @@
 .board-digest {
   border-top: 1px solid var(--border);
   padding-top: 12px;
+}
+.board-trace {
   margin-top: auto;
 }
 .board-digest-toggle {
