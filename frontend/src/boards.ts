@@ -197,6 +197,25 @@ export function compileBoard(runId: string, scene: BoardScene) {
   });
 }
 
+export type BoardEvent = {
+  id: string;
+  revision: number;
+  actor: string;
+  actor_kind: "agent" | "human";
+  op: string;
+  payload: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export async function fetchBoardEvents(
+  runId: string,
+  limit = 40,
+): Promise<BoardEvent[]> {
+  return api<BoardEvent[]>(
+    `/runs/${encodeURIComponent(runId)}/board/events?limit=${limit}`,
+  );
+}
+
 export async function fetchBoardAssets(runId: string): Promise<RunMedia[]> {
   const response = await api<{ media_previews: RunMedia[] }>(
     `/runs/${encodeURIComponent(runId)}/media`,

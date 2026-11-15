@@ -22,6 +22,7 @@ import "tldraw/tldraw.css";
 import {
   AlignHorizontalSpaceAround,
   ArrowUpRight,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronRight,
@@ -34,6 +35,8 @@ import {
   Plus,
   Redo2,
   RefreshCw,
+  Save,
+  Sparkles,
   SquareDashed,
   StickyNote,
   Trash2,
@@ -52,10 +55,12 @@ import {
   compileBoard,
   fetchBoard,
   fetchBoardAssets,
+  fetchBoardEvents,
   isVideoUri,
   mediaUrl,
   newBoardId,
   saveBoard,
+  type BoardEvent,
   type BoardItem,
   type BoardPayload,
   type BoardRole,
@@ -242,6 +247,8 @@ export function InstructionBoard({
   const [dirty, setDirty] = useState(false);
   const [digest, setDigest] = useState("");
   const [digestOpen, setDigestOpen] = useState(false);
+  const [trace, setTrace] = useState<BoardEvent[]>([]);
+  const [traceError, setTraceError] = useState("");
   const [assets, setAssets] = useState<RunMedia[]>([]);
   const [selected, setSelected] = useState<TLShape[]>([]);
   const [version, setVersion] = useState(0);
@@ -300,6 +307,22 @@ export function InstructionBoard({
       }
     }, 300);
   }, [editor]);
+
+  const loadTrace = useCallback(async () => {
+    try {
+      setTrace(await fetchBoardEvents(target.runId));
+      setTraceError("");
+    } catch (eventError) {
+      setTraceError((eventError as Error).message);
+    }
+  }, [target.runId]);
+
+  // Poll while the board is open so a stage that reads it shows up live.
+  useEffect(() => {
+    void loadTrace();
+    const timer = window.setInterval(() => void loadTrace(), 8000);
+    return () => window.clearInterval(timer);
+  }, [loadTrace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -476,6 +499,7 @@ export function InstructionBoard({
       savedTitleRef.current = titleRef.current.trim();
       setBoard(saved);
       setDigest(saved.compiled?.digest || "");
+      void loadTrace();
       dirtyRef.current = false;
       setDirty(false);
 
@@ -522,7 +546,7 @@ export function InstructionBoard({
     } finally {
       setBusy(false);
     }
-  }, [editor, notify, t, target.runId]);
+  }, [editor, loadTrace, notify, t, target.runId]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -653,6 +677,67 @@ export function InstructionBoard({
     selected.length === 1 && selected[0].type === ASSET_SHAPE ? selected[0] : null;
   const selectedRegion =
     selected.length === 1 && selected[0].type === REGION_SHAPE ? selected[0] : null;
+
+  const traceView = trace.map((event) => {
+    const data = event.payload || {},
+      count = (value: unknown) => (typeof value === "number" ? value : 0),
+      amount = (n: number, one: string, many: string) =>
+        `${n} ${n === 1 ? one : many}`;
+    const detail: string[] = [];
+    if (count(data.assets))
+      detail.push(
+        t(
+          amount(count(data.assets), "asset", "assets"),
+          `${count(data.assets)} 个素材`,
+        ),
+      );
+    if (count(data.regions))
+      detail.push(
+        t(
+          amount(count(data.regions), "region", "regions"),
+          `${count(data.regions)} 个框选`,
+        ),
+      );
+    if (count(data.links))
+      detail.push(
+        t(
+          amount(count(data.links), "link", "links"),
+          `${count(data.links)} 条关系`,
+        ),
+      );
+    if (!detail.length && count(data.items))
+      detail.push(
+        t(
+          amount(count(data.items), "node", "nodes"),
+          `${count(data.items)} 个节点`,
+        ),
+      );
+    const delta = [
+      count(data.added) ? `+${count(data.added)}` : "",
+      count(data.changed) ? `~${count(data.changed)}` : "",
+      count(data.removed) ? `-${count(data.removed)}` : "",
+    ].filter(Boolean);
+    const op =
+      event.op === "read"
+        ? "read_board"
+        : event.op === "create"
+          ? "create_board"
+          : event.op === "save"
+            ? "save_board"
+            : event.op;
+    return {
+      event,
+      op,
+      detail: [...delta, ...detail].join(" · "),
+      time: event.created_at
+        ? new Date(event.created_at).toLocaleTimeString(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "",
+      actor: event.actor_kind === "human" ? t("You", "你") : event.actor.replace(/_/g, " "),
+    };
+  });
 
   return (
     <div
@@ -907,6 +992,62 @@ export function InstructionBoard({
                 </Button>
               </section>
             ) : null}
+
+            <section className="board-section board-trace">
+              <div className="board-section-head">
+                <p>{t("Agent trace", "Agent 记录")}</p>
+                <span>{trace.length}</span>
+              </div>
+              {traceView.length ? (
+                <ol className="board-trace-list">
+                  {traceView.map(({ event, op, detail, time, actor }) => (
+                    <li
+                      key={event.id}
+                      className={`board-trace-row is-${event.actor_kind}`}
+                    >
+                      <span className="board-trace-icon" aria-hidden="true">
+                        {event.op === "read" ? (
+                          <BookOpen size={12} />
+                        ) : event.op === "create" ? (
+                          <Sparkles size={12} />
+                        ) : (
+                          <Save size={12} />
+                        )}
+                      </span>
+                      <span className="board-trace-body">
+                        <span className="board-trace-line">
+                          <strong>{actor}</strong>
+                          <code className="board-trace-op">{op}</code>
+                          <time
+                            className="board-trace-time"
+                            dateTime={event.created_at ?? undefined}
+                            title={
+                              event.created_at
+                                ? new Date(event.created_at).toLocaleString()
+                                : undefined
+                            }
+                          >
+                            {time}
+                          </time>
+                        </span>
+                        <small>
+                          <span className="board-trace-rev">r{event.revision}</span>
+                          {detail ? ` · ${detail}` : ""}
+                        </small>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="board-empty-note">
+                  {traceError ||
+                    t(
+                      "No agent activity yet. Stage agents log a read here each time they use this board.",
+                      "还没有 agent 活动。阶段 agent 每次读取这块白板，这里都会留下记录。",
+                    )}
+                </p>
+              )}
+            </section>
 
             <section className="board-section board-digest">
               <button
