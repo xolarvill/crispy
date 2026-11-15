@@ -345,6 +345,53 @@ class BrandCreative(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class InstructionBoard(Base):
+    """The canonical instruction board document for one run.
+
+    The board is server-authoritative: agents read and edit it through the same
+    service layer as the UI. ``revision`` guards writes with optimistic
+    concurrency; every accepted write also lands in ``InstructionBoardRevision``
+    so a stage task can pin the document it actually ran against.
+    """
+
+    __tablename__ = "instruction_board"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspace.id"), index=True)
+    run_id: Mapped[str] = mapped_column(String(36), index=True)
+    stage_scope: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    title: Mapped[str] = mapped_column(String(160), default="")
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    document: Mapped[dict] = mapped_column(json_type(), default=dict)
+    snapshot_uri: Mapped[str] = mapped_column(String(1024), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class InstructionBoardRevision(Base):
+    __tablename__ = "instruction_board_revision"
+    __table_args__ = (UniqueConstraint("board_id", "revision", name="uq_board_revision"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    board_id: Mapped[str] = mapped_column(ForeignKey("instruction_board.id"), index=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    document: Mapped[dict] = mapped_column(json_type(), default=dict)
+    snapshot_uri: Mapped[str] = mapped_column(String(1024), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class InstructionBoardEvent(Base):
+    __tablename__ = "instruction_board_event"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    board_id: Mapped[str] = mapped_column(ForeignKey("instruction_board.id"), index=True)
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    actor: Mapped[str] = mapped_column(String(128), default="human")
+    op: Mapped[str] = mapped_column(String(64), default="")
+    payload: Mapped[dict] = mapped_column(json_type(), default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class RunVariant(Base):
     __tablename__ = "run_variant"
     __table_args__ = (UniqueConstraint("run_id", "variant_id", name="uq_run_variant_run_variant"),)

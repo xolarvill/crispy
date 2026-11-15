@@ -1892,6 +1892,7 @@ class AgentsRuntime:
         runtime_config: dict | None,
         task_instruction: str,
         agent_role: str | None = None,
+        operator_instructions: str = "",
     ) -> str:
         blocks: list[str] = []
         persona_prompt = self._persona_contract_prompt(runtime_config)
@@ -1900,7 +1901,23 @@ class AgentsRuntime:
         if agent_role:
             blocks.append(self._business_strategy_system_prompt(agent_role))
         blocks.append(task_instruction)
+        operator_block = self._operator_instruction_block(operator_instructions)
+        if operator_block:
+            blocks.append(operator_block)
         return "\n\n".join(block for block in blocks if block).strip()
+
+    def _operator_instruction_block(self, digest: str) -> str:
+        """The operator's canvas direction, marked as explicit and high priority."""
+        text = str(digest or "").strip()
+        if not text:
+            return ""
+        return (
+            "OPERATOR INSTRUCTION BOARD — explicit human direction marked on the canvas. "
+            "Follow it over generic creative defaults when the two conflict, but never let it "
+            "override product truth, brand rules, or compliance guardrails. Region notes and "
+            "numbered asset references are literal instructions, not suggestions.\n"
+            f"{text}"
+        )
 
     def _parse_llm_json(self, response_text: str, schema_key: str) -> dict:
         """Parse JSON from an LLM response, stripping markdown code fences.
@@ -2066,6 +2083,7 @@ class AgentsRuntime:
         provider: str,
         model: str,
         runtime_config: dict | None = None,
+        operator_instructions: str = "",
     ) -> StageOutput:
         mode = "online_research_enabled" if enable_research else "manual_research_only"
         gm_policy = gm_policy or {}
@@ -2083,6 +2101,7 @@ class AgentsRuntime:
                 f"gm_policy={policy_excerpt}. dtc_surface_strategy={surface_strategy}. Return concise strategy, constraints, hypotheses, risk boundaries, "
                 "creative director plan, scene arc, reference strategy, segment continuity plan, quality gates, and reviewer decision questions."
             ),
+            operator_instructions=operator_instructions,
         )
         summary, model_used, estimated_cost = self._chat_complete(provider, model, prompt, runtime_config)
         value_props = intake.business_context.get("key_value_props", [])
@@ -2290,6 +2309,7 @@ class AgentsRuntime:
         provider: str,
         model: str,
         runtime_config: dict | None = None,
+        operator_instructions: str = "",
     ) -> StageOutput:
         business_context = business_context or {}
         creative_specs = creative_specs or {}
@@ -2353,6 +2373,7 @@ class AgentsRuntime:
                 f"Role: {image_role}; style requirements: {role['style']}. "
                 f"Output: square {export_size_px}x{export_size_px}px master, pure white background" + (f", marketplace-ready for {', '.join(platform_targets)}" if platform_targets else "") + ". "
                 "If source media is low quality, improve lighting, material clarity, edge quality, and color balance while preserving product truth."
+                f"{self._operator_instruction_block(operator_instructions)}"
                 f"{self._qa_repair_prompt_block(runtime_config)}"
             )
             image_uri = ""
@@ -2496,6 +2517,7 @@ class AgentsRuntime:
         model: str,
         runtime_config: dict | None = None,
         historical_references: list[dict] | None = None,
+        operator_instructions: str = "",
     ) -> StageOutput:
         if is_marketplace_main_image(creative_specs):
             return self._run_marketplace_main_image_generation(
@@ -2509,6 +2531,7 @@ class AgentsRuntime:
                 provider=provider,
                 model=model,
                 runtime_config=runtime_config,
+                operator_instructions=operator_instructions,
             )
 
         business_context = business_context or {}
@@ -2562,6 +2585,7 @@ class AgentsRuntime:
                 + f"business_context={business_context}, product_visual_summary={visual_summary}, product_truth_contract={product_truth}, variants={variant_set.model_dump()}. "
                 + "Keep copy specific, conversion-oriented, and claim-safe. Do not invent certifications or guarantees."
             ),
+            operator_instructions=operator_instructions,
         )
         try:
             copy_hint, text_model_used, copy_cost = self._chat_complete(provider, model, copy_prompt, runtime_config)
@@ -2614,6 +2638,7 @@ class AgentsRuntime:
                 + "Preserve reference markings and material appearance. No text overlay. "
                 + f"Use aspect ratio {image_size}, target resolution {resolution}. "
                 + "Keep the product physically plausible and inspectable."
+                + self._operator_instruction_block(operator_instructions)
                 + self._qa_repair_prompt_block(runtime_config)
             )
             image_uri = ""
@@ -2869,6 +2894,7 @@ class AgentsRuntime:
         runtime_config: dict | None = None,
         reference_bundle: dict | None = None,
         planning: PlanningBrief | dict | None = None,
+        operator_instructions: str = "",
     ) -> StageOutput:
         business_context = business_context or {}
         creative_specs = creative_specs or {}
@@ -2941,6 +2967,7 @@ class AgentsRuntime:
                 "\"transition_to_next\":\"match_cut\",\"variation_type\":\"small\",\"continuity_constraints\":[\"...\"]}]}]}."
                 f"{self._qa_repair_prompt_block(runtime_config)}"
             ),
+            operator_instructions=operator_instructions,
         )
         response_text, model_used, estimated_cost = self._chat_complete(provider, model, prompt, runtime_config)
         scripts = []
@@ -3182,6 +3209,7 @@ class AgentsRuntime:
         historical_references: list[dict] | None = None,
         intake: ProductIntake | None = None,
         planning: PlanningBrief | dict | None = None,
+        operator_instructions: str = "",
     ) -> StageOutput:
         creative_specs = creative_specs or {}
         director_handoff = self._director_handoff(planning) or dict((script_pack.product_context or {}).get("director_plan") or {})
@@ -3224,6 +3252,7 @@ class AgentsRuntime:
                 f"creative_director_plan={director_plan}. production_plan={production_plan}. quality_gates={quality_gates}. "
                 "Treat storyboard as the visual QA plan before video generation: continuity, object logic, product visibility, prompt grammar, and visual proof mechanism."
             ),
+            operator_instructions=operator_instructions,
         )
         estimated_cost = 0.0
         error_text = None
@@ -3309,6 +3338,7 @@ class AgentsRuntime:
                     " Frame the shot's intended action so its contact point or outcome reads clearly. "
                     "Carry product scale, light direction and distinguishing details across adjacent shots "
                     "where the scene is continuous. Preserve planned changes in viewpoint."
+                    f"{self._operator_instruction_block(operator_instructions)}"
                 )
                 source = "placeholder"
                 image_provider = ""

@@ -109,6 +109,31 @@ def regeneration_handler_names() -> set[str]:
     return set(REGENERATION_HANDLER_DISPATCH)
 
 
+def _payload_operator_instructions(payload: dict) -> str:
+    board = payload.get("instruction_board") or {}
+    return str(board.get("digest") or "")
+
+
+def _operator_instructions(context: StageExecutionContext) -> str:
+    """Digest of the run's instruction board, plus a trace when one is applied."""
+    board = context.task.input_payload.get("instruction_board") or {}
+    digest = _payload_operator_instructions(context.task.input_payload)
+    if not digest:
+        return ""
+    context.emit_trace(
+        "instruction_board_applied",
+        f"Stage {context.task.stage_name} applied instruction board r{board.get('revision')}.",
+        payload={
+            "revision": board.get("revision"),
+            "assets": len(board.get("assets") or []),
+            "regions": len(board.get("regions") or []),
+            "links": len(board.get("links") or []),
+            "snapshot_uri": board.get("snapshot_uri") or "",
+        },
+    )
+    return digest
+
+
 def _run_intake(context: StageExecutionContext) -> Any:
     return context.runtime.run_intake(
         context.run.id,
@@ -141,6 +166,7 @@ def _run_planning(context: StageExecutionContext) -> Any:
         provider=context.provider_name,
         model=context.model_name,
         runtime_config=context.runtime_config,
+        operator_instructions=_operator_instructions(context),
     )
 
 
@@ -175,6 +201,7 @@ def _run_copy_image_generation(context: StageExecutionContext) -> Any:
         model=context.model_name,
         runtime_config=context.runtime_config,
         historical_references=reference_bundle["images"],
+        operator_instructions=_operator_instructions(context),
     )
 
 
@@ -195,6 +222,7 @@ def _run_video_scripting(context: StageExecutionContext) -> Any:
         runtime_config=context.runtime_config,
         reference_bundle=reference_bundle,
         planning=context.task.input_payload.get("planning"),
+        operator_instructions=_operator_instructions(context),
     )
 
 
@@ -240,6 +268,7 @@ def _run_storyboard_image_generation(context: StageExecutionContext) -> Any:
         historical_references=reference_bundle["frames"] or reference_bundle["images"],
         intake=ProductIntake.model_validate(context.task.input_payload["intake"]) if context.task.input_payload.get("intake") else None,
         planning=context.task.input_payload.get("planning"),
+        operator_instructions=_operator_instructions(context),
     )
 
 
@@ -350,6 +379,7 @@ def _regenerate_copy_image_generation(context: RegenerationExecutionContext) -> 
         model=context.model_name,
         runtime_config=context.runtime_config,
         historical_references=reference_bundle["images"],
+        operator_instructions=_payload_operator_instructions(context.task.input_payload),
     )
 
 
@@ -369,6 +399,7 @@ def _regenerate_video_scripting(context: RegenerationExecutionContext) -> Any:
         runtime_config=context.runtime_config,
         reference_bundle=reference_bundle,
         planning=context.task.input_payload.get("planning"),
+        operator_instructions=_payload_operator_instructions(context.task.input_payload),
     )
 
 
@@ -384,6 +415,7 @@ def _regenerate_storyboard_image_generation(context: RegenerationExecutionContex
         historical_references=reference_bundle["frames"] or reference_bundle["images"],
         intake=ProductIntake.model_validate(context.task.input_payload["intake"]) if context.task.input_payload.get("intake") else None,
         planning=context.task.input_payload.get("planning"),
+        operator_instructions=_payload_operator_instructions(context.task.input_payload),
     )
 
 

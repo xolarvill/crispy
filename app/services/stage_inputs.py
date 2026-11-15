@@ -17,6 +17,7 @@ from app.data.models import (
     TaskFailureCategory,
 )
 from app.orchestrator.stage_contracts import get_stage_contract
+from app.services.boards import BOARD_STAGE_SCOPE_STAGES, board_context_for_run
 from app.services.creative_specs import get_social_review_contract
 from app.services.execution_memory import append_execution_memory_payload, resolve_execution_memory
 from app.services.gm_evolution import resolve_active_gm_policy
@@ -109,6 +110,12 @@ def build_task_input(db: Session, run: PipelineRun, task: StageTask) -> dict:
     }
     for input_name, source_stage in STAGE_OUTPUT_INPUTS.get(task.stage_name, {}).items():
         payload[input_name] = stage_output_optional(db, run.id, source_stage)
+    if task.stage_name in BOARD_STAGE_SCOPE_STAGES:
+        board_context = board_context_for_run(db, run)
+        if board_context:
+            # Pinned into input_payload when the task is claimed: editing the
+            # board later must not silently change a stage that already ran.
+            payload["instruction_board"] = board_context
     if task.stage_name == StageName.PLANNING.value:
         from app.services.research_context import build_research_context
 
