@@ -171,10 +171,6 @@ export function BoardPanel({
               </figcaption>
             </figure>
           ) : null}
-          <details className="board-panel-digest">
-            <summary>{t("What the agents read", "agent 读到的内容")}</summary>
-            <pre>{board.compiled?.digest || t("Nothing yet", "暂无")}</pre>
-          </details>
         </div>
       ) : (
         <div className="board-panel-empty">
