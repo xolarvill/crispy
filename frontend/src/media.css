@@ -25,6 +25,9 @@
 .task-index table {
   table-layout: fixed;
 }
+.task-index tbody tr {
+  cursor: pointer;
+}
 .task-index th:first-child {
   width: 20%;
 }

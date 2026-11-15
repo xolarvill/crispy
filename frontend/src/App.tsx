@@ -947,7 +947,18 @@ export default function App() {
                         </thead>
                         <tbody>
                           {visible.map((r) => (
-                            <tr key={r.id}>
+                            <tr
+                              key={r.id}
+                              onClick={(event) => {
+                                const target = event.target as HTMLElement;
+                                // Links, the media strip and the arrow button
+                                // keep their own behaviour.
+                                if (target.closest("a, button")) return;
+                                // Do not navigate while selecting text.
+                                if (window.getSelection()?.toString()) return;
+                                go(`/tasks/${r.id}`);
+                              }}
+                            >
                               <td>
                                 <a
                                   className="task-link"
