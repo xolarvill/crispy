@@ -370,6 +370,7 @@ class ToolResult:
 class ToolOp:
     name: str
     args: dict
+    images: tuple[str, ...] = ()
 
 
 def _format_validation_error(exc: ValidationError) -> str:
@@ -563,7 +564,12 @@ class BoardToolSession:
                 self.board_row.revision,
                 self.actor,
                 f"tool:{op.name}",
-                {"args": _event_value(op.args), "stage_task_id": self.stage_task_id},
+                {
+                    "args": _event_value(op.args),
+                    "stage_task_id": self.stage_task_id,
+                    # Trace rows show the first image as a thumbnail.
+                    "images": list(op.images[:4]),
+                },
             )
         self._events_recorded = True
         self.db.flush()
@@ -607,7 +613,13 @@ class BoardToolSession:
             return ToolResult(ok=False, error=f"{name} failed: {exc}")
 
         if spec.write:
-            self.ops.append(ToolOp(name, parsed.model_dump(by_alias=True, mode="json")))
+            self.ops.append(
+                ToolOp(
+                    name,
+                    parsed.model_dump(by_alias=True, mode="json"),
+                    tuple(result.images),
+                )
+            )
             # A write that left the scene identical (compose without pin, an
             # already-pinned asset) still runs, but it must not create an empty
             # revision. Only a real scene change is saved.

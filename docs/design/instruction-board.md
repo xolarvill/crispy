@@ -1,6 +1,6 @@
 # 指令白板：Figma + Comfy 的混合模型
 
-日期：2026-11-15。状态：P0 已实现（文档模型、服务层、注入、测试），P1 画布待做。上一版把白板当成「编译成 prompt 的画布」，这一版修正为：**白板是一份服务端权威、可被人和 agent 通过工具读写编辑的文档**；prompt 只是它的一个消费者。
+日期：2026-11-15。状态：P0 文档与服务、P1 画布、P2 的进程内工具子集均已实现（2026-11-15）；外部 MCP `boardwright` server 仍待做。上一版把白板当成「编译成 prompt 的画布」，这一版修正为：**白板是一份服务端权威、可被人和 agent 通过工具读写编辑的文档**；prompt 只是它的一个消费者。
 
 ## 0. 核心判断
 
@@ -133,6 +133,15 @@ v1 节点类型：
 
 关键点：`place_assets` 比任何文字汇报都重要。agent 应该把候选图摆成 2×2 或一行，而不是在聊天里贴链接。
 
+### 已落地（2026-11-15，进程内 + HTTP）
+
+实际实现的是上表的一个受控子集，完整参数见 [docs/agent-board-tools.md](../agent-board-tools.md)。
+
+- 读：`get_board`、`get_annotations`、`search_nodes`、`list_assets`、`get_screenshot`、`get_run_status`、`batch`。
+- 写：`create_note`、`create_region`、`create_edge`（仅 annotation）、`place_assets`、`create_asset_node`、`set_node_props`、`move_nodes`、`delete_nodes`（仅 agent 自建节点）、`set_goal`（仅空 goal）、`create_board`、`compose`（PIL 拼图，可回传图片）。
+- 每次 pass 只产出一个 revision；节点 id 由 `(stage_task_id, actor, sequence)` 决定，冲突时读取新 scene 重放，最多 3 次。
+- 仍未实现：`get_selection`、`get_viewport`、锁定/解锁、resize/group/reparent、data 边、`bind_run`/`validate_graph`/`run_stage`，以及独立 MCP server。
+
 ## 4. 两个消费者，一个服务层
 
 现有运行时是进程内的 Python，不是 MCP 客户端；README 也明确 Magpie / MCP gateway **尚未上线**（`README.md:48`）。所以必须承认两条消费路径：
@@ -141,7 +150,8 @@ v1 节点类型：
 app/services/boards.py        # 唯一真值：节点校验、revision、编译、执行绑定
    ├── in-process: compile_board() → digest + snapshot     # 现有 stage runtime 用
    ├── HTTP: /runs/{id}/board/*                            # 前端用
-   └── MCP: boardwright server                             # 外部 agent 用（P2）
+   ├── HTTP: POST /runs/{id}/board-docs/{board_id}/tools    # 外部 harness 单次工具调用
+   └── MCP: boardwright server                             # 外部 agent 用（P2，待做）
 ```
 
 - **进程内阶段**（planning、copy_image、storyboard）：拿 `digest` 文本 + 快照引用就够，不需要 MCP。这条路径 P0 就能通。
@@ -243,24 +253,36 @@ app/services/boards.py        # 唯一真值：节点校验、revision、编译�
 - 追踪：阶段执行时写 `instruction_board_applied` 事件，带 revision、素材/区域/箭头数量与快照路径。
 - 测试：`tests/test_instruction_boards.py`（保存/读取/版本冲突/非法场景/注入到 planning prompt）。
 
+### P1 画布 + P2 进程内工具（2026-11-15）
+
+- 画布：tldraw 视图 ↔ `BoardScene` 映射、多 tab、快照、编译预览、agent 来源样式与 5 秒远端刷新（有未保存修改时只提示冲突，不覆盖）。
+- 阶段工具：`run_board_tool_pass()` 在阶段产物落库后运行，最多 3 轮、一次 revision；每个调用写 `tool:<name>` 事件，整轮写 `agent_edit`。`board_questions` 会暂停非 `full_auto` 的自动推进。
+- 注入隔离：digest 只编译人的指令；agent 的 note/region/link 进入独立的 `agent_annotations`，agent 钉上的素材仍列出并标记 `(agent output)`，避免 agent 把自己的话当成人指令再读一遍。
+- 外部入口：`POST /runs/{run_id}/board-docs/{board_id}/tools`，与阶段 pass 使用同一 `BoardToolSession`。
+- 测试：`tests/test_board_tools.py`、`tests/test_board_tool_protocol.py`、`tests/test_board_tool_pass.py`、`tests/test_instruction_boards.py`。
+- 已知取舍：pass 复用阶段 DB session（需要看到本阶段刚写的 `VariantAsset`）；VQA / evaluation / video_generation 只拿到工具 pass，其主 prompt 仍未消费 digest。详见 [docs/agent-board-tools.md](../agent-board-tools.md)。
+
 ## 8. 分期
 
 | 阶段 | 内容 | 验收 | 估时 |
 | --- | --- | --- | --- |
 | **P0 文档与服务** ✅ | 表、节点校验、revision/event、`compile_board()`、注入、测试 | 手写一份 document JSON，planning 的 trace 里能看到 digest 和快照引用 | 已完成 2026-11-15 |
-| **P1 画布** | tldraw 编辑器、素材钉入、note/region、标注边、保存、编译预览 | 人能在板上完成「指认 + 定位 + 关系」三类指令并重跑生效 | 2 周 |
-| **P2 Agent 工具** | `boardwright` MCP server（读/写）、`place_assets`、归因/锁定/撤销 | 外部 agent 能读出白板、把 4 张候选图摆上去、人再批注 | 1 周 |
+| **P1 画布** ✅ | tldraw 编辑器、素材钉入、note/region、标注边、保存、编译预览 | 人能在板上完成「指认 + 定位 + 关系」三类指令并重跑生效 | 2 周（已完成 2026-11-15） |
+| **P2 Agent 工具** | `boardwright` MCP server（读/写）、`place_assets`、归因/锁定/撤销 | 外部 agent 能读出白板、把 4 张候选图摆上去、人再批注 | 1 周；进程内子集已完成 2026-11-15，MCP server 待做 |
 | **P3 执行绑定** | `stage` 节点、`validate_graph`、`run_stage`、结果写回 | 画布上改输入 → 校验 → 重跑 → 产物落回画布 | 1–2 周 |
 | **P4 任意 DAG（可选）** | 节点运行时、拓扑调度、缓存 | 单独立项，不作为画布的一部分 | 另议 |
 
-P0 已完成。下一步是 P1：先做一天 tldraw 映射 spike（BoardScene ↔ tldraw shapes + `editor.toImage()` 导出），确认后再铺开编辑器。
+P1 和 P2 的进程内子集已完成。下一步是外部 MCP `boardwright` server（复用 `POST .../tools` 与 `BoardToolSession`），以及 P3 的阶段节点执行。
 
 ## 9. 风险与待定
 
 - **MCP gateway 未上线**：P2 需要先起一个独立的 MCP server 进程调用 FastAPI。这是真实成本，不要按「已有 Magpie」估。
 - **两条消费路径的语义漂移**：digest 和工具必须从同一个 service 生成，否则 agent 看到的和模型看到的会不一致。
 - **标注/数据流混淆**：模型层强制分 kind，UI 上也别用同一种箭头。
-- **破坏性编辑**：agent 删/移人的节点是最大信任风险。默认锁定 + 独立 frame + 单次可撤销是底线。
+- **破坏性编辑**：agent 删/移人的节点是最大信任风险。默认锁定 + 独立 frame + 单次可撤销是底线。当前实现用「agent 只能改自己本轮创建的节点」+ 单次 revision 兜底，尚未做显式锁定。
+- **写入来源与反馈回路**：agent 的 note/region 不能进入 digest 的「人指令」部分，否则会把自作主张当成人的要求反复强化。当前实现把 agent 标注拆到 `agent_annotations`。
+- **阶段 pass 的 session 复用**：`run_board_tool_pass()` 复用阶段任务的 DB session，才能看到本阶段尚未提交的 `VariantAsset`。worker 单阶段串行 + SQLite 下成立；换 PostgreSQL 或并发 worker 时要重新评估。
+- **工具面与注入面不完全重合**：VQA / evaluation / video_generation 拿到了工具 pass，但主 prompt 还不会读 digest；扩 `BOARD_STAGE_SCOPE_STAGES` 前要先确认这些 runtime 的 prompt 消费点。
 - **画布工作量**：tldraw 省掉手绘、绑定、撤销，但自定义 shape（素材卡、阶段卡、端口）和版本迁移仍要写；React Flow 反过来，流程语义现成、白板手感要补。
 - **tldraw 的许可触发条件**：SDK 把「HTTPS + 非 localhost + `NODE_ENV=production`」视为生产环境。本地 localhost 开发不触发；一旦部署到域名（**包括内部工具**）就需要 key，hobby 仅限非商用且带水印。第三方与 HN 报告约 $6k/年。这不是技术风险，是产品部署方式的决策：纯本地自用可以先跑开发模式，但别把「永久免费」写进假设。
 - **双权威风险**（选 tldraw 时）：BoardScene 是唯一真值，tldraw store 只是视图。任何「顺手在 store 里改一下」的代码都会造成两份数据漂移，必须在 review 里当成硬约束。

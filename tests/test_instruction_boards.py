@@ -390,3 +390,47 @@ def test_board_scopes_to_run_and_workspace(client):
     assert client.get(f"/runs/{other_run}/board").status_code == 404
     assert client.get("/runs/missing/board").status_code == 404
     assert save(client, other_run, scene=scene()).status_code == 200
+
+
+def test_board_tool_endpoint_writes_one_revision(client):
+    run_id = create_run(client, "studio-shop", "BOARD-TOOLS")
+    seed_assets(run_id, ["artifacts/hero.png", "artifacts/case.png"])
+    board_id = save(client, run_id, snapshot=png()).json()["id"]
+
+    response = client.post(
+        f"/runs/{run_id}/board-docs/{board_id}/tools",
+        json={
+            "name": "create_note",
+            "args": {"text": "背景偏冷，建议换暖色", "intent": "finding"},
+            "actor": "visual_qa_agent",
+            "stage_task_id": "task-board-tools",
+            "summary": "qa note",
+        },
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["ok"] is True
+    assert body["revision"] == 2
+    note = body["board"]["scene"]["items"][-1]
+    assert note["type"] == "note"
+    assert note["intent"] == "finding"
+    assert note["created_by"] == "agent:visual_qa_agent"
+
+    events = client.get(f"/runs/{run_id}/board-docs/{board_id}/events").json()
+    assert any(event["op"] == "tool:create_note" for event in events)
+    assert any(event["op"] == "agent_edit" for event in events)
+
+    rejected = client.post(
+        f"/runs/{run_id}/board-docs/{board_id}/tools",
+        json={
+            "name": "create_region",
+            "args": {"asset": "99", "box": [0.1, 0.1, 0.2, 0.2], "note": "找不到素材"},
+        },
+    )
+    assert rejected.status_code == 422
+    unknown = client.post(
+        f"/runs/{run_id}/board-docs/{board_id}/tools",
+        json={"name": "run_stage", "args": {}},
+    )
+    assert unknown.status_code == 422
+    assert client.get(f"/runs/{run_id}/board-docs/{board_id}").json()["revision"] == 2

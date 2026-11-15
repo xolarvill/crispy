@@ -9,7 +9,9 @@ from app.schemas.boards import (
     BoardDocCreateRequest,
     BoardDocRenameRequest,
     BoardSaveRequest,
+    BoardToolRequest,
 )
+from app.services.board_tools import BoardToolError, BoardToolSession
 from app.services.boards import (
     BoardConflict,
     BoardError,
@@ -230,6 +232,54 @@ def remove_board_doc(run_id: str, board_id: str, db: Session = Depends(get_db)):
     delete_board(db, board)
     db.commit()
     return {"ok": True}
+
+
+@router.post("/runs/{run_id}/board-docs/{board_id}/tools")
+def run_board_doc_tool(
+    run_id: str,
+    board_id: str,
+    payload: BoardToolRequest,
+    db: Session = Depends(get_db),
+):
+    """Run one typed canvas tool for an external harness.
+
+    The stage pipeline runs the same service in-process; this route gives
+    scripts and future MCP clients the identical, validated surface.
+    """
+    run = _run_or_404(db, run_id)
+    _board_or_404(db, run.id, board_id)
+    try:
+        session = BoardToolSession(
+            db,
+            run,
+            board_id=board_id,
+            actor=payload.actor,
+            stage_task_id=payload.stage_task_id,
+        )
+        result = session.execute(payload.name, payload.args)
+        if not result.ok:
+            db.rollback()
+            raise HTTPException(422, result.error)
+        board = session.commit(summary=payload.summary)
+        db.commit()
+    except BoardConflict as exc:
+        db.rollback()
+        raise HTTPException(409, str(exc)) from exc
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(409, "另一处正在保存白板，请刷新后重试") from exc
+    except (BoardToolError, BoardError) as exc:
+        db.rollback()
+        raise HTTPException(422, str(exc)) from exc
+    if board is not None:
+        db.refresh(board)
+    return {
+        "ok": True,
+        "result": result.as_dict(),
+        "images": list(result.images),
+        "revision": board.revision if board is not None else 0,
+        "board": board_payload(board) if board is not None else None,
+    }
 
 
 @router.get("/runs/{run_id}/board-docs/{board_id}/events")

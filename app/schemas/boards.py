@@ -236,3 +236,15 @@ class BoardDocRenameRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str = Field(default="", max_length=160)
+
+
+class BoardToolRequest(BaseModel):
+    """One typed canvas tool call from an external harness."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=64)
+    args: dict = Field(default_factory=dict)
+    actor: str = Field(default="operator", max_length=128)
+    stage_task_id: str = Field(default="", max_length=36)
+    summary: str = Field(default="", max_length=500)
