@@ -391,11 +391,13 @@
 .board-toolbar {
   position: absolute;
   top: 12px;
-  left: 12px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 20;
   display: flex;
   align-items: center;
   gap: 2px;
+  max-width: calc(100% - 24px);
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--border);
   border-radius: 11px;
