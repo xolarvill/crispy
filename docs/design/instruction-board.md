@@ -1,6 +1,6 @@
 # 指令白板：Figma + Comfy 的混合模型
 
-日期：2026-11-15。状态：P0 文档与服务、P1 画布、P2 的进程内工具子集均已实现（2026-11-15）；外部 MCP `boardwright` server 仍待做。上一版把白板当成「编译成 prompt 的画布」，这一版修正为：**白板是一份服务端权威、可被人和 agent 通过工具读写编辑的文档**；prompt 只是它的一个消费者。
+日期：2026-11-15。状态：P0 文档与服务、P1 画布、P2 的进程内工具子集与外部 MCP `boardwright` server 均已实现（2026-11-15）。上一版把白板当成「编译成 prompt 的画布」，这一版修正为：**白板是一份服务端权威、可被人和 agent 通过工具读写编辑的文档**；prompt 只是它的一个消费者。
 
 ## 0. 核心判断
 
@@ -151,7 +151,7 @@ app/services/boards.py        # 唯一真值：节点校验、revision、编译�
    ├── in-process: compile_board() → digest + snapshot     # 现有 stage runtime 用
    ├── HTTP: /runs/{id}/board/*                            # 前端用
    ├── HTTP: POST /runs/{id}/board-docs/{board_id}/tools    # 外部 harness 单次工具调用
-   └── MCP: boardwright server                             # 外部 agent 用（P2，待做）
+   └── MCP: boardwright server                             # 外部 agent 用（P2，已实现）
 ```
 
 - **进程内阶段**（planning、copy_image、storyboard）：拿 `digest` 文本 + 快照引用就够，不需要 MCP。这条路径 P0 就能通。
@@ -268,11 +268,11 @@ app/services/boards.py        # 唯一真值：节点校验、revision、编译�
 | --- | --- | --- | --- |
 | **P0 文档与服务** ✅ | 表、节点校验、revision/event、`compile_board()`、注入、测试 | 手写一份 document JSON，planning 的 trace 里能看到 digest 和快照引用 | 已完成 2026-11-15 |
 | **P1 画布** ✅ | tldraw 编辑器、素材钉入、note/region、标注边、保存、编译预览 | 人能在板上完成「指认 + 定位 + 关系」三类指令并重跑生效 | 2 周（已完成 2026-11-15） |
-| **P2 Agent 工具** | `boardwright` MCP server（读/写）、`place_assets`、归因/锁定/撤销 | 外部 agent 能读出白板、把 4 张候选图摆上去、人再批注 | 1 周；进程内子集已完成 2026-11-15，MCP server 待做 |
+| **P2 Agent 工具** | `boardwright` MCP server（读/写）、`place_assets`、归因/锁定/撤销 | 外部 agent 能读出白板、把 4 张候选图摆上去、人再批注 | 1 周；进程内子集与 MCP server 已完成 2026-11-15 |
 | **P3 执行绑定** | `stage` 节点、`validate_graph`、`run_stage`、结果写回 | 画布上改输入 → 校验 → 重跑 → 产物落回画布 | 1–2 周 |
 | **P4 任意 DAG（可选）** | 节点运行时、拓扑调度、缓存 | 单独立项，不作为画布的一部分 | 另议 |
 
-P1 和 P2 的进程内子集已完成。下一步是外部 MCP `boardwright` server（复用 `POST .../tools` 与 `BoardToolSession`），以及 P3 的阶段节点执行。
+P1 和 P2 的进程内子集与外部 MCP `boardwright` server 已完成。下一步是 P3 的阶段节点执行。
 
 ## 9. 风险与待定
 

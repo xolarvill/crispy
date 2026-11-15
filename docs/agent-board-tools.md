@@ -7,7 +7,8 @@ undone as a unit.
 
 Implemented surface: `app/services/board_tools.py` (`TOOL_SPECS`,
 `BoardToolSession`). Stage prompt and round loop: `app/services/board_tool_pass.py`.
-External harness route: `POST /runs/{run_id}/board-docs/{board_id}/tools`.
+External surfaces: `POST /runs/{run_id}/board-docs/{board_id}/tools` and the
+stdio MCP server `app/mcp/boardwright.py`.
 
 ## Who gets the tools
 
@@ -131,6 +132,100 @@ Invalid arguments and unknown tools return `422`; a stale `expected_revision`
 during the save returns `409`. The endpoint commits one revision and records
 `tool:<name>` plus, when the scene changed, `agent_edit` events.
 
+## MCP server (`boardwright`)
+
+`app/mcp/boardwright.py` is a stdio MCP server for external agents (Claude
+Desktop, coding agents, the MCP Inspector). It exposes all 18 `TOOL_SPECS`
+entries as MCP tools. Names, descriptions and JSON input schemas are generated
+from the same pydantic argument models the HTTP route uses, so limits such as
+`MAX_NOTE_CHARS`, `MAX_COMPOSE_ITEMS` and `MAX_BATCH_CALLS` stay in sync.
+
+The server runs **in-process**: every MCP call opens a `SessionLocal` session
+and runs a `BoardToolSession`; a write lands as exactly one board revision,
+while reads do not open one. It needs direct access to the same database and
+run assets as the Crispy app (SQLite handles the concurrent access; the app and
+the server must share the `.db` file). The alternative — calling `POST .../tools`
+— would be stateless and could run remotely, but would require the API server
+plus credentials and could not return images as native MCP `ImageContent`.
+
+Safety is unchanged: `actor` is required at startup, every write is stamped
+`agent:<actor>`, and the service only lets agents modify agent-owned nodes.
+Human notes, regions and assets stay read-only. Each MCP call gets an internal
+provenance nonce, so deterministic node ids never collide across calls.
+`compose`/`get_screenshot` results are attached as `ImageContent` when the
+generated file is readable; `structuredContent` carries the same payload as the
+JSON text.
+
+### Run it
+
+```bash
+uv run python -m app.mcp.boardwright \
+  --run-id "$RUN_ID" \
+  --actor external_agent \
+  --database-url "sqlite:///./crispy.db" \
+  --board-id "$BOARD_ID"
+```
+
+`--board-id` is optional: without it the server starts on the run's latest
+saved board. `create_board` moves the server onto the new tab for subsequent
+calls. Use `--root` if relative asset paths (compose sheets, screenshots)
+should resolve against a directory other than the server's working directory.
+
+| CLI flag | env var | required | meaning |
+| --- | --- | --- | --- |
+| `--run-id` | `BOARDWRIGHT_RUN_ID` | yes | Pipeline run to bind the server to |
+| `--actor` | `BOARDWRIGHT_ACTOR` | yes | Provenance name (`agent:<actor>` on writes) |
+| `--board-id` | `BOARDWRIGHT_BOARD_ID` | no | Fixed tab; default is the latest saved board |
+| `--database-url` | `BOARDWRIGHT_DATABASE_URL` | no | Defaults to the app's `CRISPY_DATABASE_URL` |
+| `--stage-task-id` | `BOARDWRIGHT_STAGE_TASK_ID` | no | Prefix for deterministic ids; default `manual` |
+| `--root` | `BOARDWRIGHT_ROOT` | no | Base for relative asset paths; default cwd |
+
+The server validates the run and board at startup and exits with a message on
+stderr (stdout is reserved for MCP) when either is missing.
+
+### Connect a client
+
+Claude Desktop (`claude_desktop_config.json`). Use absolute paths; `--directory`
+makes `uv` resolve the Crispy project and its environment:
+
+```json
+{
+  "mcpServers": {
+    "boardwright": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory", "/absolute/path/to/crispy",
+        "python", "-m", "app.mcp.boardwright",
+        "--run-id", "<run-id>",
+        "--actor", "external_agent",
+        "--board-id", "<board-id>"
+      ],
+      "env": {
+        "CRISPY_DATABASE_URL": "sqlite:////absolute/path/to/crispy/crispy.db"
+      }
+    }
+  }
+}
+```
+
+MCP Inspector:
+
+```bash
+npx @modelcontextprotocol/inspector \
+  uv run python -m app.mcp.boardwright \
+  --run-id "$RUN_ID" --actor external_agent --board-id "$BOARD_ID"
+```
+
+`mcp dev` / `mcp install` are not used: they only accept FastMCP instances,
+while `boardwright` uses the low-level MCP server so the pydantic schemas pass
+through verbatim. Add the JSON block above manually (or point any stdio
+inspector at the `uv run python -m …` command).
+
+Client tests: `uv run pytest tests/test_boardwright_mcp.py -q` spawns the real
+server over stdio, lists the tools, runs `get_board`, `create_note` and
+`compose`, and checks the committed revision and `created_by`.
+
 ## Board events and review
 
 - Per-tool event: `tool:<name>`, payload `{args, stage_task_id, images}`
@@ -145,7 +240,7 @@ during the save returns `409`. The endpoint commits one revision and records
 ## Checks
 
 ```bash
-uv run python -m pytest tests/test_board_tools.py tests/test_board_tool_protocol.py tests/test_board_tool_pass.py tests/test_instruction_boards.py -q
+uv run python -m pytest tests/test_board_tools.py tests/test_board_tool_protocol.py tests/test_board_tool_pass.py tests/test_instruction_boards.py tests/test_boardwright_mcp.py -q
 cd frontend && npx tsc -b
 ```
 
@@ -162,6 +257,4 @@ cd frontend && npx tsc -b
   ask on the canvas; their generation prompt will not yet read new human
   instructions.
 - Not implemented: `get_selection`, `get_viewport`, locking, resize/group/
-  reparent, data edges, `bind_run`/`validate_graph`/`run_stage`, and the
-  standalone MCP `boardwright` server. The HTTP route above is the seam those
-  clients will call.
+  reparent, data edges, and `bind_run`/`validate_graph`/`run_stage`.
