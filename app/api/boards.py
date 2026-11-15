@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,9 +9,11 @@ from app.schemas.boards import BoardCompileRequest, BoardSaveRequest
 from app.services.boards import (
     BoardConflict,
     BoardError,
+    board_event_payload,
     board_payload,
     compile_scene,
     latest_board,
+    recent_board_events,
     save_board,
     validate_scene_assets,
 )
@@ -33,6 +35,20 @@ def read_board(run_id: str, db: Session = Depends(get_db)):
     if not board:
         raise HTTPException(404, "此任务还没有指令白板")
     return board_payload(board)
+
+
+@router.get("/runs/{run_id}/board/events")
+def read_board_events(
+    run_id: str,
+    limit: int = Query(40, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    """Newest-first trace of who read, saved or edited this board."""
+    run = _run_or_404(db, run_id)
+    board = latest_board(db, run.id)
+    if not board:
+        return []
+    return [board_event_payload(row) for row in recent_board_events(db, board.id, limit=limit)]
 
 
 @router.get("/runs/{run_id}/boards")

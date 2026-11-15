@@ -22,6 +22,7 @@ from app.services.agent_api_configs import (
     resolve_agent_runtime,
     with_fallback_image_config,
 )
+from app.services.boards import record_board_read
 from app.services.reference_library import build_reference_bundle
 
 TraceEmitter = Callable[..., None]
@@ -129,6 +130,19 @@ def _operator_instructions(context: StageExecutionContext) -> str:
             "regions": len(board.get("regions") or []),
             "links": len(board.get("links") or []),
             "snapshot_uri": board.get("snapshot_uri") or "",
+        },
+    )
+    # The board activity log is the operator-facing counterpart: it shows which
+    # agent consumed the board and at which revision.
+    record_board_read(
+        context.db,
+        context.run,
+        actor=context.lead_agent,
+        revision=int(board.get("revision") or 0),
+        payload={
+            "assets": len(board.get("assets") or []),
+            "regions": len(board.get("regions") or []),
+            "links": len(board.get("links") or []),
         },
     )
     return digest

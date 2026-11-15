@@ -137,6 +137,78 @@ def _record_event(db: Session, board_id: str, revision: int, actor: str, op: str
     )
 
 
+def _actor_kind(actor: str) -> str:
+    return "human" if (actor or "").lower() in {"human", "you", "operator"} else "agent"
+
+
+def _change_summary(previous: dict | None, scene: BoardScene) -> dict:
+    """What a save changed, in counts the activity log can show in one line."""
+    summary: dict = {"items": len(scene.items), "links": len(scene.links)}
+    if not previous:
+        return summary
+    try:
+        before = BoardScene.model_validate(previous)
+    except ValueError:
+        return summary
+    added = len({item.id for item in scene.items} - {item.id for item in before.items})
+    added += len({link.id for link in scene.links} - {link.id for link in before.links})
+    removed = len({item.id for item in before.items} - {item.id for item in scene.items})
+    removed += len({link.id for link in before.links} - {link.id for link in scene.links})
+    before_items = {item.id: item for item in before.items}
+    before_links = {link.id: link for link in before.links}
+    changed = sum(
+        1
+        for item in scene.items
+        if (old := before_items.get(item.id)) is not None and old != item
+    )
+    changed += sum(
+        1
+        for link in scene.links
+        if (old := before_links.get(link.id)) is not None and old != link
+    )
+    summary.update({"added": added, "removed": removed, "changed": changed})
+    return summary
+
+
+def record_board_read(
+    db: Session,
+    run: PipelineRun,
+    *,
+    actor: str,
+    revision: int,
+    payload: dict,
+) -> None:
+    """Log that an agent consumed this board on a stage run."""
+    board = latest_board(db, run.id)
+    if board is None:
+        return
+    _record_event(db, board.id, int(revision or board.revision), actor, "read", payload)
+    db.flush()
+
+
+def recent_board_events(db: Session, board_id: str, *, limit: int = 40) -> list[InstructionBoardEvent]:
+    return list(
+        db.scalars(
+            select(InstructionBoardEvent)
+            .where(InstructionBoardEvent.board_id == board_id)
+            .order_by(InstructionBoardEvent.created_at.desc())
+            .limit(limit)
+        ).all()
+    )
+
+
+def board_event_payload(row: InstructionBoardEvent) -> dict:
+    return {
+        "id": row.id,
+        "revision": row.revision,
+        "actor": row.actor,
+        "actor_kind": _actor_kind(row.actor),
+        "op": row.op,
+        "payload": row.payload or {},
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+    }
+
+
 def save_board(
     db: Session,
     run: PipelineRun,
@@ -146,6 +218,8 @@ def save_board(
     actor: str = "human",
     expected_revision: int | None = None,
     snapshot: str = "",
+    op: str = "",
+    event: dict | None = None,
 ) -> InstructionBoard:
     """Store a new revision of the run's board.
 
@@ -171,6 +245,7 @@ def save_board(
 
     snapshot_uri = _write_snapshot(run.id, revision, snapshot) if snapshot else ""
     document = scene.model_dump(by_alias=True, mode="json")
+    event_payload = event or _change_summary(existing.document if existing else None, scene)
 
     if existing is None:
         board = InstructionBoard(
@@ -184,14 +259,6 @@ def save_board(
         )
         db.add(board)
         db.flush()
-        _record_event(
-            db,
-            board.id,
-            revision,
-            actor,
-            "create",
-            {"items": len(scene.items), "links": len(scene.links)},
-        )
     else:
         board = existing
         board.title = title or board.title
@@ -199,14 +266,15 @@ def save_board(
         board.document = document
         board.snapshot_uri = snapshot_uri
         db.add(board)
-        _record_event(
-            db,
-            board.id,
-            revision,
-            actor,
-            "save",
-            {"items": len(scene.items), "links": len(scene.links)},
-        )
+
+    _record_event(
+        db,
+        board.id,
+        revision,
+        actor,
+        op or ("create" if existing is None else "save"),
+        event_payload,
+    )
 
     db.add(
         InstructionBoardRevision(

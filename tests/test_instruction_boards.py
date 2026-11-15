@@ -232,6 +232,43 @@ def test_board_reaches_the_planning_prompt(client, monkeypatch):
     assert trace is not None
 
 
+def test_board_events_log_saves_and_agent_reads(client, monkeypatch):
+    def capture_chat(self, provider, model, prompt, runtime_config, **kwargs):
+        return "stub summary", model, 0.0
+
+    monkeypatch.setattr(AgentsRuntime, "_chat_complete", capture_chat)
+
+    run_id = create_run(client, "studio-shop", "BOARD-7")
+    seed_assets(run_id, ["artifacts/hero.png", "artifacts/case.png"])
+    assert save(client, run_id).status_code == 200
+
+    changed = scene()
+    changed["items"][3]["text"] = "主标题改到右上留白"
+    assert save(client, run_id, scene=changed, expected_revision=1).status_code == 200
+
+    events = client.get(f"/runs/{run_id}/board/events").json()
+    assert events[0]["op"] == "save"
+    assert events[0]["actor"] == "human"
+    assert events[0]["actor_kind"] == "human"
+    assert events[0]["revision"] == 2
+    assert events[0]["payload"]["changed"] == 1
+    assert events[1]["op"] == "create"
+
+    run_worker_once()  # intake
+    assert client.post(f"/runs/{run_id}/advance", json={"notes": "approved"}).status_code == 200
+    run_worker_once()  # planning
+
+    events = client.get(f"/runs/{run_id}/board/events").json()
+    read = next(event for event in events if event["op"] == "read")
+    assert read["actor"] == "planning_agent"
+    assert read["actor_kind"] == "agent"
+    assert read["revision"] == 2
+    assert read["payload"]["assets"] == 2
+    assert read["payload"]["regions"] == 1
+
+    assert client.get("/runs/missing/board/events").status_code == 404
+
+
 def test_board_scopes_to_run_and_workspace(client):
     run_id = create_run(client, "studio-shop", "BOARD-4")
     other_run = create_run(client, "other-shop", "BOARD-5")
