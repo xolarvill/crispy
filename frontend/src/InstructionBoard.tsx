@@ -1098,9 +1098,6 @@ export function InstructionBoard({
                         onClick={() => void openTab(tab)}
                         onDoubleClick={() => startRename(tab)}
                       >
-                        {tab.is_current ? (
-                          <span className="board-tab-current" aria-hidden="true" />
-                        ) : null}
                         <span className="board-tab-title">{label}</span>
                         {active && dirty ? (
                           <span className="board-tab-dirty" aria-hidden="true" />
@@ -1876,11 +1873,15 @@ function RegionInspector({
 }
 
 const QUICK_HANDLES = [
-  { key: "top", fx: 0.5, fy: 0 },
-  { key: "right", fx: 1, fy: 0.5 },
-  { key: "bottom", fx: 0.5, fy: 1 },
-  { key: "left", fx: 0, fy: 0.5 },
+  { key: "top", fx: 0.5, fy: 0, dx: 0, dy: -1, rotate: -90 },
+  { key: "right", fx: 1, fy: 0.5, dx: 1, dy: 0, rotate: 0 },
+  { key: "bottom", fx: 0.5, fy: 1, dx: 0, dy: 1, rotate: 90 },
+  { key: "left", fx: 0, fy: 0.5, dx: -1, dy: 0, rotate: 180 },
 ] as const;
+/** Handles sit just outside the edge, like draw.io's link arrows. */
+const QUICK_HANDLE_GAP = 11;
+/** Pointer distance from the shape that reveals the handles. */
+const QUICK_HOVER_MARGIN = 26;
 
 type QuickDrag = {
   sourceId: TLShapeId;
@@ -1907,6 +1908,7 @@ function QuickConnect({
     targetBounds: { x: number; y: number; w: number; h: number } | null;
   } | null>(null);
   const dragRef = useRef<QuickDrag | null>(null);
+  const handleHoverRef = useRef(false);
   const selectedIds = useValue(
     "board quick selection",
     () => editor.getSelectedShapeIds(),
@@ -1929,7 +1931,7 @@ function QuickConnect({
   useEffect(() => {
     const container = editor.getContainer();
     const onMove = (event: PointerEvent) => {
-      if (dragRef.current) return;
+      if (dragRef.current || handleHoverRef.current) return;
       const rect = container.getBoundingClientRect();
       const page = editor.screenToPage({
         x: event.clientX - rect.left,
@@ -1937,7 +1939,7 @@ function QuickConnect({
       });
       const shape = editor.getShapeAtPoint(page, {
         hitInside: true,
-        margin: 14,
+        margin: QUICK_HOVER_MARGIN,
         filter: (candidate) => candidate.type === ASSET_SHAPE,
       });
       setHoveredAssetId((current) =>
@@ -2070,16 +2072,25 @@ function QuickConnect({
       ? hoveredAssetId ?? (selectedIds.length === 1 ? selectedIds[0] : null)
       : null);
   const source = sourceId ? editor.getShape(sourceId) : undefined;
+  // If the handles disappear while the pointer still rests on one, the hover
+  // flag would otherwise stick and suppress later hover detection.
+  useEffect(() => {
+    if (!sourceId) handleHoverRef.current = false;
+  }, [sourceId]);
   if (!source || source.type !== ASSET_SHAPE) return null;
   const bounds = editor.getShapePageBounds(source);
   if (!bounds) return null;
-  const handles = QUICK_HANDLES.map((handle) => ({
-    key: handle.key,
-    ...editor.pageToScreen({
+  const handles = QUICK_HANDLES.map((handle) => {
+    const screen = editor.pageToScreen({
       x: bounds.x + bounds.w * handle.fx,
       y: bounds.y + bounds.h * handle.fy,
-    }),
-  }));
+    });
+    return {
+      ...handle,
+      x: screen.x + handle.dx * QUICK_HANDLE_GAP,
+      y: screen.y + handle.dy * QUICK_HANDLE_GAP,
+    };
+  });
 
   function begin(
     event: React.PointerEvent<HTMLButtonElement>,
@@ -2114,8 +2125,19 @@ function QuickConnect({
             style={{ left: handle.x, top: handle.y }}
             title={t("Drag to connect this asset", "拖动连接到另一个素材")}
             aria-label={t("Connect from this asset", "从这个素材开始连线")}
+            onPointerEnter={() => {
+              handleHoverRef.current = true;
+            }}
+            onPointerLeave={() => {
+              handleHoverRef.current = false;
+            }}
             onPointerDown={(event) => begin(event, source.id, handle)}
-          />
+          >
+            <ChevronRight
+              size={10}
+              style={{ transform: `rotate(${handle.rotate}deg)` }}
+            />
+          </button>
         ))}
       </div>
       {drag ? (

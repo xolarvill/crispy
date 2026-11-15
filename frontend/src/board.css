@@ -8,12 +8,16 @@
   z-index: 80;
   background: #1c211d99;
   display: flex;
+  overflow: hidden;
 }
 .board-shell {
   position: relative;
   margin: auto;
   width: min(1440px, calc(100vw - 40px));
+  height: min(920px, calc(100vh - 36px));
+  max-height: calc(100vh - 36px);
   height: min(920px, calc(100dvh - 36px));
+  max-height: calc(100dvh - 36px);
   display: flex;
   flex-direction: column;
   background: var(--background);
@@ -85,17 +89,13 @@
   color: inherit;
   text-align: left;
 }
+.board-tab.is-active .board-tab-label {
+  font-weight: 600;
+}
 .board-tab-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.board-tab-current {
-  width: 6px;
-  height: 6px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--primary);
 }
 .board-tab-dirty {
   width: 6px;
@@ -271,12 +271,16 @@
 .board-body {
   display: grid;
   grid-template-columns: 336px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
   flex: 1;
+  overflow: hidden;
 }
 .board-sidebar {
   border-right: 1px solid var(--border);
   overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -669,20 +673,32 @@
 }
 .board-quick-handle {
   position: absolute;
-  width: 11px;
-  height: 11px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
   padding: 0;
   transform: translate(-50%, -50%);
-  border: 1.5px solid var(--primary);
-  border-radius: 3px;
-  background: #fff;
-  box-shadow: 0 1px 4px #00000024;
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  border-radius: 50%;
+  background: #ffffffd9;
+  color: var(--primary);
+  box-shadow: 0 1px 4px #0000001f;
   pointer-events: auto;
   cursor: crosshair;
+  opacity: 0.45;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
 }
 .board-quick-handle:hover,
 .board-quick-handle:focus-visible {
+  opacity: 1;
   background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
   outline: none;
 }
 .board-quick-link {
