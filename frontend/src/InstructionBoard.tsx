@@ -1138,7 +1138,7 @@ function RegionInspector({
       </label>
       <Button
         variant="outline"
-                onClick={() => editor.deleteShapes([shape.id])}
+        onClick={() => editor.deleteShapes([shape.id])}
       >
         <Trash2 size={14} />
         {t("Remove this box", "删除这个框")}
