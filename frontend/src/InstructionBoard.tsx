@@ -20,6 +20,7 @@ import {
 } from "tldraw";
 import "tldraw/tldraw.css";
 import {
+  AlignHorizontalSpaceAround,
   ArrowUpRight,
   Check,
   ChevronDown,
@@ -125,6 +126,79 @@ function nextMark(editor: Editor) {
   return null;
 }
 
+const ASSET_GAP = 40;
+
+type AssetEntry = { shape: TLShape; bounds: NonNullable<ReturnType<Editor["getShapePageBounds"]>> };
+
+function assetEntries(editor: Editor): AssetEntry[] {
+  const entries: AssetEntry[] = [];
+  for (const shape of editor.getCurrentPageShapes()) {
+    if (shape.type !== ASSET_SHAPE) continue;
+    const bounds = editor.getShapePageBounds(shape);
+    if (bounds) entries.push({ shape, bounds });
+  }
+  return entries;
+}
+
+function unionOf(entries: AssetEntry[]) {
+  const boxes = entries.map((entry) => entry.bounds);
+  const x = Math.min(...boxes.map((box) => box.x));
+  const y = Math.min(...boxes.map((box) => box.y));
+  const maxX = Math.max(...boxes.map((box) => box.maxX));
+  const maxY = Math.max(...boxes.map((box) => box.maxY));
+  return { x, y, w: maxX - x, h: maxY - y };
+}
+
+/** New assets join a single horizontal row, so they never cover each other. */
+function nextAssetPosition(editor: Editor, width: number, height: number) {
+  const viewport = editor.getViewportPageBounds();
+  const entries = assetEntries(editor);
+  if (!entries.length) {
+    return {
+      x: viewport.center.x - width / 2,
+      y: viewport.center.y - height / 2,
+    };
+  }
+  return {
+    x: Math.max(...entries.map((entry) => entry.bounds.maxX)) + ASSET_GAP,
+    y: Math.min(...entries.map((entry) => entry.bounds.y)),
+  };
+}
+
+/** Arrange every asset on one row, keeping their current left-to-right order. */
+function tidyAssets(editor: Editor) {
+  const entries = assetEntries(editor);
+  if (entries.length < 2) return;
+  entries.sort(
+    (a, b) => a.bounds.x - b.bounds.x || a.bounds.y - b.bounds.y,
+  );
+  const startX = entries[0].bounds.x;
+  const top = Math.min(...entries.map((entry) => entry.bounds.y));
+  let cursor = startX;
+  editor.run(() => {
+    for (const { shape, bounds } of entries) {
+      const dx = cursor - bounds.x;
+      const dy = top - bounds.y;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        editor.updateShape({
+          id: shape.id,
+          type: shape.type,
+          x: shape.x + dx,
+          y: shape.y + dy,
+        });
+      }
+      cursor += bounds.w + ASSET_GAP;
+    }
+  });
+  const arranged = assetEntries(editor);
+  if (arranged.length) {
+    editor.zoomToBounds(unionOf(arranged), {
+      inset: 100,
+      animation: { duration: 220 },
+    });
+  }
+}
+
 async function exportSnapshot(editor: Editor) {
   const ids = [...editor.getCurrentPageShapeIds()];
   if (!ids.length) return "";
@@ -182,7 +256,6 @@ export function InstructionBoard({
   const unmanagedRef = useRef<BoardItem[]>([]);
   const loadedEditorRef = useRef<Editor | null>(null);
   const frameRef = useRef(0);
-  const assetStepRef = useRef(0);
   const dirtyCheckRef = useRef(0);
   const savedSceneRef = useRef("");
   const savedTitleRef = useRef("");
@@ -514,9 +587,7 @@ export function InstructionBoard({
       }
     }
     const viewport = editor.getViewportPageBounds();
-    const step = assetStepRef.current++ % 6;
-    const x = viewport.center.x - width / 2 + step * 32;
-    const y = viewport.center.y - height / 2 + step * 28;
+    const { x, y } = nextAssetPosition(editor, width, height);
     const shapeId = createShapeId();
     editor.createShape({
       id: shapeId,
@@ -536,6 +607,19 @@ export function InstructionBoard({
       },
     });
     editor.select(shapeId);
+    // If the row now runs past the visible area, pull back so the new asset is
+    // visible without the user having to hunt for it.
+    const visible =
+      x >= viewport.minX + 8 &&
+      y >= viewport.minY + 8 &&
+      x + width <= viewport.maxX - 8 &&
+      y + height <= viewport.maxY - 8;
+    if (!visible) {
+      editor.zoomToBounds(unionOf(assetEntries(editor)), {
+        inset: 100,
+        animation: { duration: 220 },
+      });
+    }
   }
 
   async function refreshDigest() {
@@ -1152,6 +1236,14 @@ function BoardToolbar({ editor }: { editor: Editor }) {
   const tool = useValue("board tool", () => editor.getCurrentToolId(), [editor]);
   const canUndo = useValue("board undo", () => editor.getCanUndo(), [editor]);
   const canRedo = useValue("board redo", () => editor.getCanRedo(), [editor]);
+  const assetCount = useValue(
+    "board assets",
+    () =>
+      editor
+        .getCurrentPageShapes()
+        .filter((shape) => shape.type === ASSET_SHAPE).length,
+    [editor],
+  );
 
   const tools: {
     id: string;
@@ -1203,6 +1295,15 @@ function BoardToolbar({ editor }: { editor: Editor }) {
         onClick={() => editor.redo()}
       >
         <Redo2 size={16} />
+      </button>
+      <button
+        type="button"
+        className="board-tool"
+        title={t("Tidy assets into a row", "把素材排成一行")}
+        disabled={assetCount < 2}
+        onClick={() => tidyAssets(editor)}
+      >
+        <AlignHorizontalSpaceAround size={16} />
       </button>
       <span className="board-tool-divider" />
       <button
