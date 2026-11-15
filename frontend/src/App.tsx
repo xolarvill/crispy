@@ -636,11 +636,6 @@ export default function App() {
                   {current && (
                     <div className="resource-summary">
                       <span>
-                        <small>{t("Current stage", "当前阶段")}</small>
-                        {stageLabel(current.current_stage, locale) ||
-                          t("Not started", "待执行")}
-                      </span>
-                      <span>
                         <small>{t("Creative mode", "创作模式")}</small>
                         {modeLabel(current.pipeline_mode, locale)}
                       </span>

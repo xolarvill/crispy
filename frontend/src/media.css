@@ -412,7 +412,7 @@
 }
 .task-resource-header > .resource-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   flex: 1;
   min-width: 340px;
@@ -698,21 +698,7 @@
 }
 .run-status-pill.tone-running .run-status-spark,
 .run-status-pill.tone-review .run-status-spark {
-  animation: run-status-pulse 1.7s ease-out infinite;
-}
-.run-status-pill.tone-running::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 32%,
-    #ffffffb0 50%,
-    transparent 68%
-  );
-  transform: translateX(-130%);
-  animation: run-status-sheen 2.8s ease-in-out infinite;
-  pointer-events: none;
+  animation: run-status-pulse 3.4s ease-in-out infinite;
 }
 .run-status-pill.tone-review {
   color: #8c5c05;
@@ -934,28 +920,15 @@
   color: var(--primary-hover);
 }
 @keyframes run-status-pulse {
-  0% {
-    box-shadow: 0 0 0 0 currentColor;
-  }
-  70% {
-    box-shadow: 0 0 0 6px transparent;
-  }
+  0%,
   100% {
     box-shadow: 0 0 0 0 transparent;
   }
-}
-@keyframes run-status-sheen {
-  0%,
-  48% {
-    transform: translateX(-130%);
-  }
-  78%,
-  100% {
-    transform: translateX(130%);
+  45% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 22%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .run-status-pill::after,
   .run-status-pill .run-status-spark {
     animation: none;
   }
