@@ -35,6 +35,10 @@ export type BoardMeta = {
   linkKind?: "annotation" | "data";
   linkPort?: string;
   linkDataType?: string | null;
+  /** "human" or "agent:<agent_name>"; absent means the operator wrote it. */
+  createdBy?: string;
+  /** Agent intent for notes/regions: question, finding, defect, keep, … */
+  intent?: string;
 };
 
 export function metaOf(shape: TLShape): BoardMeta {
@@ -116,8 +120,14 @@ export class BoardAssetShapeUtil extends BaseBoxShapeUtil<BoardAssetShape> {
 
   component(shape: BoardAssetShape) {
     const { w, h, uri, mark, caption, mediaKind } = shape.props;
+    const meta = metaOf(shape);
+    const agent = meta.createdBy?.startsWith("agent:");
     return (
-      <HTMLContainer className="board-asset-shape" style={{ width: w, height: h }}>
+      <HTMLContainer
+        className={`board-asset-shape${agent ? " is-agent" : ""}`}
+        style={{ width: w, height: h }}
+        title={agent ? meta.createdBy : undefined}
+      >
         <div className="board-asset-frame">
           {mediaKind === "video" ? (
             <video
@@ -138,6 +148,7 @@ export class BoardAssetShapeUtil extends BaseBoxShapeUtil<BoardAssetShape> {
           )}
         </div>
         <span className="board-asset-mark">{circledMark(mark)}</span>
+        {agent ? <span className="board-agent-badge">A</span> : null}
         {caption ? <span className="board-asset-caption">{caption}</span> : null}
       </HTMLContainer>
     );
@@ -178,10 +189,15 @@ export class BoardRegionShapeUtil extends BaseBoxShapeUtil<BoardRegionShape> {
 
   component(shape: BoardRegionShape) {
     const empty = !shape.props.note.trim();
+    const meta = metaOf(shape);
+    const agent = meta.createdBy?.startsWith("agent:");
     return (
       <HTMLContainer
-        className={`board-region-shape${empty ? " is-empty" : ""}`}
+        className={`board-region-shape${empty ? " is-empty" : ""}${
+          agent ? " is-agent" : ""
+        }${meta.intent ? ` is-${meta.intent}` : ""}`}
         style={{ width: shape.props.w, height: shape.props.h }}
+        title={agent ? meta.createdBy : undefined}
       >
         <span className="board-region-label">
           {empty
@@ -190,6 +206,7 @@ export class BoardRegionShapeUtil extends BaseBoxShapeUtil<BoardRegionShape> {
               : "Add a note"
             : shape.props.note}
         </span>
+        {agent ? <span className="board-agent-badge">A</span> : null}
       </HTMLContainer>
     );
   }

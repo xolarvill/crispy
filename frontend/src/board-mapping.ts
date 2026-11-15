@@ -134,8 +134,28 @@ export function newNodeId(prefix: string) {
 
 type RichText = Parameters<typeof renderPlaintextFromRichText>[1];
 
-function withMeta(boardId: string, kind: BoardMeta["boardKind"]): Partial<BoardMeta> {
-  return { boardId, boardKind: kind };
+function withMeta(
+  boardId: string,
+  kind: BoardMeta["boardKind"],
+  createdBy?: string,
+  intent?: string,
+): Partial<BoardMeta> {
+  return {
+    boardId,
+    boardKind: kind,
+    ...(createdBy ? { createdBy } : {}),
+    ...(intent ? { intent } : {}),
+  };
+}
+
+/** Native tldraw shapes carry provenance in colour; agents get their own hue. */
+function noteColor(createdBy?: string, intent?: string) {
+  if (!createdBy?.startsWith("agent:")) return "yellow";
+  return intent === "question" ? "light-red" : "light-violet";
+}
+
+function textColor(createdBy?: string) {
+  return createdBy?.startsWith("agent:") ? "violet" : "black";
 }
 
 /** Create every shape for a scene. Returns board node id → shape id. */
@@ -152,7 +172,7 @@ export function loadScene(editor: Editor, scene: BoardScene) {
             type: ASSET_SHAPE,
             x: item.x,
             y: item.y,
-            meta: withMeta(item.id, "asset"),
+            meta: withMeta(item.id, "asset", item.created_by),
             props: {
               w: item.w,
               h: item.h,
@@ -184,7 +204,7 @@ export function loadScene(editor: Editor, scene: BoardScene) {
             parentId: assetShapeId,
             x: item.x * width,
             y: item.y * height,
-            meta: withMeta(item.id, "region"),
+            meta: withMeta(item.id, "region", item.created_by, item.intent),
             props: {
               w: Math.max(8, item.w * width),
               h: Math.max(8, item.h * height),
@@ -200,8 +220,11 @@ export function loadScene(editor: Editor, scene: BoardScene) {
             type: "note",
             x: item.x,
             y: item.y,
-            meta: withMeta(item.id, "note"),
-            props: { richText: toRichText(item.text) },
+            meta: withMeta(item.id, "note", item.created_by, item.intent),
+            props: {
+              richText: toRichText(item.text),
+              color: noteColor(item.created_by, item.intent) as never,
+            },
           });
           shapeByNode.set(item.id, shapeId);
         } else if (item.type === "text") {
@@ -211,9 +234,10 @@ export function loadScene(editor: Editor, scene: BoardScene) {
             type: "text",
             x: item.x,
             y: item.y,
-            meta: withMeta(item.id, "text"),
+            meta: withMeta(item.id, "text", item.created_by),
             props: {
               richText: toRichText(item.text),
+              color: textColor(item.created_by) as never,
               autoSize: true,
               w: 360,
               size: fontToSize(item.fontSize) as "s" | "m" | "l" | "xl",
@@ -229,7 +253,7 @@ export function loadScene(editor: Editor, scene: BoardScene) {
             type: STAGE_SHAPE,
             x: item.x,
             y: item.y,
-            meta: withMeta(item.id, "stage"),
+            meta: withMeta(item.id, "stage", item.created_by),
             props: {
               w: item.w,
               h: item.h,
@@ -273,7 +297,7 @@ function createSketchShape(editor: Editor, item: BoardSketchItem): TLShapeId {
     type: "draw",
     x: originX,
     y: originY,
-    meta: withMeta(item.id, "sketch"),
+    meta: withMeta(item.id, "sketch", item.created_by),
     props: {
       color: colorName(item.color) as never,
       fill: "none",
@@ -312,6 +336,7 @@ function createLinkArrow(
       linkKind: link.kind,
       linkPort: link.port ?? "",
       linkDataType: link.dataType ?? null,
+      ...(link.created_by ? { createdBy: link.created_by } : {}),
     } satisfies BoardMeta,
     props: {
       start: { x: fromBounds.maxX, y: fromBounds.center.y },
@@ -415,6 +440,7 @@ export function readScene(
         mark: props.mark,
         role: props.role,
         caption: props.caption,
+        created_by: metaOf(shape).createdBy,
       });
     }
   }
@@ -438,6 +464,8 @@ export function readScene(
         w: bounds?.width ?? 240,
         h: bounds?.height ?? 120,
         text,
+        created_by: metaOf(shape).createdBy,
+        intent: metaOf(shape).intent,
       } satisfies BoardNoteItem);
     } else if (shape.type === "text") {
       const text = renderPlaintextFromRichText(
@@ -455,6 +483,7 @@ export function readScene(
         y: shape.y,
         text,
         fontSize: SIZE_TO_FONT[size] ?? 18,
+        created_by: metaOf(shape).createdBy,
       } satisfies BoardTextItem);
     } else if (shape.type === "draw") {
       const id = idFor(shape, "s");
@@ -482,6 +511,7 @@ export function readScene(
         points: sampled,
         color: colorHex(props.color),
         width: SIZE_TO_WIDTH[props.size] ?? 2,
+        created_by: metaOf(shape).createdBy,
       } satisfies BoardSketchItem);
     } else if (shape.type === REGION_SHAPE) {
       const props = shape.props as {
@@ -520,6 +550,8 @@ export function readScene(
         h: clamp01(props.h / height, 0.01),
         assetId: parentBoardId,
         note,
+        created_by: metaOf(shape).createdBy,
+        intent: metaOf(shape).intent,
       } satisfies BoardRegionItem);
     } else if (shape.type === STAGE_SHAPE) {
       const props = shape.props as { w: number; h: number; stage: string };
@@ -534,6 +566,7 @@ export function readScene(
         h: props.h,
         stage: props.stage,
         params: {},
+        created_by: metaOf(shape).createdBy,
       });
     }
     void kind;
@@ -576,6 +609,7 @@ export function readScene(
       label,
       port: meta.linkKind === "data" ? meta.linkPort ?? "in" : undefined,
       dataType: meta.linkKind === "data" ? meta.linkDataType ?? undefined : undefined,
+      created_by: meta.createdBy,
     });
   }
 

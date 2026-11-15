@@ -15,6 +15,8 @@ type BoardNodeBase = {
   parent?: string | null;
   x: number;
   y: number;
+  /** "human" or "agent:<name>"; omitted means the operator wrote it. */
+  created_by?: string;
 };
 
 export type BoardAssetItem = BoardNodeBase & {
@@ -35,6 +37,7 @@ export type BoardRegionItem = BoardNodeBase & {
   w: number;
   h: number;
   note: string;
+  intent?: string;
 };
 
 export type BoardNoteItem = BoardNodeBase & {
@@ -42,6 +45,7 @@ export type BoardNoteItem = BoardNodeBase & {
   text: string;
   w: number;
   h: number;
+  intent?: string;
 };
 
 export type BoardTextItem = BoardNodeBase & {
@@ -89,11 +93,13 @@ export type BoardLink = {
   label: string;
   port?: string;
   dataType?: string | null;
+  created_by?: string;
 };
 
 export type BoardScene = {
   version: 1;
   goal: string;
+  goal_created_by?: string;
   items: BoardItem[];
   links: BoardLink[];
   viewport: { x: number; y: number; zoom: number };

@@ -398,6 +398,20 @@
   background: #e3f2ea;
   color: #1c6b46;
 }
+.board-trace-row.is-tool .board-trace-icon {
+  background: #f1ecff;
+  color: #5b3ee8;
+}
+.board-trace-thumb {
+  display: block;
+  width: 76px;
+  height: 54px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #00000018;
+  background: #fff;
+  object-fit: cover;
+}
 .board-trace-body {
   min-width: 0;
 }
@@ -920,6 +934,63 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.board-asset-shape.is-agent {
+  box-shadow:
+    0 0 0 2px #7c5cff,
+    0 4px 16px #4c1d9526;
+}
+.board-agent-badge {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #7c5cff;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.board-region-shape.is-agent {
+  border-color: #7c5cff;
+  background: #7c5cff14;
+}
+.board-region-shape.is-agent .board-region-label {
+  background: #5b3ee8;
+  padding-left: 25px;
+}
+.board-region-shape.is-agent .board-agent-badge {
+  position: absolute;
+  left: 2px;
+  top: -22px;
+  right: auto;
+  width: 18px;
+  padding: 0;
+  min-width: 18px;
+  height: 18px;
+  font-size: 9.5px;
+  background: #fff;
+  color: #5b3ee8;
+}
+.board-region-shape.is-defect {
+  border-color: #c2410c;
+  background: #c2410c14;
+}
+.board-region-shape.is-defect .board-region-label {
+  background: #c2410c;
+}
+.board-region-shape.is-keep {
+  border-color: #15803d;
+  background: #15803d12;
+}
+.board-region-shape.is-keep .board-region-label {
+  background: #15803d;
 }
 .board-region-shape {
   position: relative;

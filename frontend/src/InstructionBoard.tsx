@@ -45,6 +45,7 @@ import {
   Type as TypeIcon,
   Undo2,
   Video,
+  Wrench,
   X,
   ZoomIn,
   ZoomOut,
@@ -296,6 +297,7 @@ export function InstructionBoard({
   const dirtyCheckRef = useRef(0);
   const savedSceneRef = useRef("");
   const savedTitleRef = useRef("");
+  const lastRemoteRevisionRef = useRef<number | null>(null);
 
   useEffect(() => {
     titleRef.current = title;
@@ -319,10 +321,54 @@ export function InstructionBoard({
       expectedRevisionRef.current = payload ? payload.revision : null;
       unmanagedRef.current =
         payload?.scene.items.filter((item) => item.type === "frame") ?? [];
+      lastRemoteRevisionRef.current = null;
       dirtyRef.current = false;
       setDirty(false);
     },
     [target.title],
+  );
+
+  /** Apply a revision another writer saved while this board is open. */
+  const applyRemoteBoard = useCallback(
+    (payload: BoardPayload) => {
+      if (!editor) return;
+      internalRef.current = true;
+      try {
+        editor.run(() => replaceScene(editor, payload.scene), {
+          history: "ignore",
+        });
+      } finally {
+        internalRef.current = false;
+      }
+      // Undo must not step back into a scene the agent has already replaced.
+      editor.clearHistory();
+      editor.selectNone();
+      loadedEditorRef.current = editor;
+      loadedBoardKeyRef.current = payload.id;
+      applyBoard(payload);
+      savedSceneRef.current = JSON.stringify(
+        readScene(editor, {
+          goal: payload.scene.goal,
+          unmanaged: payload.scene.items.filter((item) => item.type === "frame"),
+        }).scene,
+      );
+      savedTitleRef.current = (payload.title || "").trim();
+      setTabs((current) =>
+        current.map((tab) =>
+          tab.id === payload.id
+            ? { ...tab, revision: payload.revision, updated_at: payload.updated_at ?? tab.updated_at }
+            : tab,
+        ),
+      );
+      setVersion((value) => value + 1);
+      setNotice(
+        t(
+          `Agent updated this board · r${payload.revision}`,
+          `Agent 已更新白板 · 第 ${payload.revision} 版`,
+        ),
+      );
+    },
+    [applyBoard, editor, t],
   );
 
   const confirmDiscard = useCallback(() => {
@@ -387,6 +433,52 @@ export function InstructionBoard({
     return () => window.clearInterval(timer);
   }, [loadTrace]);
 
+  // Poll the open document so a stage agent's canvas writes appear live.
+  // Never replace unsaved local work: show a conflict notice instead.
+  useEffect(() => {
+    if (!editor || loading || error || !activeBoardId) return;
+    let cancelled = false;
+    const checkRemote = async () => {
+      if (busyRef.current || editor.getEditingShapeId()) return;
+      try {
+        const payload = await fetchBoardDoc(target.runId, activeBoardId);
+        if (cancelled || !payload) return;
+        const current = expectedRevisionRef.current ?? 0;
+        if (payload.revision <= current) return;
+        // Unsaved local work wins: keep the canvas and warn instead of
+        // replacing it, but still learn that a newer revision exists.
+        if (dirtyRef.current || busyRef.current || editor.getEditingShapeId()) {
+          if (lastRemoteRevisionRef.current !== payload.revision) {
+            lastRemoteRevisionRef.current = payload.revision;
+            setNotice(
+              t(
+                `Agent updated this board · r${payload.revision}. Save your edits first to avoid a conflict.`,
+                `Agent 已更新白板 · 第 ${payload.revision} 版。先保存本地修改，避免冲突。`,
+              ),
+            );
+          }
+          return;
+        }
+        applyRemoteBoard(payload);
+      } catch {
+        // A poll failure is not worth interrupting the operator.
+      }
+    };
+    const timer = window.setInterval(() => void checkRemote(), 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [
+    activeBoardId,
+    applyRemoteBoard,
+    editor,
+    error,
+    loading,
+    t,
+    target.runId,
+  ]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -441,12 +533,18 @@ export function InstructionBoard({
     loadedBoardKeyRef.current = boardKey;
 
     const scene = board?.scene ?? emptyScene();
-    if (switching) {
-      replaceScene(editor, scene);
-      // Undo must not reach back into another tab's document.
-      editor.clearHistory();
-    } else {
-      loadScene(editor, scene);
+    // Programmatic load events must not read as operator edits.
+    internalRef.current = true;
+    try {
+      if (switching) {
+        replaceScene(editor, scene);
+        // Undo must not reach back into another tab's document.
+        editor.clearHistory();
+      } else {
+        loadScene(editor, scene);
+      }
+    } finally {
+      internalRef.current = false;
     }
     editor.selectNone();
     // A fresh document is, by definition, in sync with what the server has.
@@ -460,7 +558,13 @@ export function InstructionBoard({
     // The store listeners below are registered after the load, so tick the
     // sidebar once to reflect the shapes that were just created.
     setVersion((value) => value + 1);
+  }, [editor, loading, error, board]);
 
+  // Track operator edits for the dirty flag. This must live in its own effect:
+  // a remote agent save refreshes `board`, which re-runs the loader above but
+  // must not tear these listeners down with it.
+  useEffect(() => {
+    if (!editor || loading || error) return;
     const offDocument = editor.store.listen(
       (entry) => {
         if (entry.source !== "user") return;
@@ -487,7 +591,7 @@ export function InstructionBoard({
       offDocument();
       offSession();
     };
-  }, [editor, loading, error, board, scheduleRender, scheduleDirtyCheck]);
+  }, [editor, loading, error, scheduleRender, scheduleDirtyCheck]);
 
   useEffect(() => {
     const onNotice = (event: Event) => {
@@ -1024,9 +1128,22 @@ export function InstructionBoard({
           : event.op === "save"
             ? "save_board"
             : event.op;
+    const isTool = event.op.startsWith("tool:");
+    const summary = typeof data.summary === "string" ? data.summary.trim() : "";
+    const toolNames = Array.isArray(data.tools) ? data.tools : [];
+    if (summary) {
+      detail.unshift(summary.slice(0, 160));
+    } else if (event.op === "agent_edit" && toolNames.length) {
+      detail.unshift(amount(toolNames.length, "tool call", "tool calls"));
+    }
+    const images = Array.isArray(data.images) ? data.images : [];
+    const image =
+      isTool && typeof images[0] === "string" ? (images[0] as string) : null;
     return {
       event,
       op,
+      isTool,
+      image,
       detail: [...delta, ...detail].join(" · "),
       time: event.created_at
         ? new Date(event.created_at).toLocaleTimeString(undefined, {
@@ -1467,13 +1584,17 @@ export function InstructionBoard({
               {openTrace ? (
                 traceView.length ? (
                 <ol className="board-trace-list">
-                  {traceView.map(({ event, op, detail, time, actor }) => (
+                  {traceView.map(({ event, op, detail, time, actor, image, isTool }) => (
                     <li
                       key={event.id}
-                      className={`board-trace-row is-${event.actor_kind}`}
+                      className={`board-trace-row is-${event.actor_kind}${
+                        isTool ? " is-tool" : ""
+                      }`}
                     >
                       <span className="board-trace-icon" aria-hidden="true">
-                        {event.op === "read" ? (
+                        {isTool ? (
+                          <Wrench size={12} />
+                        ) : event.op === "read" ? (
                           <BookOpen size={12} />
                         ) : event.op === "create" ? (
                           <Sparkles size={12} />
@@ -1501,6 +1622,14 @@ export function InstructionBoard({
                           <span className="board-trace-rev">r{event.revision}</span>
                           {detail ? ` · ${detail}` : ""}
                         </small>
+                        {image ? (
+                          <img
+                            className="board-trace-thumb"
+                            src={mediaUrl(image)}
+                            alt={op}
+                            loading="lazy"
+                          />
+                        ) : null}
                       </span>
                     </li>
                   ))}
