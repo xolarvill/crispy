@@ -5,6 +5,7 @@ import { I18nProvider } from "./i18n";
 import "./styles.css";
 import "./surface.css";
 import "./media.css";
+import "./board.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <I18nProvider>

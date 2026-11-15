@@ -244,13 +244,15 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(
+    const error = new Error(
       typeof body?.detail === "string"
         ? body.detail
         : currentLocale() === "zh"
           ? `请求失败 (${res.status})`
           : `Request failed (${res.status})`,
-    );
+    ) as Error & { status?: number };
+    error.status = res.status;
+    throw error;
   }
   if (res.status === 204) return undefined as T;
   return res.json();

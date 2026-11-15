@@ -32,6 +32,7 @@ import { api, demoRuns, modeLabel, modes, plan, stageLabel, type Run } from "./d
 import { LocaleSwitch, formatDateTime, useI18n } from "./i18n";
 import CreatePage from "./CreatePage";
 import { BrandCreativeStudio, type StudioTarget } from "./BrandCreativeStudio";
+import { BoardPanel } from "./BoardPanel";
 import OperationsPage from "./OperationsPage";
 import ShopsPage from "./ShopsPage";
 import { AnimatedSelection, PolishedAsset, TabPanel } from "./components/polish";
@@ -677,6 +678,7 @@ export default function App() {
                     {[
                       ["overview", t("Overview", "概览")],
                       ["stages", t("Stages", "执行阶段")],
+                      ["board", t("Board", "白板")],
                       ["info", t("Task info", "任务信息")],
                     ].map(([id, label]) => (
                       <button
@@ -763,6 +765,13 @@ export default function App() {
                       <section className="surface stage-page">
                         <StageList run={current} demo={demo} />
                       </section>
+                    ) : detailTab === "board" ? (
+                      <BoardPanel
+                        key={current.id}
+                        run={current}
+                        demo={demo}
+                        notify={setToast}
+                      />
                     ) : (
                       <section className="surface info-page">
                         <dl>
