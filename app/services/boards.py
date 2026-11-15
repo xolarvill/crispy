@@ -109,12 +109,18 @@ def _inside_run_assets_dir(run_id: str, uri: str) -> bool:
     requested = Path(uri).expanduser()
     if not requested.is_absolute():
         requested = (Path.cwd() / requested).resolve()
-    run_dir = (get_settings().assets_dir / run_id).resolve()
-    try:
-        requested.relative_to(run_dir)
-    except ValueError:
-        return False
-    return True
+    # Generated media lives under ``assets/<run>/``; composed board sheets live
+    # under ``assets/boards/<run>/``. Both are run-owned and safe to pin.
+    for base in (
+        get_settings().assets_dir / run_id,
+        get_settings().assets_dir / "boards" / run_id,
+    ):
+        try:
+            requested.relative_to(base.resolve())
+        except ValueError:
+            continue
+        return True
+    return False
 
 
 def validate_scene_assets(db: Session, run: PipelineRun, scene: BoardScene) -> None:
@@ -304,8 +310,13 @@ def save_board(
     db.flush()
 
     # Snapshots live under the board id so two tabs at the same revision do
-    # not overwrite each other's screenshots.
-    board.snapshot_uri = _write_snapshot(run.id, board.id, revision, snapshot) if snapshot else ""
+    # not overwrite each other's screenshots. A save without a snapshot (an
+    # agent tool write, or a restore) keeps the last rendered one rather than
+    # erasing the board's only preview.
+    if snapshot:
+        board.snapshot_uri = _write_snapshot(run.id, board.id, revision, snapshot)
+    elif existing is None:
+        board.snapshot_uri = ""
     db.add(board)
 
     _record_event(
@@ -422,17 +433,29 @@ def _compile_digest(scene: BoardScene, revision: int) -> str:
     stage_nodes = [item for item in scene.items if isinstance(item, BoardStageNode)]
     free = [item for item in scene.items if isinstance(item, (BoardNoteNode, BoardTextNode))]
 
+    # The digest is the operator's instruction. Agent-authored notes, regions
+    # and links are findings, not direction — re-reading them as instructions
+    # would let one stage quietly steer the next. They stay available through
+    # the board tools and the compiled ``agent_annotations`` instead.
+    human_regions = [item for item in regions if _actor_kind(item.created_by) == "human"]
+    human_free = [item for item in free if _actor_kind(item.created_by) == "human"]
+    human_links = [link for link in scene.links if _actor_kind(link.created_by) == "human"]
+    goal_is_human = _actor_kind(scene.goal_created_by) == "human"
+
     head = [f"[INSTRUCTION BOARD r{revision}]"]
-    goal_line = f"Goal: {scene.goal}" if scene.goal else ""
+    goal_line = f"Goal: {scene.goal}" if scene.goal and goal_is_human else ""
 
     asset_lines = ["Assets:"] if assets else []
     for item in sorted(assets, key=lambda node: node.mark):
         caption = f", {item.caption}" if item.caption else ""
-        asset_lines.append(f"  {circled(item.mark)} {item.assetId} — {item.role}{caption}")
+        agent_tag = " (agent output)" if _actor_kind(item.created_by) == "agent" else ""
+        asset_lines.append(
+            f"  {circled(item.mark)} {item.assetId} — {item.role}{caption}{agent_tag}"
+        )
 
-    link_lines = ["Relations:"] if scene.links else []
+    link_lines = ["Relations:"] if human_links else []
     by_id = {item.id: item for item in scene.items}
-    for link in scene.links:
+    for link in human_links:
         source = by_id[link.from_]
         target = by_id[link.to]
         label = f" : {link.label}" if link.label else ""
@@ -440,9 +463,9 @@ def _compile_digest(scene: BoardScene, revision: int) -> str:
             f"  {_node_label(source)} -[{link.kind}]-> {_node_label(target)}{label}"
         )
 
-    region_lines = ["Regions:"] if regions else []
+    region_lines = ["Regions:"] if human_regions else []
     marks = {item.id: item.mark for item in assets}
-    for region in regions:
+    for region in human_regions:
         mark = circled(marks.get(region.assetId, 0))
         region_lines.append(
             f"  {mark} box({region.x:.2f},{region.y:.2f},{region.w:.2f},{region.h:.2f}) — {region.note}"
@@ -453,8 +476,8 @@ def _compile_digest(scene: BoardScene, revision: int) -> str:
         params = f" params={item.params}" if item.params else ""
         stage_lines.append(f"  {item.stage}{params}")
 
-    free_lines = ["Free notes:"] if free else []
-    free_lines.extend(f"  - {item.text}" for item in free)
+    free_lines = ["Free notes:"] if human_free else []
+    free_lines.extend(f"  - {item.text}" for item in human_free)
 
     blocks = [line for line in [*head, goal_line, *asset_lines, *link_lines, *region_lines, *stage_lines] if line]
     digest = "\n".join(blocks)
@@ -495,6 +518,7 @@ def compile_scene(scene: BoardScene, revision: int, snapshot_uri: str = "") -> d
                     "role": item.role,
                     "caption": item.caption,
                     "box": [item.x, item.y, item.w, item.h],
+                    "created_by": item.created_by,
                 }
             )
         elif isinstance(item, BoardRegionNode):
@@ -505,6 +529,8 @@ def compile_scene(scene: BoardScene, revision: int, snapshot_uri: str = "") -> d
                     "asset_mark": marks.get(item.assetId),
                     "box": [item.x, item.y, item.w, item.h],
                     "note": item.note,
+                    "intent": item.intent,
+                    "created_by": item.created_by,
                 }
             )
     for link in scene.links:
@@ -517,6 +543,7 @@ def compile_scene(scene: BoardScene, revision: int, snapshot_uri: str = "") -> d
                 "label": link.label,
                 "port": link.port,
                 "data_type": link.dataType,
+                "created_by": link.created_by,
             }
         )
     stage_nodes = [
@@ -524,6 +551,46 @@ def compile_scene(scene: BoardScene, revision: int, snapshot_uri: str = "") -> d
         for item in scene.items
         if isinstance(item, BoardStageNode)
     ]
+    agent_annotations: list[dict] = []
+    for item in scene.items:
+        if _actor_kind(item.created_by) == "human":
+            continue
+        if isinstance(item, BoardRegionNode):
+            agent_annotations.append(
+                {
+                    "node_id": item.id,
+                    "type": "region",
+                    "asset_id": item.assetId,
+                    "asset_mark": marks.get(item.assetId),
+                    "box": [item.x, item.y, item.w, item.h],
+                    "note": item.note,
+                    "intent": item.intent,
+                    "created_by": item.created_by,
+                }
+            )
+        elif isinstance(item, (BoardNoteNode, BoardTextNode)):
+            agent_annotations.append(
+                {
+                    "node_id": item.id,
+                    "type": item.type,
+                    "text": item.text,
+                    "intent": getattr(item, "intent", ""),
+                    "created_by": item.created_by,
+                }
+            )
+    for link in scene.links:
+        if _actor_kind(link.created_by) == "agent":
+            agent_annotations.append(
+                {
+                    "node_id": link.id,
+                    "type": "link",
+                    "from": link.from_,
+                    "to": link.to,
+                    "label": link.label,
+                    "kind": link.kind,
+                    "created_by": link.created_by,
+                }
+            )
     return {
         "revision": revision,
         "digest": _compile_digest(scene, revision),
@@ -531,6 +598,7 @@ def compile_scene(scene: BoardScene, revision: int, snapshot_uri: str = "") -> d
         "regions": regions,
         "links": links,
         "stage_nodes": stage_nodes,
+        "agent_annotations": agent_annotations,
         "snapshot_uri": snapshot_uri,
     }
 

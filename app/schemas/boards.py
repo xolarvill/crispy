@@ -17,9 +17,21 @@ BoardRole = Literal["source", "reference", "style", "output"]
 BoardNodeType = Literal["frame", "asset", "region", "note", "text", "sketch", "stage"]
 BoardLinkKind = Literal["annotation", "data"]
 BoardDataType = Literal["image", "text", "video"]
+# Agent-authored notes and regions say why they exist; the UI styles them by it.
+BoardIntent = Literal[
+    "",
+    "direction",
+    "explanation",
+    "question",
+    "finding",
+    "change",
+    "defect",
+    "keep",
+    "focus",
+]
 
-MAX_ITEMS = 40
-MAX_LINKS = 30
+MAX_ITEMS = 120
+MAX_LINKS = 60
 MAX_NOTE_CHARS = 2000
 MAX_REGION_NOTE_CHARS = 500
 MAX_SKETCH_POINTS = 2000
@@ -38,6 +50,8 @@ class _Node(BaseModel):
     parent: str | None = Field(default=None, max_length=64)
     x: float = 0
     y: float = 0
+    # "human" for operator work, "agent:<agent_name>" for canvas-tool writes.
+    created_by: str = Field(default="human", max_length=128)
 
 
 class BoardFrameNode(_Node):
@@ -70,6 +84,7 @@ class BoardRegionNode(_Node):
     w: float = Field(gt=0, le=1)
     h: float = Field(gt=0, le=1)
     note: str = Field(min_length=1, max_length=MAX_REGION_NOTE_CHARS)
+    intent: BoardIntent = Field(default="")
 
     @model_validator(mode="after")
     def _inside_asset(self) -> "BoardRegionNode":
@@ -83,6 +98,7 @@ class BoardNoteNode(_Node):
     text: str = Field(min_length=1, max_length=MAX_NOTE_CHARS)
     w: float = Field(default=240, gt=0)
     h: float = Field(default=120, gt=0)
+    intent: BoardIntent = Field(default="")
 
 
 class BoardTextNode(_Node):
@@ -138,6 +154,7 @@ class BoardLink(BaseModel):
     label: str = Field(default="", max_length=300)
     port: str = Field(default="", max_length=64)
     dataType: BoardDataType | None = None
+    created_by: str = Field(default="human", max_length=128)
 
     @model_validator(mode="after")
     def _data_edges_are_wired(self) -> "BoardLink":
@@ -155,6 +172,8 @@ class BoardScene(BaseModel):
 
     version: Literal[1] = 1
     goal: str = Field(default="", max_length=MAX_NOTE_CHARS)
+    # The goal is operator direction; agents may only fill an empty goal.
+    goal_created_by: str = Field(default="human", max_length=128)
     items: list[BoardNode] = Field(default_factory=list, max_length=MAX_ITEMS)
     links: list[BoardLink] = Field(default_factory=list, max_length=MAX_LINKS)
     viewport: BoardViewport = Field(default_factory=BoardViewport)
