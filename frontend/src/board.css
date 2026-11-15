@@ -772,6 +772,13 @@
 .board-save-state.is-dirty {
   color: var(--warning);
 }
+/* Match the floating tool palette: same 30px control height, so both pills
+   end up 40px tall and sit on one visual line. */
+.board-save-cluster .button {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+}
 .board-tool {
   width: 30px;
   height: 30px;
