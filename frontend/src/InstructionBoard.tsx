@@ -1166,13 +1166,16 @@ export function InstructionBoard({
               }}
             />
             {editor ? <BoardToolbar editor={editor} /> : null}
+            {editor ? (
+              <QuickConnect editor={editor} onNotice={setNotice} />
+            ) : null}
             {!shapes.length && !loading ? (
               <div className="board-canvas-hint" aria-hidden="true">
                 <p>{t("Start by adding a run asset", "先添加一个任务素材")}</p>
                 <span>
                   {t(
-                    "Then use the region tool to mark an area and write what to change, draw arrows between assets, or drop a note.",
-                    "然后用框选工具圈出要改的地方并写说明，或用箭头连接两个素材，也可以放便签。",
+                    "Then use the region tool to mark an area and write what to change. Hover an asset and drag a corner handle onto another one to link them, or drop a note.",
+                    "然后用框选工具圈出要改的地方并写说明。把鼠标移到素材上，从边缘的小方块拖到另一个素材即可连线，也可以放便签。",
                   )}
                 </span>
               </div>
@@ -1420,6 +1423,291 @@ function RegionInspector({
         {t("Remove this box", "删除这个框")}
       </Button>
     </section>
+  );
+}
+
+const QUICK_HANDLES = [
+  { key: "top", fx: 0.5, fy: 0 },
+  { key: "right", fx: 1, fy: 0.5 },
+  { key: "bottom", fx: 0.5, fy: 1 },
+  { key: "left", fx: 0, fy: 0.5 },
+] as const;
+
+type QuickDrag = {
+  sourceId: TLShapeId;
+  start: { x: number; y: number };
+  startPage: { x: number; y: number };
+};
+
+/** Drawio-style link points: hover an asset and drag a handle onto another one
+ * to create a bound arrow in a single undoable step. */
+function QuickConnect({
+  editor,
+  onNotice,
+}: {
+  editor: Editor;
+  onNotice?: (message: string) => void;
+}) {
+  const { t } = useI18n();
+  const [hoveredAssetId, setHoveredAssetId] = useState<TLShapeId | null>(null);
+  const [drag, setDrag] = useState<{
+    sourceId: TLShapeId;
+    start: { x: number; y: number };
+    point: { x: number; y: number };
+    targetId: TLShapeId | null;
+    targetBounds: { x: number; y: number; w: number; h: number } | null;
+  } | null>(null);
+  const dragRef = useRef<QuickDrag | null>(null);
+  const selectedIds = useValue(
+    "board quick selection",
+    () => editor.getSelectedShapeIds(),
+    [editor],
+  );
+  const toolId = useValue(
+    "board quick tool",
+    () => editor.getCurrentToolId(),
+    [editor],
+  );
+  const editing = useValue(
+    "board quick editing",
+    () => editor.getEditingShapeId(),
+    [editor],
+  );
+  // Reading the camera re-renders the handles as the canvas pans or zooms.
+  useValue("board quick camera", () => editor.getCamera(), [editor]);
+  const dragging = drag !== null;
+
+  useEffect(() => {
+    const container = editor.getContainer();
+    const onMove = (event: PointerEvent) => {
+      if (dragRef.current) return;
+      const rect = container.getBoundingClientRect();
+      const page = editor.screenToPage({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      });
+      const shape = editor.getShapeAtPoint(page, {
+        hitInside: true,
+        margin: 14,
+        filter: (candidate) => candidate.type === ASSET_SHAPE,
+      });
+      setHoveredAssetId((current) =>
+        current === (shape?.id ?? null) ? current : (shape?.id ?? null),
+      );
+    };
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, [editor]);
+
+  useEffect(() => {
+    if (!dragRef.current) return;
+    const container = editor.getContainer();
+    const toScreen = (event: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    };
+    const findTarget = (event: PointerEvent) => {
+      const current = dragRef.current;
+      if (!current) return undefined;
+      const page = editor.screenToPage(toScreen(event));
+      return editor.getShapeAtPoint(page, {
+        hitInside: true,
+        margin: 14,
+        filter: (candidate) =>
+          candidate.type === ASSET_SHAPE && candidate.id !== current.sourceId,
+      });
+    };
+    const onMove = (event: PointerEvent) => {
+      const point = toScreen(event);
+      const target = findTarget(event);
+      const bounds = target ? editor.getShapePageBounds(target) : undefined;
+      const targetBounds = bounds
+        ? (() => {
+            const topLeft = editor.pageToScreen({ x: bounds.minX, y: bounds.minY });
+            const bottomRight = editor.pageToScreen({
+              x: bounds.maxX,
+              y: bounds.maxY,
+            });
+            return {
+              x: topLeft.x - 4,
+              y: topLeft.y - 4,
+              w: bottomRight.x - topLeft.x + 8,
+              h: bottomRight.y - topLeft.y + 8,
+            };
+          })()
+        : null;
+      setDrag((current) =>
+        current
+          ? { ...current, point, targetId: target?.id ?? null, targetBounds }
+          : current,
+      );
+    };
+    const finish = () => {
+      dragRef.current = null;
+      setDrag(null);
+    };
+    const onUp = (event: PointerEvent) => {
+      const current = dragRef.current;
+      if (!current) return;
+      const target = findTarget(event);
+      if (target) {
+        const drop = editor.screenToPage(toScreen(event));
+        const arrowId = createShapeId();
+        editor.run(() => {
+          editor.createShape({
+            id: arrowId,
+            type: "arrow",
+            x: current.startPage.x,
+            y: current.startPage.y,
+            props: {
+              start: { x: 0, y: 0 },
+              end: {
+                x: drop.x - current.startPage.x,
+                y: drop.y - current.startPage.y,
+              },
+            },
+          });
+          editor.createBindings([
+            {
+              type: "arrow",
+              fromId: arrowId,
+              toId: current.sourceId,
+              props: {
+                terminal: "start",
+                normalizedAnchor: { x: 0.5, y: 0.5 },
+                isExact: false,
+                isPrecise: true,
+              },
+            },
+            {
+              type: "arrow",
+              fromId: arrowId,
+              toId: target.id,
+              props: {
+                terminal: "end",
+                normalizedAnchor: { x: 0.5, y: 0.5 },
+                isExact: false,
+                isPrecise: true,
+              },
+            },
+          ]);
+          editor.select(arrowId);
+        });
+        onNotice?.(
+          t(
+            "Linked. Double-click the arrow to describe the relation.",
+            "已连接。双击箭头可以补充说明。",
+          ),
+        );
+      }
+      finish();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") finish();
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [dragging, editor, onNotice, t]);
+
+  const sourceId =
+    drag?.sourceId ??
+    (toolId === "select" && !editing
+      ? hoveredAssetId ?? (selectedIds.length === 1 ? selectedIds[0] : null)
+      : null);
+  const source = sourceId ? editor.getShape(sourceId) : undefined;
+  if (!source || source.type !== ASSET_SHAPE) return null;
+  const bounds = editor.getShapePageBounds(source);
+  if (!bounds) return null;
+  const handles = QUICK_HANDLES.map((handle) => ({
+    key: handle.key,
+    ...editor.pageToScreen({
+      x: bounds.x + bounds.w * handle.fx,
+      y: bounds.y + bounds.h * handle.fy,
+    }),
+  }));
+
+  function begin(
+    event: React.PointerEvent<HTMLButtonElement>,
+    shapeId: TLShapeId,
+    start: { x: number; y: number },
+  ) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dragRef.current = {
+      sourceId: shapeId,
+      start,
+      startPage: editor.screenToPage(start),
+    };
+    setDrag({
+      sourceId: shapeId,
+      start,
+      point: start,
+      targetId: null,
+      targetBounds: null,
+    });
+  }
+
+  return (
+    <>
+      <div className="board-quick-handles">
+        {handles.map((handle) => (
+          <button
+            key={handle.key}
+            type="button"
+            className="board-quick-handle"
+            style={{ left: handle.x, top: handle.y }}
+            title={t("Drag to connect this asset", "拖动连接到另一个素材")}
+            aria-label={t("Connect from this asset", "从这个素材开始连线")}
+            onPointerDown={(event) => begin(event, source.id, handle)}
+          />
+        ))}
+      </div>
+      {drag ? (
+        <svg className="board-quick-link" aria-hidden="true">
+          <defs>
+            <marker
+              id="board-quick-arrowhead"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 0 L 10 5 L 0 10 z" style={{ fill: "var(--primary)" }} />
+            </marker>
+          </defs>
+          <line
+            x1={drag.start.x}
+            y1={drag.start.y}
+            x2={drag.point.x}
+            y2={drag.point.y}
+            style={{ stroke: "var(--primary)" }}
+            strokeWidth={1.8}
+            strokeDasharray="5 4"
+            markerEnd="url(#board-quick-arrowhead)"
+          />
+        </svg>
+      ) : null}
+      {drag?.targetBounds ? (
+        <div
+          className="board-quick-target"
+          style={{
+            left: drag.targetBounds.x,
+            top: drag.targetBounds.y,
+            width: drag.targetBounds.w,
+            height: drag.targetBounds.h,
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 
