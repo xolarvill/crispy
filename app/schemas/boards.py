@@ -201,3 +201,19 @@ class BoardCompileRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     scene: BoardScene
+
+
+class BoardDocCreateRequest(BaseModel):
+    """Open a tab: copy ``source_board_id`` or start blank."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_board_id: str | None = Field(default=None, max_length=36)
+    title: str = Field(default="", max_length=160)
+    actor: str = Field(default="human", max_length=128)
+
+
+class BoardDocRenameRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(default="", max_length=160)

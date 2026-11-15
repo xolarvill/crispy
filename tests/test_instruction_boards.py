@@ -269,6 +269,115 @@ def test_board_events_log_saves_and_agent_reads(client, monkeypatch):
     assert client.get("/runs/missing/board/events").status_code == 404
 
 
+def test_board_tabs_duplicate_and_versions(client):
+    run_id = create_run(client, "studio-shop", "BOARD-8")
+    seed_assets(run_id, ["artifacts/hero.png", "artifacts/case.png"])
+    first = save(client, run_id, snapshot=png()).json()
+    first_id = first["id"]
+
+    tabs = client.get(f"/runs/{run_id}/board-docs").json()
+    assert len(tabs) == 1
+    assert tabs[0]["id"] == first_id
+    assert tabs[0]["is_current"] is True
+
+    duplicate = client.post(
+        f"/runs/{run_id}/board-docs",
+        json={"source_board_id": first_id, "title": "融合主图 副本"},
+    )
+    assert duplicate.status_code == 200, duplicate.text
+    copy = duplicate.json()
+    assert copy["id"] != first_id
+    assert copy["revision"] == 1
+    assert copy["title"] == "融合主图 副本"
+    assert copy["scene"] == first["scene"]
+
+    tabs = client.get(f"/runs/{run_id}/board-docs").json()
+    assert [tab["id"] for tab in tabs] == [first_id, copy["id"]]
+    assert tabs[0]["is_current"] is False
+    assert tabs[1]["is_current"] is True
+
+    changed = scene(goal="保留 A 的鞋面，B 的背景换成暖色")
+    saved = client.put(
+        f"/runs/{run_id}/board-docs/{copy['id']}",
+        json={
+            "scene": changed,
+            "title": "融合主图 副本",
+            "actor": "human",
+            "expected_revision": 1,
+            "snapshot": png((12, 88, 120)),
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["revision"] == 2
+    assert Path(saved.json()["snapshot_uri"]).exists()
+    assert saved.json()["snapshot_uri"] != first["snapshot_uri"]
+
+    revisions = client.get(f"/runs/{run_id}/board-docs/{copy['id']}/revisions").json()
+    assert [row["revision"] for row in revisions] == [2, 1]
+    revision_one = client.get(
+        f"/runs/{run_id}/board-docs/{copy['id']}/revisions/1"
+    ).json()
+    assert revision_one["scene"]["goal"] == first["scene"]["goal"]
+
+    renamed = client.patch(
+        f"/runs/{run_id}/board-docs/{copy['id']}", json={"title": "方案 B"}
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["title"] == "方案 B"
+
+    blank = client.post(f"/runs/{run_id}/board-docs", json={})
+    assert blank.status_code == 200
+    assert blank.json()["revision"] == 0
+    # A blank tab is not saved, so agents keep reading the previous board.
+    assert client.get(f"/runs/{run_id}/board").json()["id"] == copy["id"]
+    tabs = client.get(f"/runs/{run_id}/board-docs").json()
+    assert [tab["is_current"] for tab in tabs] == [False, True, False]
+
+    started = client.put(
+        f"/runs/{run_id}/board-docs/{blank.json()['id']}",
+        json={
+            "scene": changed,
+            "title": "空白开始",
+            "actor": "human",
+            "expected_revision": 0,
+            "snapshot": "",
+        },
+    )
+    assert started.status_code == 200, started.text
+    assert started.json()["revision"] == 1
+    assert client.get(f"/runs/{run_id}/board").json()["id"] == blank.json()["id"]
+
+    stale = client.put(
+        f"/runs/{run_id}/board-docs/{first_id}",
+        json={
+            "scene": changed,
+            "title": "过期",
+            "actor": "human",
+            "expected_revision": 0,
+            "snapshot": "",
+        },
+    )
+    assert stale.status_code == 409
+
+    assert client.delete(f"/runs/{run_id}/board-docs/{first_id}").status_code == 200
+    assert client.get(f"/runs/{run_id}/board-docs/{first_id}").status_code == 404
+    remaining = client.get(f"/runs/{run_id}/board-docs").json()
+    assert [tab["id"] for tab in remaining] == [copy["id"], blank.json()["id"]]
+
+
+def test_board_doc_rejects_foreign_run(client):
+    run_id = create_run(client, "studio-shop", "BOARD-9")
+    other_run = create_run(client, "studio-shop", "BOARD-10")
+    seed_assets(run_id, ["artifacts/hero.png", "artifacts/case.png"])
+    board_id = save(client, run_id).json()["id"]
+
+    assert client.get(f"/runs/{other_run}/board-docs/{board_id}").status_code == 404
+    assert client.delete(f"/runs/{other_run}/board-docs/{board_id}").status_code == 404
+    assert client.post(
+        f"/runs/{other_run}/board-docs", json={"source_board_id": board_id}
+    ).status_code == 404
+
+
 def test_board_scopes_to_run_and_workspace(client):
     run_id = create_run(client, "studio-shop", "BOARD-4")
     other_run = create_run(client, "other-shop", "BOARD-5")
