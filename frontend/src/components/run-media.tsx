@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   LayoutTemplate,
@@ -398,7 +399,7 @@ export function RunMediaGallery({
   );
 }
 
-export function TaskMediaPanel({
+export function TaskAssetWidget({
   run,
   demo,
   refreshKey = 0,
@@ -415,13 +416,15 @@ export function TaskMediaPanel({
     [loading, setLoading] = useState(!demo),
     [error, setError] = useState(""),
     [retry, setRetry] = useState(0),
-    [complete, setComplete] = useState(demo);
+    [complete, setComplete] = useState(demo),
+    [expanded, setExpanded] = useState(false);
   const strip = useRef<HTMLDivElement>(null),
     index = Math.max(
       0,
       items.findIndex((item) => item.uri === uri),
     ),
-    active = items[index];
+    active = items[index],
+    generated = items.filter((item) => item.source === "generated").length;
   useEffect(() => {
     if (demo) return;
     const controller = new AbortController();
@@ -444,6 +447,7 @@ export function TaskMediaPanel({
     return () => controller.abort();
   }, [demo, run.id, refreshKey, retry]);
   useEffect(() => {
+    if (!expanded) return;
     const container = strip.current,
       selected = container?.children[index] as HTMLElement | undefined;
     if (!container || !selected) return;
@@ -452,53 +456,79 @@ export function TaskMediaPanel({
     if (left < container.scrollLeft) container.scrollLeft = left - 10;
     else if (right > container.scrollLeft + container.clientWidth)
       container.scrollLeft = right - container.clientWidth + 10;
-  }, [index]);
-  function select(offset: number) {
-    if (items.length)
-      setUri(items[(index + offset + items.length) % items.length].uri);
+  }, [index, expanded]);
+  function enlarge(media: RunMedia, trigger: HTMLElement) {
+    open(
+      { ...run, media_previews: items, media_count: items.length },
+      media,
+      trigger,
+      { complete, onSelect: (item) => setUri(item.uri) },
+    );
   }
-  function enlarge(trigger: HTMLElement) {
-    if (active)
-      open(
-        { ...run, media_previews: items, media_count: items.length },
-        active,
-        trigger,
-        { complete, onSelect: (item) => setUri(item.uri) },
-      );
-  }
+  const meta = loading
+    ? t("Loading assets", "正在加载素材")
+    : items.length
+      ? t(
+          `${items.length} assets${generated ? ` · ${generated} generated` : ""}`,
+          `${items.length} 个素材${generated ? ` · ${generated} 个生成` : ""}`,
+        )
+      : t("No media assets", "暂无媒体素材");
   return (
     <section
-      className="reference-section task-media-panel"
+      className="task-asset-widget"
+      data-expanded={expanded}
       aria-label={t("Task assets", "任务素材")}
     >
-      <div className="section-toolbar">
-        <p>{t("Task assets", "任务素材")}</p>
-        <div className="detail-media-actions">
-          <span aria-live="polite" className="muted">
-            {items.length ? `${index + 1} / ${items.length}` : "0"}
+      <div className="task-asset-bar">
+        <button
+          type="button"
+          className="task-asset-toggle"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          <span className="task-asset-icon" aria-hidden="true">
+            {loading ? (
+              <LoaderCircle size={14} className="spin" />
+            ) : (
+              <Image size={14} />
+            )}
           </span>
-          <IconButton
-            icon={ChevronLeft}
-            label={t("Previous task asset", "上一份任务素材")}
-            disabled={items.length < 2}
-            onClick={() => select(-1)}
-          />
-          <IconButton
-            icon={ChevronRight}
-            label={t("Next task asset", "下一份任务素材")}
-            disabled={items.length < 2}
-            onClick={() => select(1)}
-          />
-          <IconButton
-            icon={Maximize2}
-            label={t("Enlarge current asset", "放大当前素材")}
-            disabled={!active}
-            onClick={() => {
-              const trigger = document.activeElement;
-              if (trigger instanceof HTMLElement) enlarge(trigger);
-            }}
-          />
-        </div>
+          <span className="task-asset-title">
+            {t("Task assets", "任务素材")}
+          </span>
+          <span className="task-asset-meta" aria-live="polite">
+            {meta}
+          </span>
+          <ChevronDown size={14} className="task-asset-chevron" />
+        </button>
+        {items.length > 0 && (
+          <div
+            className="task-asset-thumbs"
+            role="group"
+            aria-label={t("Task asset thumbnails", "任务素材缩略图")}
+          >
+            {items.slice(0, 6).map((item, i) => (
+              <button
+                type="button"
+                key={`${item.kind}-${item.uri}`}
+                className={`task-asset-thumb${index === i ? " active" : ""}`}
+                aria-label={t(
+                  `Open task asset ${i + 1}`,
+                  `打开任务素材 ${i + 1}`,
+                )}
+                onClick={(event) => {
+                  setUri(item.uri);
+                  enlarge(item, event.currentTarget);
+                }}
+              >
+                <MediaContent media={item} demo={demo} />
+              </button>
+            ))}
+            {items.length > 6 && (
+              <span className="task-asset-more">+{items.length - 6}</span>
+            )}
+          </div>
+        )}
       </div>
       {error && (
         <div className="gallery-error" role="alert">
@@ -508,67 +538,67 @@ export function TaskMediaPanel({
           </Button>
         </div>
       )}
-      {active ? (
-        <button
-          type="button"
-          className="detail-media-canvas"
-          aria-label={t(
-            `Enlarge ${active.kind === "video" ? "video" : "image"} ${index + 1}`,
-            `放大查看${active.kind === "video" ? "视频" : "图片"} ${index + 1}`,
-          )}
-          onClick={(event) => enlarge(event.currentTarget)}
-        >
-          <MediaContent key={active.uri} media={active} demo={demo} showError />
-          <span className="detail-media-expand">
-            <Maximize2 size={17} />
-          </span>
-        </button>
-      ) : (
-        <div className="material-empty">
-          {loading ? (
-            <LoaderCircle className="spin" size={24} />
-          ) : (
-            <Image size={24} />
-          )}
-          <span>
-            {loading
-              ? t("Loading assets", "正在加载素材")
-              : t("No media assets", "暂无媒体素材")}
-          </span>
-        </div>
-      )}
-      {items.length > 1 && (
-        <div
-          className="detail-media-filmstrip"
-          role="group"
-          ref={strip}
-          aria-label={t("Task asset thumbnails", "任务素材缩略图")}
-        >
-          {items.map((item, i) => (
+      {expanded &&
+        (active ? (
+          <div className="task-asset-body">
             <button
               type="button"
-              key={`${item.kind}-${item.uri}`}
-              className={index === i ? "active" : ""}
-              aria-label={t(`Choose task asset ${i + 1}`, `选择任务素材 ${i + 1}`)}
-              aria-pressed={index === i}
-              onClick={() => setUri(item.uri)}
+              className="task-asset-preview"
+              aria-label={t(
+                `Enlarge ${active.kind === "video" ? "video" : "image"} ${index + 1}`,
+                `放大查看${active.kind === "video" ? "视频" : "图片"} ${index + 1}`,
+              )}
+              onClick={(event) => enlarge(active, event.currentTarget)}
             >
-              <MediaContent media={item} demo={demo} />
-              <span>{i + 1}</span>
+              <MediaContent key={active.uri} media={active} demo={demo} showError />
+              <span className="detail-media-expand">
+                <Maximize2 size={17} />
+              </span>
             </button>
-          ))}
-        </div>
-      )}
-      <div className="reference-footer">
-        <Image size={14} />
-        <span>
-          {active
-            ? `${active.source === "generated" ? t("Generated assets", "生成素材") : t("Reference assets", "参考素材")}${active.kind === "video" ? t(" · Video", " · 视频") : ""}${demo ? t(" · Demo", " · 演示") : ""}`
-            : loading
-              ? t("Reading media", "正在读取媒体")
-              : t("No generated or uploaded media", "未生成或上传媒体")}
-        </span>
-      </div>
+            <div
+              className="task-asset-strip"
+              role="group"
+              ref={strip}
+              aria-label={t("Task asset thumbnails", "任务素材缩略图")}
+            >
+              {items.map((item, i) => (
+                <button
+                  type="button"
+                  key={`${item.kind}-${item.uri}`}
+                  className={index === i ? "active" : ""}
+                  aria-label={t(
+                    `Choose task asset ${i + 1}`,
+                    `选择任务素材 ${i + 1}`,
+                  )}
+                  aria-pressed={index === i}
+                  onClick={() => setUri(item.uri)}
+                >
+                  <MediaContent media={item} demo={demo} />
+                  <span>{i + 1}</span>
+                </button>
+              ))}
+            </div>
+            <div className="reference-footer">
+              <Image size={14} />
+              <span>
+                {`${active.source === "generated" ? t("Generated assets", "生成素材") : t("Reference assets", "参考素材")}${active.kind === "video" ? t(" · Video", " · 视频") : ""}${demo ? t(" · Demo", " · 演示") : ""}`}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="material-empty">
+            {loading ? (
+              <LoaderCircle className="spin" size={24} />
+            ) : (
+              <Image size={24} />
+            )}
+            <span>
+              {loading
+                ? t("Loading assets", "正在加载素材")
+                : t("No media assets", "暂无媒体素材")}
+            </span>
+          </div>
+        ))}
     </section>
   );
 }

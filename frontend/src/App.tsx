@@ -28,7 +28,7 @@ import {
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Button } from "./components/ui/button";
-import { api, demoRuns, modeLabel, modes, plan, stageLabel, type Run } from "./data";
+import { api, demoRuns, modeLabel, modes, plan, stageItems, stageLabel, type Run } from "./data";
 import { LocaleSwitch, formatDateTime, useI18n } from "./i18n";
 import CreatePage from "./CreatePage";
 import { BrandCreativeStudio, type StudioTarget } from "./BrandCreativeStudio";
@@ -41,9 +41,10 @@ import { go } from "./navigation";
 import {
   RunMediaGallery,
   RunMediaStrip,
-  TaskMediaPanel,
+  TaskAssetWidget,
   type MediaPreviewOptions,
 } from "./components/run-media";
+import { RunStatusPill } from "./components/run-status";
 import type { RunMedia } from "./data";
 function route() {
   const path = location.hash.slice(1) || "/tasks";
@@ -77,7 +78,7 @@ export default function App() {
     [toast, setToast] = useState(""),
     [busy, setBusy] = useState(false),
     [mobileNav, setMobileNav] = useState(false),
-    [detailTab, setDetailTab] = useState("overview"),
+    [detailTab, setDetailTab] = useState("board"),
     [settingsOpen, setSettingsOpen] = useState(false);
   const operation = [
     "product-research",
@@ -224,7 +225,7 @@ export default function App() {
   }, [demo, isShops, operation]);
   useEffect(() => {
     setDetail(null);
-    setDetailTab("overview");
+    setDetailTab("board");
   }, [selectedId, demo]);
   useEffect(() => {
     if (demo || !selectedId) {
@@ -624,7 +625,13 @@ export default function App() {
                         current?.product_code ||
                         t("Task detail", "任务详情")}
                     </p>
-                    {current && <Status value={current.status} />}
+                    {current && (
+                      <RunStatusPill
+                        run={current}
+                        demo={demo}
+                        onOpenStages={() => setDetailTab("stages")}
+                      />
+                    )}
                   </div>
                   {current && (
                     <div className="resource-summary">
@@ -669,6 +676,17 @@ export default function App() {
                     />
                   </div>
                 </div>
+                {current && (
+                  <TaskAssetWidget
+                    key={`assets-${current.id}`}
+                    run={current}
+                    demo={demo}
+                    refreshKey={revision}
+                    open={(run, media, trigger, options) =>
+                      setPreview({ run, media, trigger, options })
+                    }
+                  />
+                )}
                 <div
                   className="resource-tabs"
                   role="group"
@@ -676,9 +694,8 @@ export default function App() {
                 >
                   <AnimatedSelection active={detailTab}>
                     {[
-                      ["overview", t("Overview", "概览")],
-                      ["stages", t("Stages", "执行阶段")],
                       ["board", t("Board", "白板")],
+                      ["stages", t("Stages", "执行阶段")],
                       ["info", t("Task info", "任务信息")],
                     ].map(([id, label]) => (
                       <button
@@ -695,83 +712,68 @@ export default function App() {
                 </div>
                 {current ? (
                   <TabPanel active={detailTab}>
-                    {detailTab === "overview" ? (
-                      <div className="review-workspace">
-                        <TaskMediaPanel
-                          key={current.id}
-                          run={current}
-                          demo={demo}
-                          refreshKey={revision}
-                          open={(run, media, trigger, options) =>
-                            setPreview({ run, media, trigger, options })
-                          }
-                        />
-                        <section
-                          className="execution-section"
-                          aria-label={t("Execution log", "执行记录")}
-                        >
-                          <div className="section-toolbar">
-                            <p>{t("Stages", "执行阶段")}</p>
-                            <span className="muted">
-                              {t(
-                                `${plan(current).length} stages`,
-                                `${plan(current).length} 阶段`,
-                              )}
-                            </span>
-                          </div>
-                          <StageList run={current} demo={demo} />
-                          <div className="review-action">
-                            <div>
-                              <Status value={current.status} />
-                              <span className="muted">
-                                {stageLabel(current.current_stage, locale)}
-                              </span>
-                            </div>
-                            {current.status === "waiting_review" && !demo ? (
-                              <a
-                                className="button button-primary button-default"
-                                href="http://127.0.0.1:8000/dashboard"
-                              >
-                                {t("Open full review", "打开完整审核")}
-                                <ArrowUpRight size={14} />
-                              </a>
-                            ) : current.status === "waiting_review" ? (
-                              <div className="action-buttons">
-                                <Button
-                                  variant="outline"
-                                  disabled={busy}
-                                  onClick={() => void review("reject")}
-                                >
-                                  <X size={15} />
-                                  {t("Reject", "驳回")}
-                                </Button>
-                                <Button
-                                  disabled={busy}
-                                  onClick={() => void review("advance")}
-                                >
-                                  {busy ? (
-                                    <LoaderCircle size={15} className="spin" />
-                                  ) : (
-                                    <Check size={15} />
-                                  )}
-                                  {t("Approve stage", "通过阶段")}
-                                </Button>
-                              </div>
-                            ) : null}
-                          </div>
-                        </section>
-                      </div>
-                    ) : detailTab === "stages" ? (
-                      <section className="surface stage-page">
-                        <StageList run={current} demo={demo} />
-                      </section>
-                    ) : detailTab === "board" ? (
+                    {detailTab === "board" ? (
                       <BoardPanel
                         key={current.id}
                         run={current}
                         demo={demo}
                         notify={setToast}
                       />
+                    ) : detailTab === "stages" ? (
+                      <section
+                        className="surface stage-page"
+                        aria-label={t("Execution log", "执行记录")}
+                      >
+                        <div className="section-toolbar">
+                          <p>{t("Stages", "执行阶段")}</p>
+                          <span className="muted">
+                            {t(
+                              `${plan(current).length} stages`,
+                              `${plan(current).length} 阶段`,
+                            )}
+                          </span>
+                        </div>
+                        <StageList run={current} demo={demo} />
+                        <div className="review-action">
+                          <div>
+                            <Status value={current.status} />
+                            <span className="muted">
+                              {stageLabel(current.current_stage, locale)}
+                            </span>
+                          </div>
+                          {current.status === "waiting_review" && !demo ? (
+                            <a
+                              className="button button-primary button-default"
+                              href="http://127.0.0.1:8000/dashboard"
+                            >
+                              {t("Open full review", "打开完整审核")}
+                              <ArrowUpRight size={14} />
+                            </a>
+                          ) : current.status === "waiting_review" ? (
+                            <div className="action-buttons">
+                              <Button
+                                variant="outline"
+                                disabled={busy}
+                                onClick={() => void review("reject")}
+                              >
+                                <X size={15} />
+                                {t("Reject", "驳回")}
+                              </Button>
+                              <Button
+                                disabled={busy}
+                                onClick={() => void review("advance")}
+                              >
+                                {busy ? (
+                                  <LoaderCircle size={15} className="spin" />
+                                ) : (
+                                  <Check size={15} />
+                                )}
+                                {t("Approve stage", "通过阶段")}
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </section>
                     ) : (
                       <section className="surface info-page">
                         <dl>
@@ -1097,21 +1099,7 @@ export default function App() {
 }
 function StageList({ run, demo }: { run: Run; demo: boolean }) {
   const { locale, t } = useI18n();
-  const stages = plan(run),
-    active = stages.indexOf(run.current_stage || "");
-  const items = demo
-    ? stages.map((stage_name, i) => ({
-        id: stage_name,
-        stage_name,
-        status:
-          run.status === "completed" || (active >= 0 && i < active)
-            ? "completed"
-            : i === active
-              ? run.status
-              : "not_started",
-        error_message: null,
-      }))
-    : run.stage_tasks || [];
+  const items = stageItems(run, demo);
   return (
     <ol className="stage-list">
       {items.map((stage, i) => (

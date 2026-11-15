@@ -108,6 +108,35 @@ export function statusLabel(key: string | null | undefined, locale: Locale) {
 export function modeLabel(key: string | null | undefined, locale: Locale) {
   return localizedLabel(modes, key, locale);
 }
+export type StageItem = {
+  id: string;
+  stage_name: string;
+  status: string;
+  error_message?: string | null;
+};
+export function stageItems(run: Run, demo: boolean): StageItem[] {
+  const stages = plan(run),
+    order = new Map(stages.map((name, i) => [name, i]));
+  if (!demo) {
+    return [...(run.stage_tasks ?? [])].sort(
+      (a, b) =>
+        (order.get(a.stage_name) ?? stages.length) -
+        (order.get(b.stage_name) ?? stages.length),
+    );
+  }
+  const active = stages.indexOf(run.current_stage || "");
+  return stages.map((stage_name, i) => ({
+    id: stage_name,
+    stage_name,
+    status:
+      run.status === "completed" || (active >= 0 && i < active)
+        ? "completed"
+        : i === active
+          ? run.status
+          : "not_started",
+    error_message: null,
+  }));
+}
 export function plan(run: Run) {
   const stages = ["intake", "planning", "divergence"];
   if (!["video_only", "tiktok_shop_video"].includes(run.pipeline_mode))
