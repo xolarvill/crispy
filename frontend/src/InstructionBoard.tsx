@@ -1118,87 +1118,91 @@ export function InstructionBoard({
               })}
             </div>
             <div className="board-tabbar-actions">
-              <button
-                type="button"
-                className="board-tab-new"
-                aria-label={t("New board tab", "新建白板标签页")}
-                title={t("New board tab", "新建白板标签页")}
-                aria-expanded={tabMenuOpen}
-                onClick={() => setTabMenuOpen((open) => !open)}
-              >
-                <Plus size={14} />
-              </button>
-              <button
-                type="button"
-                className={`board-tab-action${historyOpen ? " is-active" : ""}`}
-                disabled={!activeBoardId}
-                aria-label={t("Version history", "版本历史")}
-                title={t("Version history", "版本历史")}
-                aria-expanded={historyOpen}
-                onClick={() => void toggleHistory()}
-              >
-                <History size={15} />
-              </button>
-            </div>
-            {tabMenuOpen ? (
-              <div className="board-tab-menu" role="menu">
+              <div className="board-tab-anchor">
                 <button
                   type="button"
-                  role="menuitem"
+                  className="board-tab-new"
+                  aria-label={t("New board tab", "新建白板标签页")}
+                  title={t("New board tab", "新建白板标签页")}
+                  aria-expanded={tabMenuOpen}
+                  onClick={() => setTabMenuOpen((open) => !open)}
+                >
+                  <Plus size={14} />
+                </button>
+                {tabMenuOpen ? (
+                  <div className="board-tab-menu" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={!activeBoardId}
+                      onClick={() => void addTab("duplicate")}
+                    >
+                      <Copy size={13} />
+                      <span>{t("Duplicate this board", "复制这块白板")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => void addTab("blank")}
+                    >
+                      <FilePlus2 size={13} />
+                      <span>{t("New blank board", "新建空白白板")}</span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <div className="board-tab-anchor">
+                <button
+                  type="button"
+                  className={`board-tab-action${historyOpen ? " is-active" : ""}`}
                   disabled={!activeBoardId}
-                  onClick={() => void addTab("duplicate")}
+                  aria-label={t("Version history", "版本历史")}
+                  title={t("Version history", "版本历史")}
+                  aria-expanded={historyOpen}
+                  onClick={() => void toggleHistory()}
                 >
-                  <Copy size={13} />
-                  <span>{t("Duplicate this board", "复制这块白板")}</span>
+                  <History size={15} />
                 </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => void addTab("blank")}
-                >
-                  <FilePlus2 size={13} />
-                  <span>{t("New blank board", "新建空白白板")}</span>
-                </button>
+                {historyOpen ? (
+                  <div className="board-history-menu">
+                    <div className="board-history-head">
+                      <span>{t("Versions", "版本")}</span>
+                      {board ? <small>r{board.revision}</small> : null}
+                    </div>
+                    {historyBusy ? (
+                      <p className="board-history-empty">
+                        <LoaderCircle size={13} className="spin" />
+                        {t("Loading versions", "正在加载版本")}
+                      </p>
+                    ) : history.length ? (
+                      <ol className="board-history-list">
+                        {history.map((item) => (
+                          <li key={item.revision}>
+                            <button
+                              type="button"
+                              onClick={() => void restoreRevision(item)}
+                            >
+                              <span className="board-history-rev">
+                                r{item.revision}
+                              </span>
+                              <small>
+                                {item.created_at
+                                  ? new Date(item.created_at).toLocaleString()
+                                  : ""}
+                              </small>
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className="board-history-empty">
+                        {t("No saved versions yet.", "还没有已保存的版本。")}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-            {historyOpen ? (
-              <div className="board-history-menu">
-                <div className="board-history-head">
-                  <span>{t("Versions", "版本")}</span>
-                  {board ? <small>r{board.revision}</small> : null}
-                </div>
-                {historyBusy ? (
-                  <p className="board-history-empty">
-                    <LoaderCircle size={13} className="spin" />
-                    {t("Loading versions", "正在加载版本")}
-                  </p>
-                ) : history.length ? (
-                  <ol className="board-history-list">
-                    {history.map((item) => (
-                      <li key={item.revision}>
-                        <button
-                          type="button"
-                          onClick={() => void restoreRevision(item)}
-                        >
-                          <span className="board-history-rev">
-                            r{item.revision}
-                          </span>
-                          <small>
-                            {item.created_at
-                              ? new Date(item.created_at).toLocaleString()
-                              : ""}
-                          </small>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="board-history-empty">
-                    {t("No saved versions yet.", "还没有已保存的版本。")}
-                  </p>
-                )}
-              </div>
-            ) : null}
+            </div>
           </div>
           <button
             type="button"

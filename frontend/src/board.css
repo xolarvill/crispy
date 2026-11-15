@@ -139,6 +139,17 @@
   gap: 4px;
   flex-shrink: 0;
 }
+/* Menus hang off their own trigger, not the full-width tab bar. Both triggers
+   sit at the left of the header, so menus open from their left edge. */
+.board-tab-anchor {
+  position: relative;
+  display: flex;
+}
+.board-tab-anchor > .board-tab-menu,
+.board-tab-anchor > .board-history-menu {
+  left: 0;
+  right: auto;
+}
 .board-tab-new,
 .board-tab-action {
   display: grid;
@@ -526,6 +537,8 @@
   place-items: center;
   font-size: 11px;
   flex-shrink: 0;
+  /* Same optical lift as the canvas badge. */
+  padding-bottom: 3px;
 }
 .board-outline-icon {
   width: 20px;
@@ -882,6 +895,9 @@
   font-weight: 600;
   box-shadow: 0 2px 8px #0003;
   pointer-events: none;
+  /* The circled-digit glyph has more ink below the baseline than above the
+     cap height, so its line box needs a small optical lift to look centred. */
+  padding-bottom: 4px;
 }
 .board-asset-caption {
   position: absolute;
