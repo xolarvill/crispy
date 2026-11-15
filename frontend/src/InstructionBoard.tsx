@@ -1575,6 +1575,10 @@ export function InstructionBoard({
                   (window as unknown as { __boardEditor?: Editor }).__boardEditor =
                     mounted;
                 }
+                // Figma-like alignment: dragging an asset snaps its edges and
+                // centres to nearby assets and shows guides. Holding the accel
+                // key (Ctrl on Windows) still moves freely.
+                mounted.user.updateUserPreferences({ isSnapMode: true });
                 setEditor(mounted);
               }}
             />

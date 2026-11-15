@@ -199,6 +199,12 @@ export class BoardRegionShapeUtil extends BaseBoxShapeUtil<BoardRegionShape> {
     path.rect(0, 0, shape.props.w, shape.props.h);
     return path;
   }
+
+  // Regions are sub-areas of an asset; aligning to them would fight the
+  // asset-level guides, so they never become snap targets themselves.
+  override canSnap() {
+    return false;
+  }
 }
 
 export const stageShapeProps = {
