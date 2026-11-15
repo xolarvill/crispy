@@ -207,6 +207,106 @@ export type BoardEvent = {
   created_at: string | null;
 };
 
+/** One board tab. ``is_current`` marks the board agents will read. */
+export type BoardTab = {
+  id: string;
+  run_id: string;
+  title: string;
+  revision: number;
+  stage_scope: string | null;
+  is_current: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type BoardDocRevisionItem = {
+  revision: number;
+  snapshot_uri: string;
+  created_at: string | null;
+};
+
+export type BoardDocRevision = BoardDocRevisionItem & {
+  scene: BoardScene;
+};
+
+export function fetchBoardTabs(runId: string): Promise<BoardTab[]> {
+  return api<BoardTab[]>(`/runs/${encodeURIComponent(runId)}/board-docs`);
+}
+
+export function fetchBoardDoc(runId: string, boardId: string): Promise<BoardPayload> {
+  return api<BoardPayload>(
+    `/runs/${encodeURIComponent(runId)}/board-docs/${encodeURIComponent(boardId)}`,
+  );
+}
+
+export function saveBoardDoc(
+  runId: string,
+  boardId: string,
+  payload: BoardSavePayload,
+): Promise<BoardPayload> {
+  return api<BoardPayload>(
+    `/runs/${encodeURIComponent(runId)}/board-docs/${encodeURIComponent(boardId)}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+  );
+}
+
+export function createBoardDoc(
+  runId: string,
+  options: { source_board_id?: string; title?: string } = {},
+): Promise<BoardPayload> {
+  return api<BoardPayload>(`/runs/${encodeURIComponent(runId)}/board-docs`, {
+    method: "POST",
+    body: JSON.stringify(options),
+  });
+}
+
+export function renameBoardDoc(
+  runId: string,
+  boardId: string,
+  title: string,
+): Promise<BoardPayload> {
+  return api<BoardPayload>(
+    `/runs/${encodeURIComponent(runId)}/board-docs/${encodeURIComponent(boardId)}`,
+    { method: "PATCH", body: JSON.stringify({ title }) },
+  );
+}
+
+export function deleteBoardDoc(runId: string, boardId: string): Promise<{ ok: boolean }> {
+  return api<{ ok: boolean }>(
+    `/runs/${encodeURIComponent(runId)}/board-docs/${encodeURIComponent(boardId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function fetchBoardDocEvents(
+  runId: string,
+  boardId: string,
+  limit = 40,
+): Promise<BoardEvent[]> {
+  return api<BoardEvent[]>(
+    `/runs/${encodeURIComponent(runId)}/board-docs/${encodeURIComponent(boardId)}/events?limit=${limit}`,
+  );
+}
+
+export function fetchBoardDocRevisions(
+  runId: string,
+  boardId: string,
+): Promise<BoardDocRevisionItem[]> {
+  return api<BoardDocRevisionItem[]>(
+    `/runs/${encodeURIComponent(runId)}/board-docs/${encodeURIComponent(boardId)}/revisions`,
+  );
+}
+
+export function fetchBoardDocRevision(
+  runId: string,
+  boardId: string,
+  revision: number,
+): Promise<BoardDocRevision> {
+  return api<BoardDocRevision>(
+    `/runs/${encodeURIComponent(runId)}/board-docs/${encodeURIComponent(boardId)}/revisions/${revision}`,
+  );
+}
+
 export async function fetchBoardEvents(
   runId: string,
   limit = 40,

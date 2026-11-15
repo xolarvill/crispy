@@ -27,7 +27,9 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  FilePlus2,
   Hand,
+  History,
   LoaderCircle,
   Maximize2,
   MousePointer2,
@@ -53,18 +55,27 @@ import type { RunMedia } from "./data";
 import {
   circledMark,
   compileBoard,
-  fetchBoard,
+  createBoardDoc,
+  deleteBoardDoc,
   fetchBoardAssets,
-  fetchBoardEvents,
+  fetchBoardDoc,
+  fetchBoardDocEvents,
+  fetchBoardDocRevision,
+  fetchBoardDocRevisions,
+  fetchBoardTabs,
   isVideoUri,
   mediaUrl,
   newBoardId,
+  renameBoardDoc,
   saveBoard,
+  saveBoardDoc,
+  type BoardDocRevisionItem,
   type BoardEvent,
   type BoardItem,
   type BoardPayload,
   type BoardRole,
   type BoardScene,
+  type BoardTab,
 } from "./boards";
 import {
   ASSET_SHAPE,
@@ -99,6 +110,13 @@ function emptyScene(): BoardScene {
     links: [],
     viewport: { x: 0, y: 0, zoom: 1 },
   };
+}
+
+/** Swap the canvas to another document; loadScene only ever adds shapes. */
+function replaceScene(editor: Editor, scene: BoardScene) {
+  const existing = [...editor.getCurrentPageShapeIds()];
+  if (existing.length) editor.deleteShapes(existing);
+  loadScene(editor, scene);
 }
 
 function shortHash(value: string) {
@@ -256,6 +274,14 @@ export function InstructionBoard({
   const [selected, setSelected] = useState<TLShape[]>([]);
   const [version, setVersion] = useState(0);
   const [focusedRegion, setFocusedRegion] = useState<TLShapeId | null>(null);
+  const [tabs, setTabs] = useState<BoardTab[]>([]);
+  const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
+  const [tabMenuOpen, setTabMenuOpen] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState<BoardDocRevisionItem[]>([]);
+  const [historyBusy, setHistoryBusy] = useState(false);
 
   const titleRef = useRef(title);
   const goalRef = useRef(goal);
@@ -265,6 +291,7 @@ export function InstructionBoard({
   const expectedRevisionRef = useRef<number | null>(null);
   const unmanagedRef = useRef<BoardItem[]>([]);
   const loadedEditorRef = useRef<Editor | null>(null);
+  const loadedBoardKeyRef = useRef<string | null>(null);
   const frameRef = useRef(0);
   const dirtyCheckRef = useRef(0);
   const savedSceneRef = useRef("");
@@ -279,6 +306,34 @@ export function InstructionBoard({
   useEffect(() => {
     busyRef.current = busy;
   }, [busy]);
+
+  /** Swap the active document into the workspace state. */
+  const applyBoard = useCallback(
+    (payload: BoardPayload | null) => {
+      setBoard(payload);
+      setTitle(payload ? payload.title || (target.title ?? "") : (target.title ?? ""));
+      setGoal(payload?.scene.goal || "");
+      setDigest(payload?.compiled?.digest || "");
+      setHistoryOpen(false);
+      setFocusedRegion(null);
+      expectedRevisionRef.current = payload ? payload.revision : null;
+      unmanagedRef.current =
+        payload?.scene.items.filter((item) => item.type === "frame") ?? [];
+      dirtyRef.current = false;
+      setDirty(false);
+    },
+    [target.title],
+  );
+
+  const confirmDiscard = useCallback(() => {
+    if (!dirtyRef.current) return true;
+    return window.confirm(
+      t(
+        "Discard the unsaved changes on this board?",
+        "放弃白板上未保存的修改？",
+      ),
+    );
+  }, [t]);
 
   const scheduleRender = useCallback(() => {
     if (frameRef.current) return;
@@ -312,13 +367,18 @@ export function InstructionBoard({
   }, [editor]);
 
   const loadTrace = useCallback(async () => {
+    if (!activeBoardId) {
+      setTrace([]);
+      setTraceError("");
+      return;
+    }
     try {
-      setTrace(await fetchBoardEvents(target.runId));
+      setTrace(await fetchBoardDocEvents(target.runId, activeBoardId));
       setTraceError("");
     } catch (eventError) {
       setTraceError((eventError as Error).message);
     }
-  }, [target.runId]);
+  }, [activeBoardId, target.runId]);
 
   // Poll while the board is open so a stage that reads it shows up live.
   useEffect(() => {
@@ -332,23 +392,29 @@ export function InstructionBoard({
     setLoading(true);
     setError("");
     Promise.all([
-      fetchBoard(target.runId),
+      fetchBoardTabs(target.runId),
       fetchBoardAssets(target.runId).catch(() => [] as RunMedia[]),
     ])
-      .then(([payload, media]) => {
+      .then(async ([tabList, media]) => {
         if (cancelled) return;
-        setBoard(payload);
+        setTabs(tabList);
         setAssets(media);
-        if (payload) {
-          setTitle(payload.title || target.title || "");
-          setGoal(payload.scene.goal || "");
-          setDigest(payload.compiled?.digest || "");
-          expectedRevisionRef.current = payload.revision;
-          unmanagedRef.current = payload.scene.items.filter(
-            (item) => item.type === "frame",
-          );
-        } else {
-          setTitle(target.title || "");
+        const chosen =
+          tabList.find((tab) => tab.is_current) ??
+          [...tabList].reverse().find((tab) => tab.revision > 0) ??
+          tabList[tabList.length - 1] ??
+          null;
+        if (!chosen) {
+          applyBoard(null);
+          return;
+        }
+        try {
+          const payload = await fetchBoardDoc(target.runId, chosen.id);
+          if (cancelled) return;
+          setActiveBoardId(payload.id);
+          applyBoard(payload);
+        } catch (docError) {
+          if (!cancelled) setError((docError as Error).message);
         }
       })
       .catch((loadError: Error) => {
@@ -360,27 +426,37 @@ export function InstructionBoard({
     return () => {
       cancelled = true;
     };
-  }, [target.runId, target.title]);
+  }, [applyBoard, target.runId]);
 
-  // Load the document once per mounted editor. StrictMode remounts the
-  // component but reuses this guard per editor instance.
+  // Load the active document into the mounted editor. Switching tabs swaps the
+  // scene and resets history so undo cannot reach into another board.
   useEffect(() => {
     if (!editor || loading || error) return;
-    if (loadedEditorRef.current === editor) return;
+    const boardKey = board?.id ?? "new";
+    if (loadedEditorRef.current === editor && loadedBoardKeyRef.current === boardKey) {
+      return;
+    }
+    const switching = loadedBoardKeyRef.current !== null;
     loadedEditorRef.current = editor;
+    loadedBoardKeyRef.current = boardKey;
 
     const scene = board?.scene ?? emptyScene();
-    loadScene(editor, scene);
-    editor.selectNone();
-    if (board) {
-      savedSceneRef.current = JSON.stringify(
-        readScene(editor, {
-          goal: goalRef.current,
-          unmanaged: unmanagedRef.current,
-        }).scene,
-      );
-      savedTitleRef.current = titleRef.current.trim();
+    if (switching) {
+      replaceScene(editor, scene);
+      // Undo must not reach back into another tab's document.
+      editor.clearHistory();
+    } else {
+      loadScene(editor, scene);
     }
+    editor.selectNone();
+    // A fresh document is, by definition, in sync with what the server has.
+    savedSceneRef.current = JSON.stringify(
+      readScene(editor, {
+        goal: goalRef.current,
+        unmanaged: unmanagedRef.current,
+      }).scene,
+    );
+    savedTitleRef.current = titleRef.current.trim();
     // The store listeners below are registered after the load, so tick the
     // sidebar once to reflect the shapes that were just created.
     setVersion((value) => value + 1);
@@ -490,19 +566,33 @@ export function InstructionBoard({
         );
       }
       const snapshot = await exportSnapshot(editor);
-      const saved = await saveBoard(target.runId, {
+      const payload = {
         scene,
         title: titleRef.current.trim(),
         actor: "human",
         expected_revision: expectedRevisionRef.current,
         snapshot,
-      });
+      };
+      const saved = activeBoardId
+        ? await saveBoardDoc(target.runId, activeBoardId, payload)
+        : await saveBoard(target.runId, payload);
       expectedRevisionRef.current = saved.revision;
+      // The canvas already holds this document, so remember it as loaded and
+      // keep the selection the operator had before saving.
+      loadedEditorRef.current = editor;
+      loadedBoardKeyRef.current = saved.id;
+      setActiveBoardId(saved.id);
       savedSceneRef.current = JSON.stringify(scene);
-      savedTitleRef.current = titleRef.current.trim();
+      const savedTitle = saved.title || titleRef.current.trim();
+      titleRef.current = savedTitle;
+      savedTitleRef.current = savedTitle;
+      setTitle(savedTitle);
       setBoard(saved);
       setDigest(saved.compiled?.digest || "");
-      void loadTrace();
+      void fetchBoardDocEvents(target.runId, saved.id)
+        .then(setTrace)
+        .catch((traceError: Error) => setTraceError(traceError.message));
+      void fetchBoardTabs(target.runId).then(setTabs).catch(() => undefined);
       dirtyRef.current = false;
       setDirty(false);
 
@@ -549,7 +639,7 @@ export function InstructionBoard({
     } finally {
       setBusy(false);
     }
-  }, [editor, loadTrace, notify, t, target.runId]);
+  }, [activeBoardId, editor, notify, t, target.runId]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -576,6 +666,212 @@ export function InstructionBoard({
     }
     close();
   }, [close, t]);
+
+  const openTab = useCallback(
+    async (tab: BoardTab) => {
+      if (tab.id === activeBoardId || busyRef.current) return;
+      if (!confirmDiscard()) return;
+      setBusy(true);
+      setTabMenuOpen(false);
+      try {
+        const payload = await fetchBoardDoc(target.runId, tab.id);
+        setActiveBoardId(payload.id);
+        applyBoard(payload);
+      } catch (switchError) {
+        setNotice((switchError as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [activeBoardId, applyBoard, confirmDiscard, target.runId],
+  );
+
+  const addTab = useCallback(
+    async (kind: "duplicate" | "blank") => {
+      if (busyRef.current || !confirmDiscard()) return;
+      setBusy(true);
+      setTabMenuOpen(false);
+      try {
+        const current = tabs.find((tab) => tab.id === activeBoardId);
+        const base = current?.title || board?.title || "";
+        const title =
+          kind === "duplicate" && base
+            ? t(`${base} copy`, `${base} 副本`)
+            : "";
+        const payload = await createBoardDoc(target.runId, {
+          ...(kind === "duplicate" && activeBoardId
+            ? { source_board_id: activeBoardId, title }
+            : {}),
+        });
+        setTabs(await fetchBoardTabs(target.runId));
+        setActiveBoardId(payload.id);
+        applyBoard(payload);
+        setNotice(
+          kind === "duplicate" && activeBoardId
+            ? t("Copied this board into a new tab.", "已复制到新的白板标签页。")
+            : t("Opened a new board tab.", "已新建白板标签页。"),
+        );
+      } catch (tabError) {
+        setNotice((tabError as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [activeBoardId, applyBoard, board?.title, confirmDiscard, t, tabs, target.runId],
+  );
+
+  const removeTab = useCallback(
+    async (tab: BoardTab) => {
+      if (busyRef.current) return;
+      const question =
+        tab.revision > 0
+          ? t(
+              "Delete this board tab and all of its saved versions?",
+              "删除这个白板标签页和它的所有已保存版本？",
+            )
+          : t("Delete this empty board tab?", "删除这个空白白板标签页？");
+      if (!window.confirm(question)) return;
+      setBusy(true);
+      try {
+        await deleteBoardDoc(target.runId, tab.id);
+        const tabList = await fetchBoardTabs(target.runId);
+        setTabs(tabList);
+        if (tab.id !== activeBoardId) return;
+        const next =
+          tabList.find((candidate) => candidate.is_current) ??
+          [...tabList].reverse().find((candidate) => candidate.revision > 0) ??
+          tabList[tabList.length - 1] ??
+          null;
+        if (next) {
+          const payload = await fetchBoardDoc(target.runId, next.id);
+          setActiveBoardId(payload.id);
+          applyBoard(payload);
+        } else {
+          setActiveBoardId(null);
+          applyBoard(null);
+        }
+      } catch (tabError) {
+        setNotice((tabError as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [activeBoardId, applyBoard, t, target.runId],
+  );
+
+  function startRename(tab: BoardTab) {
+    setTabMenuOpen(false);
+    setHistoryOpen(false);
+    setRenamingId(tab.id);
+    setRenameValue(tab.title);
+  }
+
+  const commitRename = useCallback(async () => {
+    const boardId = renamingId;
+    if (!boardId) return;
+    const nextTitle = renameValue.trim();
+    setRenamingId(null);
+    const previous = tabs.find((tab) => tab.id === boardId);
+    if (!previous || previous.title === nextTitle) return;
+    try {
+      const saved = await renameBoardDoc(target.runId, boardId, nextTitle);
+      setTabs((list) =>
+        list.map((tab) =>
+          tab.id === boardId ? { ...tab, title: saved.title } : tab,
+        ),
+      );
+      if (boardId === activeBoardId) {
+        titleRef.current = saved.title;
+        savedTitleRef.current = saved.title;
+        setTitle(saved.title);
+        setBoard((current) =>
+          current && current.id === boardId
+            ? { ...current, title: saved.title }
+            : current,
+        );
+        scheduleDirtyCheck();
+      }
+    } catch (renameError) {
+      setNotice((renameError as Error).message);
+    }
+  }, [
+    activeBoardId,
+    renameValue,
+    renamingId,
+    scheduleDirtyCheck,
+    tabs,
+    target.runId,
+  ]);
+
+  const toggleHistory = useCallback(async () => {
+    if (!activeBoardId) return;
+    if (historyOpen) {
+      setHistoryOpen(false);
+      return;
+    }
+    setTabMenuOpen(false);
+    setHistoryOpen(true);
+    setHistoryBusy(true);
+    try {
+      setHistory(await fetchBoardDocRevisions(target.runId, activeBoardId));
+    } catch (historyError) {
+      setNotice((historyError as Error).message);
+    } finally {
+      setHistoryBusy(false);
+    }
+  }, [activeBoardId, historyOpen, target.runId]);
+
+  const restoreRevision = useCallback(
+    async (item: BoardDocRevisionItem) => {
+      if (!editor || !activeBoardId) return;
+      if (
+        dirtyRef.current &&
+        !window.confirm(
+          t(
+            "Replace the unsaved changes on this board with this version?",
+            "用这个版本替换白板上未保存的修改？",
+          ),
+        )
+      ) {
+        return;
+      }
+      try {
+        const revision = await fetchBoardDocRevision(
+          target.runId,
+          activeBoardId,
+          item.revision,
+        );
+        replaceScene(editor, revision.scene);
+        editor.selectNone();
+        setGoal(revision.scene.goal || "");
+        setHistoryOpen(false);
+        dirtyRef.current = true;
+        setDirty(true);
+        setNotice(
+          t(
+            `Loaded r${item.revision} as an unsaved draft. Save to make it the current version.`,
+            `已把第 ${item.revision} 版载入为未保存草稿，保存后才会成为当前版本。`,
+          ),
+        );
+      } catch (revisionError) {
+        setNotice((revisionError as Error).message);
+      }
+    },
+    [activeBoardId, editor, t, target.runId],
+  );
+
+  // Close the tab menu and version popover when clicking elsewhere.
+  useEffect(() => {
+    if (!tabMenuOpen && !historyOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".board-tabbar")) return;
+      setTabMenuOpen(false);
+      setHistoryOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [historyOpen, tabMenuOpen]);
 
   async function addAsset(media: RunMedia) {
     if (!editor) return;
@@ -751,50 +1047,170 @@ export function InstructionBoard({
     >
       <div className="board-shell">
         <header className="board-header">
-          <div className="board-header-main">
-            <div className="board-header-title">
-              <span className="board-eyebrow">
-                {t("Instruction board", "指令白板")}
-              </span>
-              <input
-                className="board-title-input"
-                value={title}
-                maxLength={160}
-                placeholder={t("Untitled board", "未命名白板")}
-                aria-label={t("Board title", "白板标题")}
-                onChange={(event) => {
-                  setTitle(event.target.value);
-                  dirtyRef.current = true;
-                  setDirty(true);
-                }}
-              />
+          <div className="board-tabbar">
+            <div
+              className="board-tabs"
+              role="tablist"
+              aria-label={t("Board tabs", "白板标签页")}
+            >
+              {tabs.map((tab) => {
+                const active = tab.id === activeBoardId;
+                const label = tab.title || t("Untitled board", "未命名白板");
+                return (
+                  <div
+                    key={tab.id}
+                    className={`board-tab${active ? " is-active" : ""}`}
+                  >
+                    {renamingId === tab.id ? (
+                      <input
+                        className="board-tab-rename"
+                        autoFocus
+                        value={renameValue}
+                        maxLength={160}
+                        aria-label={t("Board title", "白板标题")}
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        onBlur={() => void commitRename()}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void commitRename();
+                          }
+                          if (event.key === "Escape") setRenamingId(null);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        className="board-tab-label"
+                        title={
+                          tab.is_current
+                            ? t(
+                                `${label} — agents read this board`,
+                                `${label} — agent 读取这块白板`,
+                              )
+                            : t(
+                                `${label} — double-click to rename`,
+                                `${label} — 双击可重命名`,
+                              )
+                        }
+                        onClick={() => void openTab(tab)}
+                        onDoubleClick={() => startRename(tab)}
+                      >
+                        {tab.is_current ? (
+                          <span className="board-tab-current" aria-hidden="true" />
+                        ) : null}
+                        <span className="board-tab-title">{label}</span>
+                        {active && dirty ? (
+                          <span className="board-tab-dirty" aria-hidden="true" />
+                        ) : null}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="board-tab-close"
+                      aria-label={t(`Close ${label}`, `关闭 ${label}`)}
+                      title={t("Close tab", "关闭标签页")}
+                      onClick={() => void removeTab(tab)}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-            <span className={`board-revision${dirty ? " is-dirty" : ""}`}>
-              {board
-                ? dirty
-                  ? t(`Changes since r${board.revision}`, `r${board.revision} 之后有修改`)
-                  : t(`Saved · r${board.revision}`, `已保存 · r${board.revision}`)
-                : t("New board", "新白板")}
-            </span>
+            <div className="board-tabbar-actions">
+              <button
+                type="button"
+                className="board-tab-new"
+                aria-label={t("New board tab", "新建白板标签页")}
+                title={t("New board tab", "新建白板标签页")}
+                aria-expanded={tabMenuOpen}
+                onClick={() => setTabMenuOpen((open) => !open)}
+              >
+                <Plus size={14} />
+              </button>
+              <button
+                type="button"
+                className={`board-tab-action${historyOpen ? " is-active" : ""}`}
+                disabled={!activeBoardId}
+                aria-label={t("Version history", "版本历史")}
+                title={t("Version history", "版本历史")}
+                aria-expanded={historyOpen}
+                onClick={() => void toggleHistory()}
+              >
+                <History size={15} />
+              </button>
+            </div>
+            {tabMenuOpen ? (
+              <div className="board-tab-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={!activeBoardId}
+                  onClick={() => void addTab("duplicate")}
+                >
+                  <Copy size={13} />
+                  <span>{t("Duplicate this board", "复制这块白板")}</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void addTab("blank")}
+                >
+                  <FilePlus2 size={13} />
+                  <span>{t("New blank board", "新建空白白板")}</span>
+                </button>
+              </div>
+            ) : null}
+            {historyOpen ? (
+              <div className="board-history-menu">
+                <div className="board-history-head">
+                  <span>{t("Versions", "版本")}</span>
+                  {board ? <small>r{board.revision}</small> : null}
+                </div>
+                {historyBusy ? (
+                  <p className="board-history-empty">
+                    <LoaderCircle size={13} className="spin" />
+                    {t("Loading versions", "正在加载版本")}
+                  </p>
+                ) : history.length ? (
+                  <ol className="board-history-list">
+                    {history.map((item) => (
+                      <li key={item.revision}>
+                        <button
+                          type="button"
+                          onClick={() => void restoreRevision(item)}
+                        >
+                          <span className="board-history-rev">
+                            r{item.revision}
+                          </span>
+                          <small>
+                            {item.created_at
+                              ? new Date(item.created_at).toLocaleString()
+                              : ""}
+                          </small>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="board-history-empty">
+                    {t("No saved versions yet.", "还没有已保存的版本。")}
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
-          <div className="board-header-actions">
-            <Button
-              variant="outline"
-              disabled={busy || loading || Boolean(error)}
-              onClick={() => void saveNow()}
-            >
-              {busy ? <LoaderCircle size={14} className="spin" /> : <Check size={14} />}
-              {t("Save", "保存")}
-            </Button>
-            <button
-              type="button"
-              className="board-close"
-              aria-label={t("Close the board", "关闭白板")}
-              onClick={closeBoard}
-            >
-              <X size={18} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="board-close"
+            aria-label={t("Close the board", "关闭白板")}
+            onClick={closeBoard}
+          >
+            <X size={18} />
+          </button>
         </header>
 
         <div className="board-body">
@@ -1168,6 +1584,39 @@ export function InstructionBoard({
             {editor ? <BoardToolbar editor={editor} /> : null}
             {editor ? (
               <QuickConnect editor={editor} onNotice={setNotice} />
+            ) : null}
+            {editor ? (
+              <div className="board-save-cluster">
+                <span
+                  className={`board-save-state${dirty ? " is-dirty" : ""}`}
+                  title={
+                    board?.title
+                      ? board.title
+                      : t("This board has no saved version yet.", "这块白板还没有保存过。")
+                  }
+                >
+                  {board && board.revision > 0
+                    ? dirty
+                      ? t(
+                          `Changes since r${board.revision}`,
+                          `r${board.revision} 之后有修改`,
+                        )
+                      : t(`Saved · r${board.revision}`, `已保存 · r${board.revision}`)
+                    : t("Not saved yet", "尚未保存")}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={busy || loading || Boolean(error)}
+                  onClick={() => void saveNow()}
+                >
+                  {busy ? (
+                    <LoaderCircle size={14} className="spin" />
+                  ) : (
+                    <Check size={14} />
+                  )}
+                  {t("Save", "保存")}
+                </Button>
+              </div>
             ) : null}
             {!shapes.length && !loading ? (
               <div className="board-canvas-hint" aria-hidden="true">
