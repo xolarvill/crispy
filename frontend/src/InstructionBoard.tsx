@@ -1908,7 +1908,6 @@ function QuickConnect({
     targetBounds: { x: number; y: number; w: number; h: number } | null;
   } | null>(null);
   const dragRef = useRef<QuickDrag | null>(null);
-  const handleHoverRef = useRef(false);
   const selectedIds = useValue(
     "board quick selection",
     () => editor.getSelectedShapeIds(),
@@ -1929,17 +1928,18 @@ function QuickConnect({
   const dragging = drag !== null;
 
   useEffect(() => {
-    const container = editor.getContainer();
     const onMove = (event: PointerEvent) => {
-      if (dragRef.current || handleHoverRef.current) return;
-      const rect = container.getBoundingClientRect();
+      if (dragRef.current) return;
+      // screenToPage takes client coordinates; pageToScreen/pageToViewport are
+      // different spaces, so never mix them with the overlay's own offsets.
       const page = editor.screenToPage({
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
+        x: event.clientX,
+        y: event.clientY,
       });
       const shape = editor.getShapeAtPoint(page, {
         hitInside: true,
-        margin: QUICK_HOVER_MARGIN,
+        // Margins are page units; keep the reveal distance constant on screen.
+        margin: QUICK_HOVER_MARGIN / editor.getZoomLevel(),
         filter: (candidate) => candidate.type === ASSET_SHAPE,
       });
       setHoveredAssetId((current) =>
@@ -1953,29 +1953,35 @@ function QuickConnect({
   useEffect(() => {
     if (!dragRef.current) return;
     const container = editor.getContainer();
-    const toScreen = (event: PointerEvent) => {
+    // pageToViewport is relative to the canvas box, which is where the
+    // overlay is positioned; pageToScreen would add the window offset again.
+    const toViewport = (event: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
+    const toPage = (event: PointerEvent) =>
+      editor.screenToPage({ x: event.clientX, y: event.clientY });
     const findTarget = (event: PointerEvent) => {
       const current = dragRef.current;
       if (!current) return undefined;
-      const page = editor.screenToPage(toScreen(event));
-      return editor.getShapeAtPoint(page, {
+      return editor.getShapeAtPoint(toPage(event), {
         hitInside: true,
-        margin: 14,
+        margin: 14 / editor.getZoomLevel(),
         filter: (candidate) =>
           candidate.type === ASSET_SHAPE && candidate.id !== current.sourceId,
       });
     };
     const onMove = (event: PointerEvent) => {
-      const point = toScreen(event);
+      const point = toViewport(event);
       const target = findTarget(event);
       const bounds = target ? editor.getShapePageBounds(target) : undefined;
       const targetBounds = bounds
         ? (() => {
-            const topLeft = editor.pageToScreen({ x: bounds.minX, y: bounds.minY });
-            const bottomRight = editor.pageToScreen({
+            const topLeft = editor.pageToViewport({
+              x: bounds.minX,
+              y: bounds.minY,
+            });
+            const bottomRight = editor.pageToViewport({
               x: bounds.maxX,
               y: bounds.maxY,
             });
@@ -2002,7 +2008,7 @@ function QuickConnect({
       if (!current) return;
       const target = findTarget(event);
       if (target) {
-        const drop = editor.screenToPage(toScreen(event));
+        const drop = toPage(event);
         const arrowId = createShapeId();
         editor.run(() => {
           editor.createShape({
@@ -2072,23 +2078,18 @@ function QuickConnect({
       ? hoveredAssetId ?? (selectedIds.length === 1 ? selectedIds[0] : null)
       : null);
   const source = sourceId ? editor.getShape(sourceId) : undefined;
-  // If the handles disappear while the pointer still rests on one, the hover
-  // flag would otherwise stick and suppress later hover detection.
-  useEffect(() => {
-    if (!sourceId) handleHoverRef.current = false;
-  }, [sourceId]);
   if (!source || source.type !== ASSET_SHAPE) return null;
   const bounds = editor.getShapePageBounds(source);
   if (!bounds) return null;
   const handles = QUICK_HANDLES.map((handle) => {
-    const screen = editor.pageToScreen({
+    const viewport = editor.pageToViewport({
       x: bounds.x + bounds.w * handle.fx,
       y: bounds.y + bounds.h * handle.fy,
     });
     return {
       ...handle,
-      x: screen.x + handle.dx * QUICK_HANDLE_GAP,
-      y: screen.y + handle.dy * QUICK_HANDLE_GAP,
+      x: viewport.x + handle.dx * QUICK_HANDLE_GAP,
+      y: viewport.y + handle.dy * QUICK_HANDLE_GAP,
     };
   });
 
@@ -2103,7 +2104,10 @@ function QuickConnect({
     dragRef.current = {
       sourceId: shapeId,
       start,
-      startPage: editor.screenToPage(start),
+      startPage: editor.screenToPage({
+        x: event.clientX,
+        y: event.clientY,
+      }),
     };
     setDrag({
       sourceId: shapeId,
@@ -2125,12 +2129,6 @@ function QuickConnect({
             style={{ left: handle.x, top: handle.y }}
             title={t("Drag to connect this asset", "拖动连接到另一个素材")}
             aria-label={t("Connect from this asset", "从这个素材开始连线")}
-            onPointerEnter={() => {
-              handleHoverRef.current = true;
-            }}
-            onPointerLeave={() => {
-              handleHoverRef.current = false;
-            }}
             onPointerDown={(event) => begin(event, source.id, handle)}
           >
             <ChevronRight
