@@ -21,6 +21,7 @@ from app.orchestrator.state_machine import should_auto_approve
 from app.services.marketplace_qa import is_marketplace_main_image
 from app.services.runs import (
     _build_task_input,
+    add_agent_trace_event,
     auto_approve_stage,
     execute_stage_task,
     get_run,
@@ -246,6 +247,24 @@ class PipelineWorker:
                             auto_advance = False
                         if task.stage_name == "visual_quality_assessment" and run.approval_mode == "full_auto":
                             auto_advance = self._full_auto_visual_qa_regen(db, run, task)
+                        # A board question is meant for a human; auto-approval
+                        # would move the run past it before anyone saw it.
+                        questions = (task.metadata_json or {}).get("board_questions") or []
+                        if questions and run.approval_mode != "full_auto":
+                            auto_advance = False
+                            add_agent_trace_event(
+                                db,
+                                run_id=run.id,
+                                stage_task_id=task.id,
+                                stage_name=task.stage_name,
+                                agent_name=(task.metadata_json or {}).get("agent_name") or "",
+                                event_type="board_questions_pending",
+                                message=(
+                                    f"{task.stage_name} left {len(questions)} question(s) on the board; "
+                                    "auto-approval is paused."
+                                ),
+                                payload={"questions": questions[:5]},
+                            )
                         if auto_advance:
                             auto_approve_stage(db, run.id, task.stage_name)
                             logger.info(

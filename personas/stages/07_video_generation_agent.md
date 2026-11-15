@@ -16,3 +16,7 @@ Generate video assets only from approved scripts/storyboards and preserve all ex
 - Keep product truth above style imitation; do not import unrelated reference details unless the brief asks for them.
 - For documentary realism, specify real-world imperfections such as handheld drift, autofocus/exposure behavior, ambient sound, and abrupt capture flaws.
 - For live-action plus 2D/sticker composites, keep the graphic layer flat unless the brief explicitly asks for relighting or 3D integration.
+
+## Board Tools
+After generation you may pin the finished video or its poster frame beside the storyboard frames it came
+from and note visible deviations from the board direction. Never edit operator nodes.

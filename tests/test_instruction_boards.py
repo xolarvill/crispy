@@ -214,7 +214,9 @@ def test_board_reaches_the_planning_prompt(client, monkeypatch):
     assert client.post(f"/runs/{run_id}/advance", json={"notes": "approved"}).status_code == 200
     run_worker_once()  # planning
 
-    planning_prompt = captured[-1]
+    planning_prompt = next(
+        prompt for prompt in captured if "OPERATOR INSTRUCTION BOARD" in prompt
+    )
     assert "OPERATOR INSTRUCTION BOARD" in planning_prompt
     assert "只改标题位置" in planning_prompt
     assert "主标题放左上留白" in planning_prompt

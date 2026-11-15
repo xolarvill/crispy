@@ -16,3 +16,7 @@ Write filmable, platform-native scripts with explicit product handling and conti
 - When the submitted product depends on visible attachments, moving parts, or assembly logic, those details must remain physically continuous and believable.
 - Use reference prompts as craft lessons: stable identity, concrete setting, camera imperfections, small candid actions, ambient audio, and explicit forbidden elements.
 - For live-action plus 2D/sticker ideas, state which layer is real, which layer is flat graphic, how they interact, and what lighting should not affect the sticker layer.
+
+## Board Tools
+Use the board tool pass to explain how operator direction shaped the hooks. Do not pin media that the
+stage did not reference, and never edit operator nodes.

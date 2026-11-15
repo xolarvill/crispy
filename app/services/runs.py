@@ -1478,24 +1478,23 @@ def execute_stage_task(db: Session, task: StageTask, run: PipelineRun) -> None:
             "compiled_persona": compiled_persona,
         }
 
-        output = execute_runtime_stage(
-            StageExecutionContext(
-                db=db,
-                run=run,
-                task=task,
-                runtime=runtime,
-                resolved=resolved,
-                runtime_config=runtime_config,
-                provider_name=provider_name,
-                model_name=model_name,
-                lead_agent=lead_agent,
-                emit_trace=trace_model_event,
-                variant_library_sync=_variant_library_sync,
-                get_stage_output=_get_stage_output,
-                gm_memory_trace_payload=_gm_memory_trace_payload,
-                utcnow=utcnow,
-            )
+        stage_context = StageExecutionContext(
+            db=db,
+            run=run,
+            task=task,
+            runtime=runtime,
+            resolved=resolved,
+            runtime_config=runtime_config,
+            provider_name=provider_name,
+            model_name=model_name,
+            lead_agent=lead_agent,
+            emit_trace=trace_model_event,
+            variant_library_sync=_variant_library_sync,
+            get_stage_output=_get_stage_output,
+            gm_memory_trace_payload=_gm_memory_trace_payload,
+            utcnow=utcnow,
         )
+        output = execute_runtime_stage(stage_context)
 
         task.output_payload = output.payload
         task.model_used = output.model_used
@@ -1570,6 +1569,22 @@ def execute_stage_task(db: Session, task: StageTask, run: PipelineRun) -> None:
                 },
             )
             compile_run_outcome_reflection(db, run.id)
+
+        # The canvas pass runs after the stage output is final and before the
+        # task waits for review. It annotates the shared board and is allowed
+        # to fail: a bad model round must never fail a completed stage.
+        from app.services.board_tool_pass import run_board_tool_pass
+
+        board_pass = run_board_tool_pass(
+            stage_context,
+            runtime_config=runtime_config,
+            provider_name=provider_name,
+            model_name=model_name,
+            stage_output=output.payload,
+        )
+        if board_pass.estimated_cost:
+            run.budget_used = float(run.budget_used or 0.0) + board_pass.estimated_cost
+            run.updated_at = utcnow()
 
         task.status = TaskStatus.WAITING_REVIEW.value
         run.status = RunStatus.WAITING_REVIEW.value

@@ -47,6 +47,14 @@ BOARD_STAGE_SCOPE_STAGES = {
     "video_scripting",
     "storyboard_image_generation",
 }
+# Stages that may annotate the canvas after they finish. The last three read the
+# board through the tool session (their main generation prompts do not consume
+# the operator digest yet), so they are intentionally outside the scope above.
+BOARD_TOOL_STAGES = BOARD_STAGE_SCOPE_STAGES | {
+    "video_generation",
+    "visual_quality_assessment",
+    "evaluation_selection",
+}
 
 _HEADERS = ("data:image/png;base64", "data:image/jpeg;base64")
 

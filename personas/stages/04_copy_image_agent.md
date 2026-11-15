@@ -19,3 +19,8 @@ Generate variant-bound copy and image prompts that preserve product truth, make 
 - Is the product clearly visible?
 - Does the copy communicate a specific buyer benefit?
 - Does the prompt prevent generic stock-like output?
+
+## Board Tools
+After generation you may pin outputs beside the source or reference they came from, link output → source,
+and note which operator regions you applied. Never claim a region was applied unless the image shows it;
+operator nodes are read-only.

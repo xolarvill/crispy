@@ -445,6 +445,7 @@ class BoardToolSession:
         self._shots = 0
         self._scene_dirty = False
         self._tab_created = False
+        self._events_recorded = False
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -481,6 +482,7 @@ class BoardToolSession:
         self._composes = 0
         self._shots = 0
         self._scene_dirty = False
+        self._events_recorded = False
 
     def _reload_and_replay(self) -> None:
         row = (
@@ -511,6 +513,9 @@ class BoardToolSession:
         the stage worker owns the transaction.
         """
         if not self._scene_dirty:
+            # Read-like calls (compose without pin) still belong in the audit
+            # trail, but they do not open a new revision.
+            self._record_tool_events()
             return self.board_row
         attempts = 0
         while True:
@@ -541,20 +546,27 @@ class BoardToolSession:
             self.board_id = board.id
             self.expected_revision = board.revision
             self._base = self.scene.model_copy(deep=True)
-            for op in self.ops:
-                if op.name == "create_board":
-                    continue
-                _record_event(
-                    self.db,
-                    board.id,
-                    board.revision,
-                    self.actor,
-                    f"tool:{op.name}",
-                    {"args": _event_value(op.args), "stage_task_id": self.stage_task_id},
-                )
+            self._record_tool_events()
             self.db.flush()
             self._scene_dirty = False
             return board
+
+    def _record_tool_events(self) -> None:
+        if self._events_recorded or self.board_row is None:
+            return
+        for op in self.ops:
+            if op.name == "create_board":
+                continue
+            _record_event(
+                self.db,
+                self.board_row.id,
+                self.board_row.revision,
+                self.actor,
+                f"tool:{op.name}",
+                {"args": _event_value(op.args), "stage_task_id": self.stage_task_id},
+            )
+        self._events_recorded = True
+        self.db.flush()
 
     # -- dispatch -----------------------------------------------------------
 
@@ -596,7 +608,10 @@ class BoardToolSession:
 
         if spec.write:
             self.ops.append(ToolOp(name, parsed.model_dump(by_alias=True, mode="json")))
-            if name != "create_board":
+            # A write that left the scene identical (compose without pin, an
+            # already-pinned asset) still runs, but it must not create an empty
+            # revision. Only a real scene change is saved.
+            if name != "create_board" and before is not None and self.scene != before:
                 self._scene_dirty = True
         return result
 

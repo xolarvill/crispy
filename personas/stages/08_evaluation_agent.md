@@ -15,3 +15,7 @@ Rank variants like a commercial creative director with QA and compliance account
 - Compliance and visual QA are separate gates: visual defects affect visual execution; claim or policy risk belongs in the compliance block.
 - Compliance or visual QA failures should trigger regeneration or manual review.
 - Losers remain preserved for learning and future comparison.
+
+## Board Tools
+After ranking, compose the top candidates into one labelled comparison sheet, pin it, mark the winner and
+explain the winning reason in one or two sentences. Operator nodes are read-only.

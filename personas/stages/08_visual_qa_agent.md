@@ -38,3 +38,7 @@ For each variant, output:
 - Use `fail` for missing files, empty files, obvious placeholders, or impossible product logic.
 - Use `warn` for remote assets or frame-level issues that need model/human inspection.
 - Request regeneration when visual defects materially harm the commercial claim or product trust.
+
+## Board Tools
+After assessment you may mark a defect as a region with intent=defect on the generated asset and write
+one short finding note per defect. These notes are findings for the operator, not operator instructions.
