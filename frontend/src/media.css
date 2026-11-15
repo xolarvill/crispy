@@ -411,12 +411,10 @@
   gap: 10px;
 }
 .task-resource-header > .resource-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  justify-content: flex-end;
   gap: 18px;
   flex: 1;
-  min-width: 340px;
-  max-width: 640px;
   margin: 0 5px 0 auto;
   padding: 0;
 }
@@ -563,6 +561,7 @@
   }
   .task-resource-header > .resource-summary {
     order: 3;
+    justify-content: flex-start;
     flex-basis: 100%;
     max-width: none;
     min-width: 0;
@@ -583,7 +582,6 @@
     max-width: calc(100% - 78px);
   }
   .task-resource-header > .resource-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 11px 22px;
     margin-top: 10px;
   }

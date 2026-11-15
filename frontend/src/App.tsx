@@ -636,14 +636,6 @@ export default function App() {
                   {current && (
                     <div className="resource-summary">
                       <span>
-                        <small>{t("Creative mode", "创作模式")}</small>
-                        {modeLabel(current.pipeline_mode, locale)}
-                      </span>
-                      <span>
-                        <small>{t("Product code", "产品编号")}</small>
-                        {current.product_code}
-                      </span>
-                      <span>
                         <small>{t("Updated", "更新")}</small>
                         {formatDateTime(locale, current.updated_at)}
                       </span>
