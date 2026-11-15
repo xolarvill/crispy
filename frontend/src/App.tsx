@@ -935,7 +935,6 @@ export default function App() {
                           <tr>
                             <th>{t("Task / product", "任务 / 产品")}</th>
                             <th className="task-media-column">{t("Media", "媒体")}</th>
-                            <th>{t("Status", "状态")}</th>
                             <th className="mode-column">{t("Creative mode", "创作模式")}</th>
                             <th className="stage-column">{t("Current stage", "当前阶段")}</th>
                             <th className="date-column">
@@ -972,9 +971,6 @@ export default function App() {
                                     setPreview({ run, media, trigger })
                                   }
                                 />
-                              </td>
-                              <td>
-                                <Status value={r.status} />
                               </td>
                               <td className="mode-column">
                                 {modeLabel(r.pipeline_mode, locale) ||
