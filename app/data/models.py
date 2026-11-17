@@ -392,6 +392,55 @@ class InstructionBoardEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class VideoProject(Base):
+    __tablename__ = "video_project"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspace.id"), index=True)
+    run_id: Mapped[str] = mapped_column(ForeignKey("pipeline_run.id"), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    creation_hash: Mapped[str] = mapped_column(String(64))
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    document: Mapped[dict] = mapped_column(json_type(), default=dict)
+    sources: Mapped[list] = mapped_column(json_type(), default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class VideoRevision(Base):
+    __tablename__ = "video_revision"
+    __table_args__ = (UniqueConstraint("project_id", "revision", name="uq_video_revision"),
+                      UniqueConstraint("project_id", "request_id", name="uq_video_request"))
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id: Mapped[str] = mapped_column(ForeignKey("video_project.id"), index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    document: Mapped[dict] = mapped_column(json_type())
+    request_id: Mapped[str] = mapped_column(String(128))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    actor: Mapped[str] = mapped_column(String(128))
+    summary: Mapped[str] = mapped_column(String(300), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class VideoRender(Base):
+    __tablename__ = "video_render"
+    __table_args__ = (UniqueConstraint("project_id", "request_id", name="uq_video_render_request"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id: Mapped[str] = mapped_column(ForeignKey("video_project.id"), index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    request_id: Mapped[str] = mapped_column(String(128))
+    document: Mapped[dict] = mapped_column(json_type())
+    sources: Mapped[list] = mapped_column(json_type())
+    status: Mapped[str] = mapped_column(String(32), default="queued")
+    progress: Mapped[float] = mapped_column(Float, default=0)
+    error: Mapped[str] = mapped_column(Text, default="")
+    uri: Mapped[str] = mapped_column(String(1024), default="")
+    artifact_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class RunVariant(Base):
     __tablename__ = "run_variant"
     __table_args__ = (UniqueConstraint("run_id", "variant_id", name="uq_run_variant_run_variant"),)

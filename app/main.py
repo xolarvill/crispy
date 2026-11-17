@@ -15,6 +15,7 @@ from app.agents.personas import ensure_default_personas
 from app.api.routes import router
 from app.api.brand_creatives import router as brand_creatives_router
 from app.api.boards import router as boards_router
+from app.api.video import router as video_router
 from app.core.config import get_settings
 from app.data.models import Workspace
 from app.data.session import SessionLocal, init_db
@@ -107,6 +108,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(brand_creatives_router)
     app.include_router(boards_router)
+    app.include_router(video_router)
     return app
 
 
