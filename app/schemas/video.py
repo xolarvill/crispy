@@ -24,7 +24,7 @@ class VideoClip(Strict):
     width: float = Field(default=1, gt=0, le=1)
     height: float = Field(default=1, gt=0, le=1)
     fit: Literal["contain", "cover"] = "contain"
-    volume: float = Field(default=1, ge=0, le=2)
+    volume: float = Field(default=1, ge=0, le=1)
     opacity: float = Field(default=1, ge=0, le=1)
     font_size: int = Field(default=36, ge=8, le=300)
     color: str = Field(default="#ffffff", pattern=r"^#[0-9a-fA-F]{6}$")

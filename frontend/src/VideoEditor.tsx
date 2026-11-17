@@ -80,12 +80,27 @@ export default function VideoStudio({
     { revision: number; actor: string; summary: string }[] | null
   >(null);
   const [job, setJob] = useState<VideoJob | null>(null);
+  const [renderReady, setRenderReady] = useState(false);
   const [discard, setDiscard] = useState(false);
   const draft = useRef<VideoDocument | null>(null),
     saved = useRef(""),
     dirtyRef = useRef(false);
   const importRef = useRef<HTMLInputElement>(null);
   const initialization = useRef<Promise<VideoProject> | null>(null);
+  useEffect(() => {
+    api<{ ready: boolean }>("/video-editing/capabilities")
+      .then((result) => {
+        setRenderReady(result.ready);
+        if (!result.ready)
+          setError(
+            t(
+              "Install FFmpeg and FFprobe to enable local export.",
+              "安装 FFmpeg 和 FFprobe 后即可在本地导出。",
+            ),
+          );
+      })
+      .catch((e) => setError(e.message));
+  }, [t]);
   const task = useCallback((p: VideoProject) => {
     setProject(p);
     setSeed(p.document);
@@ -182,6 +197,19 @@ export default function VideoStudio({
       .then(setRunAssets)
       .catch(() => {});
     return () => controller.abort();
+  }, [project?.id]);
+
+  useEffect(() => {
+    if (!project) return;
+    let active = true;
+    api<VideoJob[]>(`/video-projects/${project.id}/renders`)
+      .then((jobs) => {
+        if (active) setJob((current) => current || jobs[0] || null);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, [project?.id]);
 
   useEffect(() => {
@@ -383,7 +411,9 @@ export default function VideoStudio({
                 {t("Save", "保存")}
               </Button>
               <Button
-                disabled={!project || busy || !!rendering || remote}
+                disabled={
+                  !project || busy || !!rendering || remote || !renderReady
+                }
                 onClick={() =>
                   perform(async () => {
                     const p = await save();
@@ -1363,7 +1393,9 @@ function NativeTimeline({
       .trim();
     return Object.assign(
       { ...DEFAULT_ELEMENT_COLORS },
-      Object.fromEntries(Object.keys(DEFAULT_ELEMENT_COLORS).map((key) => [key, primary])),
+      Object.fromEntries(
+        Object.keys(DEFAULT_ELEMENT_COLORS).map((key) => [key, primary]),
+      ),
     );
   }, []);
   const total = durationUs(document) / 1e6;

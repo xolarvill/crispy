@@ -186,6 +186,13 @@ def import_source(db: Session, project_id: str, path: Path, name: str, expected_
         raise VideoError("Unsupported media type")
     with path.open("rb") as stream:
         sha = hashlib.file_digest(stream, "sha256").hexdigest()
+    command = {"op": "import", "sha256": sha, "name": name, "expected_revision": expected_revision, "actor": actor}
+    previous = db.scalar(select(VideoRevision).where(VideoRevision.project_id == project_id,
+                                                     VideoRevision.request_id == request_id))
+    if previous:
+        if previous.request_hash != fingerprint(command):
+            raise VideoConflict("Request ID was already used for a different import")
+        return project
     target = root() / project_id / "sources" / (sha + path.suffix.lower())
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
@@ -204,7 +211,7 @@ def import_source(db: Session, project_id: str, path: Path, name: str, expected_
     if not any(s["id"] == source_id for s in sources):
         sources.append(source)
     result = save_project(db, project_id, VideoDocument.model_validate(project.document), expected_revision,
-                          request_id, actor, f"Import {name[:120]}", sources=sources)
+                          request_id, actor, f"Import {name[:120]}", sources=sources, request_payload=command)
     return result
 
 

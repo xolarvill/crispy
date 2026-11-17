@@ -3,6 +3,7 @@ import argparse
 import asyncio
 import base64
 import json
+import mimetypes
 from pathlib import Path
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -34,7 +35,7 @@ async def serve(actor: str):
             content = [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, default=str))]
             if result.get("image_path"):
                 path = Path(result["image_path"])
-                content.append(ImageContent(type="image", mimeType="image/png" if path.suffix == ".png" else "image/jpeg",
+                content.append(ImageContent(type="image", mimeType=mimetypes.guess_type(path.name)[0] or "image/png",
                                             data=base64.b64encode(path.read_bytes()).decode()))
             return CallToolResult(content=content, structuredContent=result)
         except (ValueError, OSError) as exc:

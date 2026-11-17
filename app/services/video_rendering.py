@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import subprocess
 import time
+from fractions import Fraction
 
 from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import select, update
@@ -68,9 +69,11 @@ def cancel_render(db: Session, project_id: str, job_id: str) -> VideoRender:
     return job
 
 
-def _font(size: int):
+def _font(size: int, text: str = ""):
     import platform
-    choices = (["C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/arial.ttf"] if platform.system() == "Windows"
+    windows_fonts = (["C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/msyh.ttc"] if text.isascii()
+                     else ["C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/arial.ttf"])
+    choices = (windows_fonts if platform.system() == "Windows"
                else ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/System/Library/Fonts/Supplemental/Arial.ttf"])
     for path in choices:
         if Path(path).is_file():
@@ -82,7 +85,7 @@ def _text_image(clip, document: VideoDocument, directory: Path) -> Path:
     width, height = max(2, round(clip.width * document.width)), max(2, round(clip.height * document.height))
     image = Image.new("RGBA", (width, height))
     draw = ImageDraw.Draw(image)
-    font = _font(clip.font_size)
+    font = _font(clip.font_size, clip.text)
     # Wrap at the same explicit text-box width used by the editor.
     lines, line = [], ""
     for char in clip.text:
@@ -194,6 +197,14 @@ def render_job(engine, job_id: str):
             video = next(s for s in metadata["streams"] if s["codec_type"] == "video")
             if (video["width"], video["height"]) != (document.width, document.height):
                 raise VideoError("Rendered dimensions do not match the project")
+            actual_fps = float(Fraction(video["avg_frame_rate"]))
+            if abs(actual_fps - document.fps_num / document.fps_den) > .001:
+                raise VideoError("Rendered frame rate does not match the project")
+            source_map = {s["id"]: s for s in job.sources}
+            needs_audio = any(c.volume > 0 and source_map.get(c.source_id, {}).get("has_audio")
+                              for t in document.tracks for c in t.clips if c.kind in {"video", "audio"})
+            if needs_audio and not any(s["codec_type"] == "audio" for s in metadata["streams"]):
+                raise VideoError("Rendered audio track is missing")
             if abs(float(metadata["format"]["duration"]) - document.duration_us / 1e6) > .15:
                 raise VideoError("Rendered duration does not match the project")
             subprocess.run([binary("ffmpeg"), "-v", "error", "-xerror", "-i", str(output), "-f", "null", "-"],

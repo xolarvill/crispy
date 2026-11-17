@@ -91,3 +91,31 @@ def test_create_is_idempotent_and_run_source_is_scoped(client, tmp_path):
     denied = client.post(f"/video-projects/{project['id']}/sources/from-run", json={"expected_revision": 0,
         "request_id": str(uuid.uuid4()), "uri": str(tmp_path / "unregistered.mp4")})
     assert denied.status_code == 422
+
+
+def test_import_retry_does_not_replay_over_new_edits(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(get_settings(), "assets_dir", tmp_path / "assets")
+    p, file = upload_image(client, make_project(client), tmp_path)
+    document = copy.deepcopy(p["document"])
+    document["background"] = "#224433"
+    saved = save(client, p, document).json()
+    retry = client.post(f"/video-projects/{p['id']}/sources", files={"file": ("source.png", file.read_bytes(), "image/png")},
+        data={"expected_revision": 0, "request_id": "import-1"})
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["revision"] == saved["revision"]
+    assert retry.json()["document"]["background"] == "#224433"
+
+
+def test_split_operation_retry_is_idempotent(client):
+    p = make_project(client)
+    doc = p["document"]
+    doc["tracks"] = [{"id": "t", "clips": [{"id": "title", "kind": "text", "text": "Keep this", "duration_us": 4_000_000}]}]
+    p = save(client, p, doc).json()
+    args = {"expected_revision": p["revision"], "request_id": "split", "operations": [
+        {"op": "split_clip", "clip_id": "title", "new_id": "right", "at_us": 1_000_000}]}
+    endpoint = f"/video-projects/{p['id']}/operations"
+    first = client.post(endpoint, json=args)
+    second = client.post(endpoint, json=args)
+    assert first.status_code == second.status_code == 200
+    assert second.json()["revision"] == first.json()["revision"]
+    assert len(second.json()["document"]["tracks"][0]["clips"]) == 2
