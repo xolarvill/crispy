@@ -10,6 +10,8 @@ Open http://127.0.0.1:5174. The default is explicitly labelled demo mode. Choose
 
 `npm run build` checks strict TypeScript and produces `dist/`. This preview runs independently of the existing dashboard; deployment integration is a later migration layer.
 
+Live task video previews now offer **Edit video**, also available for selected video assets on the instruction board. The integrated editor uses Twick's timeline with Crispy's revisioned document, local preview and FFmpeg export. It is loaded only when opened. See [video editor setup, MCP tools and validation](../docs/video-editor.md). `CRISPY_DEV_API` can override the default Vite API proxy target for an isolated local backend.
+
 Version 2 replaces the former split-pane/drawer layout with a full-width task index, addressable task pages (`#/tasks/:id`) and three-step creation (`#/new`). Implemented: status/mode filters, search, task detail, stage status, full product reference, product material grid, input file selection, preset selection, preflight warnings, responsive navigation and labelled Lucide actions/tooltips. The local button component follows shadcn's source-owned CVA pattern. Registry aliases and theme tokens are configured.
 
 Real mode supports listing/detail, preset loading, preflight and multipart creation via `/runs/rich`. Warnings require explicit continuation. Complete stage-output review and approval use the existing dashboard; the new preview only performs approval/rejection in demo mode. Advanced memory controls and configuration screens remain in the old dashboard. Live database/provider integration has not been tested; browser API checks use controlled responses. No generation runs were submitted. Demo data lives in memory and resets on reload.

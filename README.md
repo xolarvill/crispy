@@ -45,7 +45,7 @@ The intended division is straightforward:
 - **The local gateway** provides the MCP communication boundary between the workbench and agents.
 - **The Magpie plugin** connects agent capabilities to the workbench, rather than adding another standalone agent-management area to the console.
 
-This is the integration direction, not an available installation path. The current backend still uses its existing agent runtime; the gateway, MCP contracts and Magpie plugin have not shipped.
+The general gateway and Magpie plugin remain planned. The current backend still uses its existing agent runtime. Separate local stdio adapters are available for [board tools](docs/agent-board-tools.md) and [video editing](docs/video-editor.md); these do not constitute the planned general gateway or install Magpie.
 
 ## Run locally
 

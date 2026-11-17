@@ -1,10 +1,12 @@
 # 视频素材编辑：统一框架与首期边界
 
-日期：2026-11-17。状态：设计决定，尚未实现。
+日期：2026-11-17。状态：首期基础编辑已实现于功能分支，尚待用户体验反馈。使用与验证边界见 [video-editor.md](../video-editor.md)。
 
 视频编辑属于 crispy 的素材创作与编辑框架。用户和 agent 在 crispy 内操作同一份工程；基础能力通过包装好的 MCP 工具提供，同时可供 UI、HTTP 和进程内阶段调用。OpenMotion 是技术参考和可选择性复用的来源，不作为产品层、工程权威或独立工作台直接接入。
 
 ## 当前基础
+
+以下记录设计开始时的基础。新增实现：`VideoProject` / `VideoRevision` / `VideoRender`、服务端中立时间线与源素材固定、共享编辑服务、Twick 时间线与原生媒体预览、`videowright` MCP、本地 FFmpeg 导出及素材回流。后续专业软件适配与通用 DAG 调度不在本次范围内。
 
 - `app/schemas/boards.py` 定义服务端权威的 `BoardScene`；tldraw 是文档的编辑视图。视频素材目前作为 asset 节点展示，没有时间线文档。
 - `app/services/board_tools.py` 的类型化工具目录被阶段工具、HTTP 和 `app/mcp/boardwright.py` 共用。一次工具 pass 可提交为一份可撤销的白板 revision。
