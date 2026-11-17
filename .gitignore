@@ -48,3 +48,5 @@ docs/superpowers/
 fortest/
 tutorial
 
+# Generated, scoped third-party video styles (npm run predev/prebuild).
+frontend/src/video-twick.generated.css

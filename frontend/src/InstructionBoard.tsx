@@ -249,10 +249,12 @@ export function InstructionBoard({
   target,
   close,
   notify,
+  editVideo,
 }: {
   target: BoardTarget;
   close: () => void;
   notify?: (message: string) => void;
+  editVideo?: (uri: string) => void;
 }) {
   const { t } = useI18n();
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -1520,6 +1522,8 @@ export function InstructionBoard({
             </section>
 
             {selectedAsset ? (
+              <>
+              {selectedAsset.props.mediaKind === "video" && editVideo && <section className="board-section"><Button variant="outline" onClick={() => editVideo(selectedAsset.props.uri)}>{t("Edit video", "编辑视频")}</Button></section>}
               <AssetInspector
                 key={selectedAsset.id}
                 editor={editor!}
@@ -1527,6 +1531,7 @@ export function InstructionBoard({
                 shapes={shapes}
                 onNotice={setNotice}
               />
+              </>
             ) : selectedRegion ? (
               <RegionInspector
                 key={selectedRegion.id}

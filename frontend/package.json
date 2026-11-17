@@ -4,13 +4,19 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/prepare-video-editor.mjs",
     "dev": "vite --host 127.0.0.1",
+    "prebuild": "node scripts/prepare-video-editor.mjs",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "test:video": "node --experimental-strip-types --test tests/video-data.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@twick/live-player": "0.15.31",
+    "@twick/timeline": "0.15.31",
+    "@twick/video-editor": "0.15.31",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "konva": "^10.9.1",

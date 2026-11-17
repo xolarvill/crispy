@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Activity,
   ArrowDown,
@@ -46,8 +46,10 @@ import {
 } from "./components/run-media";
 import { RunStatusPill } from "./components/run-status";
 import type { RunMedia } from "./data";
+import type { VideoTarget } from "./video-data";
+const VideoStudio = lazy(() => import("./VideoEditor"));
 function route() {
-  const path = location.hash.slice(1) || "/tasks";
+  const path = (location.hash.slice(1) || "/tasks").split("?")[0];
   return path === "/research" ? "/product-research" : path;
 }
 export default function App() {
@@ -62,6 +64,10 @@ export default function App() {
     options?: MediaPreviewOptions;
   } | null>(null);
   const [studio, setStudio] = useState<StudioTarget | null>(null);
+  const [video, setVideo] = useState<VideoTarget | null>(() => {
+    const query = new URLSearchParams(location.hash.split("?")[1]);
+    return query.get("video") && query.get("run") ? { projectId: query.get("video")!, runId: query.get("run")! } : null;
+  });
   const [path, setPath] = useState(route),
     [demo, setDemo] = useState(
       () => new URLSearchParams(location.search).get("mode") !== "live",
@@ -116,6 +122,8 @@ export default function App() {
       setError("");
       setPreview(null);
       setStudio(null);
+      const videoQuery = new URLSearchParams(location.hash.split("?")[1]);
+      if (videoQuery.get("video") && videoQuery.get("run")) setVideo({ projectId: videoQuery.get("video")!, runId: videoQuery.get("run")! });
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
@@ -705,6 +713,7 @@ export default function App() {
                         run={current}
                         demo={demo}
                         notify={setToast}
+                        editVideo={uri => setVideo({ runId: current.id, uri })}
                       />
                     ) : detailTab === "stages" ? (
                       <section
@@ -1059,6 +1068,7 @@ export default function App() {
               setStudio({ kind: "asset", runId: run.id, uri: media.uri });
               setPreview(null);
             }}
+            editVideo={(run, media) => { setVideo({ runId: run.id, uri: media.uri }); setPreview(null); }}
             close={() => setPreview(null)}
           />
         )}
@@ -1069,6 +1079,7 @@ export default function App() {
             notify={setToast}
           />
         )}
+        {video && <Suspense fallback={<div className="toast" role="status"><LoaderCircle size={16} className="spin" />{t("Opening video editor…", "正在打开视频编辑器…")}</div>}><VideoStudio target={video} close={() => { setVideo(null); setRevision(r => r + 1); }} notify={setToast} /></Suspense>}
         {toast && (
           <div className="toast" role="status">
             <Check size={15} />

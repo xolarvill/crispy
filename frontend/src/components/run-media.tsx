@@ -188,6 +188,7 @@ export function RunMediaGallery({
   complete = false,
   onSelect,
   saveTemplate,
+  editVideo,
 }: {
   run: Run;
   initial: RunMedia;
@@ -197,6 +198,7 @@ export function RunMediaGallery({
   complete?: boolean;
   onSelect?: (media: RunMedia) => void;
   saveTemplate?: (run: Run, media: RunMedia) => void;
+  editVideo?: (run: Run, media: RunMedia) => void;
 }) {
   const { t } = useI18n();
   const [items, setItems] = useState(() => mediaFor(run)),
@@ -279,6 +281,7 @@ export function RunMediaGallery({
               </span>
             </div>
             <div className="gallery-actions">
+              {!demo && editVideo && active?.kind === "video" && <Button variant="outline" onClick={() => editVideo(run, active)} data-testid="edit-video">{t("Edit video", "编辑视频")}</Button>}
               {!demo && saveTemplate && active?.kind === "image" && (
                 <Button
                   variant="outline"
