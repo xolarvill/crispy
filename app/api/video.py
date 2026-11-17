@@ -10,6 +10,11 @@ from app.data.session import get_db
 from app.schemas.video import Strict, VideoOperation, VideoWrite, VideoDocument
 from app.services import video_editing as service
 from app.services.run_media import run_media_summaries
+from app.services import video_rendering as rendering
+from app.services.video_tools import call_tool
+from app.data.models import VideoRender
+from sqlalchemy import select
+from fastapi.responses import FileResponse
 
 router = APIRouter()
 
@@ -130,3 +135,42 @@ async def upload(project_id: str, file: UploadFile = File(...), expected_revisio
     finally:
         target.unlink(missing_ok=True)
         await file.close()
+
+
+@router.post("/video-projects/{project_id}/renders")
+def render(project_id: str, body: RevisionRequest, db: Session = Depends(get_db)):
+    return run_action(lambda: rendering.job_payload(rendering.request_render(db, project_id,
+        body.expected_revision, body.request_id)))
+
+
+@router.get("/video-projects/{project_id}/renders")
+def renders(project_id: str, db: Session = Depends(get_db)):
+    run_action(lambda: service.get_project(db, project_id))
+    return [rendering.job_payload(j) for j in db.scalars(select(VideoRender)
+            .where(VideoRender.project_id == project_id).order_by(VideoRender.created_at.desc()).limit(20))]
+
+
+@router.get("/video-projects/{project_id}/renders/{job_id}")
+def job(project_id: str, job_id: str, db: Session = Depends(get_db)):
+    return run_action(lambda: rendering.job_payload(rendering.read_job(db, project_id, job_id)))
+
+
+@router.post("/video-projects/{project_id}/renders/{job_id}/cancel")
+def cancel(project_id: str, job_id: str, db: Session = Depends(get_db)):
+    return run_action(lambda: rendering.job_payload(rendering.cancel_render(db, project_id, job_id)))
+
+
+@router.get("/video-projects/{project_id}/sources/{source_id}/frame")
+def frame(project_id: str, source_id: str, time_us: int = 0, db: Session = Depends(get_db)):
+    path = run_action(lambda: rendering.source_frame(db, project_id, source_id, time_us))
+    return FileResponse(path)
+
+
+class ToolCall(Strict):
+    name: str
+    arguments: dict
+
+
+@router.post("/video-editing/tools")
+def tool(body: ToolCall, db: Session = Depends(get_db)):
+    return run_action(lambda: call_tool(db, body.name, body.arguments, "agent:http"))

@@ -438,6 +438,7 @@ class VideoRender(Base):
     error: Mapped[str] = mapped_column(Text, default="")
     uri: Mapped[str] = mapped_column(String(1024), default="")
     artifact_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    worker_pid: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

@@ -73,6 +73,9 @@ async def _auto_sync_loop() -> None:
 async def lifespan(_: FastAPI):
     settings = get_settings()
     init_db()
+    from app.services.video_rendering import recover_jobs
+    with SessionLocal() as db:
+        recover_jobs(db)
     ensure_default_personas()
     from app.data.session import backup_database
     backup_path = backup_database()
