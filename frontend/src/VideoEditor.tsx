@@ -35,9 +35,20 @@ import { api, type RunMedia } from "./data";
 import { useI18n } from "./i18n";
 import { Button } from "./components/ui/button";
 import {
+  appendTrack,
+  clipCount,
+  clipEnd,
+  clipTimingLimits,
+  cutClip,
   durationUs,
+  findClip,
+  frameTimeUs,
   fromTwick,
+  MAX_VIDEO_CLIPS,
+  MAX_VIDEO_TIME_US,
+  MAX_VIDEO_TRACKS,
   newClip,
+  removeClip,
   toTwick,
   videoId,
   videoMediaUrl,
@@ -66,7 +77,7 @@ function withOverlay(document: VideoDocument, clip: VideoClip, name: string): Vi
   clip.duration_us = durationUs(document) || 3_000_000;
   return {
     ...document,
-    tracks: [...document.tracks, { id: videoId("t"), name, clips: [clip] }],
+    tracks: [...document.tracks, { id: videoId("t-overlay"), name, clips: [clip] }],
   };
 }
 
@@ -362,8 +373,7 @@ export default function VideoStudio({
     await perform(async () => {
       if (!project || !draft.current) return;
       const current = draft.current;
-      if (current.tracks.length >= 16 ||
-          current.tracks.reduce((count, track) => count + track.clips.length, 0) >= 120)
+      if (current.tracks.length >= MAX_VIDEO_TRACKS || clipCount(current) >= MAX_VIDEO_CLIPS)
         throw new Error(t("The timeline has reached its layer or clip limit.", "时间线已达到图层或片段上限。"));
       const imported = await api<RunSourceImport>(`/video-projects/${project.id}/sources/from-run`, {
         method: "POST",
@@ -854,33 +864,30 @@ export default function VideoStudio({
 function SourceLibrary({ sources }: { sources: VideoSource[] }) {
   const { t } = useI18n();
   const { editor, setSelectedItem } = useTimelineContext();
-  const add = useRef<(s: VideoSource) => void>(() => {});
   const bridge = useEditorActions();
-  add.current = (source) => {
+  function canAppend(doc: VideoDocument, source: VideoSource) {
+    const track = appendTrack(doc, source.kind);
+    const start = Math.max(0, ...(track?.clips.map(clipEnd) ?? []));
+    return clipCount(doc) < MAX_VIDEO_CLIPS
+      && (!!track || doc.tracks.length < MAX_VIDEO_TRACKS)
+      && start + (source.duration_us || 3_000_000) <= MAX_VIDEO_TIME_US;
+  }
+  function add(source: VideoSource) {
     const doc = bridge.current();
+    if (!canAppend(doc, source)) return;
     const category = source.kind === "audio" ? "audio" : "picture";
-    let track = doc.tracks.find(
-      (tr) =>
-        tr.id.startsWith(`t-${category}`) ||
-        tr.clips.some((c) =>
-          category === "audio"
-            ? c.kind === "audio"
-            : c.kind === "video" || c.kind === "image",
-        ),
-    );
+    let track = appendTrack(doc, source.kind);
     if (!track) {
       track = {
-        id: `t-${category}-${crypto.randomUUID()}`,
+        id: videoId(`t-${category}`),
         name: source.kind === "audio" ? t("Audio", "音频") : t("Video", "视频"),
         clips: [],
       };
-      doc.tracks.push(track);
+      if (source.kind === "audio") doc.tracks.push(track);
+      else doc.tracks.unshift(track);
     }
     const clip = newClip(source.kind, source);
-    clip.start_us = Math.max(
-      0,
-      ...track.clips.map((c) => c.start_us + c.duration_us),
-    );
+    clip.start_us = Math.max(0, ...track.clips.map(clipEnd));
     track.clips.push(clip);
     bridge.replace(doc);
     const el = editor
@@ -888,16 +895,21 @@ function SourceLibrary({ sources }: { sources: VideoSource[] }) {
       ?.tracks.flatMap((tr) => tr.getElements())
       .find((c) => c.getId() === clip.id);
     if (el) setSelectedItem(el);
-  };
+  }
   return (
     <div className="video-sources">
       {sources.length ? (
-        sources.map((source) => (
+        sources.map((source) => {
+          const allowed = canAppend(bridge.document, source);
+          return (
           <button
             key={source.id}
             className="video-source"
-            onClick={() => add.current(source)}
-            title={t("Add to timeline", "添加到时间线")}
+            onClick={() => add(source)}
+            disabled={!allowed}
+            title={allowed
+              ? t("Add to timeline", "添加到时间线")
+              : t("The timeline has reached its duration, layer or clip limit.", "已达到时间线时长、图层或片段上限。")}
           >
             <span className="video-source-thumbnail">
               {source.kind === "audio" ? (
@@ -920,7 +932,8 @@ function SourceLibrary({ sources }: { sources: VideoSource[] }) {
             </span>
             <Plus size={14} />
           </button>
-        ))
+          );
+        })
       ) : (
         <p className="video-empty-library">
           {t("Import a file to start editing.", "导入素材，开始剪辑。")}
@@ -933,6 +946,7 @@ function SourceLibrary({ sources }: { sources: VideoSource[] }) {
 // Context keeps sidebar additions and the inspector on the same document bridge.
 import { createContext, useContext, type ReactNode } from "react";
 type EditorActions = {
+  document: VideoDocument;
   current: () => VideoDocument;
   replace: (doc: VideoDocument) => void;
   projectId: string;
@@ -1006,9 +1020,7 @@ function EditorBody({
   );
   const selectedId =
     selectedItem instanceof TrackElement ? selectedItem.getId() : null;
-  const selected = document.tracks
-    .flatMap((tr) => tr.clips)
-    .find((c) => c.id === selectedId || `e-crispy-${c.id}` === selectedId);
+  const selected = selectedId ? findClip(document, selectedId) : undefined;
   const owner = document.tracks.find((tr) =>
     tr.clips.some((c) => c.id === selected?.id),
   );
@@ -1016,8 +1028,7 @@ function EditorBody({
     (a, b) => a.start_us - b.start_us,
   );
   const selectedIndex = ordered.findIndex((c) => c.id === selected?.id);
-  const layerLimit = document.tracks.length >= 16 ||
-    document.tracks.reduce((count, track) => count + track.clips.length, 0) >= 120;
+  const layerLimit = document.tracks.length >= MAX_VIDEO_TRACKS || clipCount(document) >= MAX_VIDEO_CLIPS;
   function addText(text: string) {
     const clip = {
       ...newClip("text"),
@@ -1057,17 +1068,36 @@ function EditorBody({
     const clip = next.tracks
       .flatMap((tr) => tr.clips)
       .find((c) => c.id === selected.id);
-    if (clip) Object.assign(clip, values);
-    replace(next);
+    if (clip && Object.entries(values).some(([key, value]) => clip[key as keyof VideoClip] !== value)) {
+      Object.assign(clip, values);
+      replace(next);
+    }
   }
   const source = sources.find((s) => s.id === selected?.source_id);
-  const maxDuration =
-    selected && source && source.kind !== "image"
-      ? source.duration_us - selected.source_in_us
-      : 3_600_000_000;
+  const limits = selected
+    ? clipTimingLimits(selected, ordered[selectedIndex - 1], ordered[selectedIndex + 1], source)
+    : null;
+  const ownerIndex = owner ? document.tracks.indexOf(owner) : -1;
+  const isVisualTrack = (track: VideoDocument["tracks"][number]) =>
+    track.clips.some((clip) => clip.kind !== "audio");
+  let behind = -1;
+  for (let index = ownerIndex - 1; index >= 0; index--) {
+    if (!isVisualTrack(document.tracks[index])) continue;
+    behind = index;
+    break;
+  }
+  const ahead = document.tracks.findIndex((track, index) => index > ownerIndex && isVisualTrack(track));
+  function moveLayer(destination: number) {
+    const doc = capture();
+    const index = doc.tracks.findIndex((track) => track.id === owner?.id);
+    if (index < 0 || destination < 0 || destination === index) return;
+    const [track] = doc.tracks.splice(index, 1);
+    doc.tracks.splice(destination, 0, track);
+    replace(doc);
+  }
   const actions = useMemo(
-    () => ({ current: capture, replace, projectId }),
-    [capture, replace, projectId],
+    () => ({ document, current: capture, replace, projectId }),
+    [document, capture, replace, projectId],
   );
   return (
     <Actions.Provider value={actions}>
@@ -1147,7 +1177,7 @@ function EditorBody({
               ? t("Clip properties", "片段属性")
               : t("Composition", "输出设置")}
           </h3>
-          {selected ? (
+          {selected && limits ? (
             <>
               <p className="video-selected-name">
                 {source?.name || t("Text", "文字")}
@@ -1172,43 +1202,49 @@ function EditorBody({
               </div>
               <NumberField
                 label={t("Timeline start (s)", "时间线起点（秒）")}
-                value={seconds(selected.start_us)}
-                min={0}
+                value={selected.start_us / 1e6}
+                min={limits.minStart / 1e6}
+                max={Math.max(selected.start_us, limits.maxStart) / 1e6}
                 onCommit={(v) =>
                   updateSelected({ start_us: Math.round(v * 1e6) })
                 }
               />
               <NumberField
                 label={t("Duration (s)", "时长（秒）")}
-                value={seconds(selected.duration_us)}
-                min={0.04}
-                max={seconds(maxDuration)}
+                value={selected.duration_us / 1e6}
+                min={0.000001}
+                max={Math.max(selected.duration_us, limits.maxDuration) / 1e6}
                 onCommit={(v) =>
                   updateSelected({ duration_us: Math.round(v * 1e6) })
                 }
               />
-              {selected.kind === "video" || selected.kind === "audio" ? (
+              {source && (selected.kind === "video" || selected.kind === "audio") ? (
+                <>
                 <NumberField
                   label={t("Source in-point (s)", "素材入点（秒）")}
-                  value={seconds(selected.source_in_us)}
+                  value={selected.source_in_us / 1e6}
                   min={0}
-                  max={seconds(
-                    (source?.duration_us || 0) - selected.duration_us,
-                  )}
+                  max={Math.max(selected.source_in_us, limits.maxSourceIn) / 1e6}
                   onCommit={(v) =>
                     updateSelected({ source_in_us: Math.round(v * 1e6) })
                   }
                 />
+                <NumberField
+                  label={t("Source out-point (s)", "素材出点（秒）")}
+                  value={(selected.source_in_us + selected.duration_us) / 1e6}
+                  min={(selected.source_in_us + 1) / 1e6}
+                  max={(selected.source_in_us + Math.max(selected.duration_us, limits.maxDuration)) / 1e6}
+                  onCommit={(v) => updateSelected({ duration_us: Math.round(v * 1e6) - selected.source_in_us })}
+                />
+                </>
               ) : null}
+              <ClipTrimControls selected={selected} />
               {selected.kind === "text" ? (
                 <>
                   <label className="video-field">
                     {t("Text", "文字")}
-                    <textarea
-                      value={selected.text}
-                      rows={3}
-                      onChange={(e) => updateSelected({ text: e.target.value })}
-                    />
+                    <ClipText key={selected.id} text={selected.text}
+                      onCommit={(text) => updateSelected({ text })} />
                   </label>
                   <NumberField
                     label={t("Font size", "字号")}
@@ -1270,6 +1306,19 @@ function EditorBody({
                       onCommit={(v) => updateSelected({ y: v / 100 })}
                     />
                   </div>
+                  <label className="video-field">
+                    {t("Opacity", "不透明度")} · {Math.round(selected.opacity * 100)}%
+                    <input type="range" min={0} max={1} step={0.01} value={selected.opacity}
+                      onChange={(e) => updateSelected({ opacity: Number(e.target.value) })} />
+                  </label>
+                  <div className="video-reorder">
+                    <Button variant="outline" disabled={behind < 0} onClick={() => moveLayer(behind)}>
+                      {t("Track backward", "轨道下移")}
+                    </Button>
+                    <Button variant="outline" disabled={ahead < 0} onClick={() => moveLayer(ahead)}>
+                      {t("Track forward", "轨道上移")}
+                    </Button>
+                  </div>
                   <div className="video-field-pair">
                     <NumberField
                       label={t("Width %", "宽度 %")}
@@ -1308,16 +1357,20 @@ function EditorBody({
               <Button
                 variant="outline"
                 onClick={() => {
-                  const doc = capture();
-                  doc.tracks.forEach((tr) => {
-                    tr.clips = tr.clips.filter((c) => c.id !== selected.id);
-                  });
-                  replace(doc);
+                  replace(removeClip(capture(), selected, false));
                   setSelectedItem(null);
                 }}
               >
                 {t("Delete clip", "删除片段")}
               </Button>
+              {selectedIndex < ordered.length - 1 && (
+                <Button variant="outline" onClick={() => {
+                  replace(removeClip(capture(), selected, true));
+                  setSelectedItem(null);
+                }}>
+                  {t("Delete and close gap on track", "删除并接合同轨")}
+                </Button>
+              )}
               <Button variant="ghost" onClick={() => setSelectedItem(null)}>
                 {t("Output settings", "输出设置")}
               </Button>
@@ -1380,8 +1433,8 @@ function EditorBody({
                 <Film size={18} />
                 <p>
                   {t(
-                    "Select a clip to adjust its timing, source in-point and sound. Drag clip edges to trim; use the scissors to split at the playhead.",
-                    "选择片段调整时间、素材入点和声音。拖动片段边缘裁剪，用剪刀按钮在播放头处分割。",
+                    "Select a clip to trim it, set source in and out points, or adjust its picture and sound.",
+                    "选择片段后可裁切、设置素材入点和出点，或调整画面和声音。",
                   )}
                 </p>
                 <small>
@@ -1396,12 +1449,67 @@ function EditorBody({
   );
 }
 
+function ClipText({ text, onCommit }: { text: string; onCommit: (text: string) => void }) {
+  const [draft, setDraft] = useState(text);
+  useEffect(() => setDraft(text), [text]);
+  return (
+    <textarea value={draft} rows={3} maxLength={2000}
+      onChange={(event) => {
+        const next = event.target.value;
+        setDraft(next);
+        if (next.trim()) onCommit(next);
+      }}
+      onBlur={() => { if (!draft.trim()) setDraft(text); }}
+    />
+  );
+}
+
+function ClipTrimControls({ selected }: { selected: VideoClip }) {
+  const { t } = useI18n();
+  const { currentTime, seekTime, playerState, setCurrentTime, setSeekTime } = useLivePlayerContext();
+  const actions = useEditorActions();
+  const at = frameTimeUs(actions.document, currentTime);
+  const within = at > selected.start_us && at < clipEnd(selected);
+  const playing = playerState === PLAYER_STATE.PLAYING;
+  function trim(side: "trim-start" | "trim-end") {
+    const doc = actions.current();
+    const next = cutClip(doc, selected, frameTimeUs(doc, currentTime), side);
+    if (next !== doc) actions.replace(next);
+  }
+  return (
+    <>
+      <NumberField
+        label={t("Playhead (s)", "播放头（秒）")}
+        value={playing ? seekTime : currentTime}
+        min={0}
+        max={durationUs(actions.document) / 1e6}
+        disabled={playing}
+        onCommit={(time) => {
+          setSeekTime(time);
+          setCurrentTime(time);
+        }}
+      />
+      <div className="video-reorder" role="group" aria-label={t("Trim at playhead", "按播放头裁切")}>
+        <Button variant="outline" disabled={!within || playing} onClick={() => trim("trim-start")}>
+          {t("Trim start here", "裁掉播放头前")}
+        </Button>
+        <Button variant="outline" disabled={!within || playing} onClick={() => trim("trim-end")}>
+          {t("Trim end here", "裁掉播放头后")}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+const fieldValue = (value: number) => String(Math.round(value * 1e6) / 1e6);
+
 function NumberField({
   label,
   value,
   min,
   max,
   step = 0.01,
+  disabled = false,
   onCommit,
 }: {
   label: string;
@@ -1409,17 +1517,20 @@ function NumberField({
   min: number;
   max?: number;
   step?: number;
+  disabled?: boolean;
   onCommit: (v: number) => void;
 }) {
-  const [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(Math.round(value * 1000) / 1000)), [value]);
+  const [draft, setDraft] = useState(() => fieldValue(value));
+  useEffect(() => setDraft(fieldValue(value)), [value]);
   function commit() {
     const number = Number(draft);
-    if (!Number.isFinite(number) || draft === "") {
-      setDraft(String(value));
+    if (!Number.isFinite(number) || draft.trim() === "" || draft === fieldValue(value)) {
+      setDraft(fieldValue(value));
       return;
     }
-    onCommit(Math.min(max ?? Infinity, Math.max(min, number)));
+    const accepted = Math.min(max ?? Infinity, Math.max(min, number));
+    setDraft(fieldValue(accepted));
+    onCommit(accepted);
   }
   return (
     <label className="video-field">
@@ -1429,6 +1540,7 @@ function NumberField({
         min={min}
         max={max}
         step={step}
+        disabled={disabled}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
@@ -1467,32 +1579,10 @@ function NativeTimeline({
   const actions = useEditorActions();
   function splitElement(element: TrackElement, at: number) {
     const doc = actions.current();
-    const clip = doc.tracks
-      .flatMap((track) => track.clips)
-      .find(
-        (c) =>
-          c.id === element.getId() || `e-crispy-${c.id}` === element.getId(),
-      );
+    const clip = findClip(doc, element.getId());
     if (!clip) return;
-    const atUs =
-      (Math.round((at * document.fps_num) / document.fps_den) *
-        1e6 *
-        document.fps_den) /
-      document.fps_num;
-    const elapsed = Math.round(atUs) - clip.start_us;
-    if (elapsed <= 0 || elapsed >= clip.duration_us) return;
-    const right = {
-      ...clip,
-      id: videoId(),
-      start_us: clip.start_us + elapsed,
-      duration_us: clip.duration_us - elapsed,
-      source_in_us:
-        clip.source_in_us +
-        (["video", "audio"].includes(clip.kind) ? elapsed : 0),
-    };
-    clip.duration_us = elapsed;
-    doc.tracks.find((track) => track.clips.includes(clip))!.clips.push(right);
-    actions.replace(doc);
+    const next = cutClip(doc, clip, frameTimeUs(doc, at), "split");
+    if (next !== doc) actions.replace(next);
   }
   const [zoom, setZoom] = useState(1);
   const colors = useMemo(() => {

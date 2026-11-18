@@ -8,7 +8,8 @@ On an instruction board, select a pinned video and choose **Edit video on board*
 
 - Import video, image or audio files, or select media already registered to the task. Local files are copied into a content-addressed source library. Originals are not overwritten.
 - Click a source to add it. Video and images append to the picture track; audio appends to an audio track. Add text creates an overlay track.
-- Drag clips or their edges, split at the playhead, or use the inspector for start time, duration, source in-point, frame fit, position, size and volume. **Move earlier / Move later** swaps adjacent clips while retaining their durations.
+- Drag clips or their edges, split at the playhead, or trim either side of the selected clip to the playhead. The inspector supports timeline start and duration, source in and out points, frame fit, position, size, opacity and volume. Timing fields respect adjacent clips and the source duration.
+- **Move earlier / Move later** swaps adjacent clips while retaining their durations. **Delete and close gap on track** moves later clips on that track left by the deleted clip's duration. **Track forward / Track backward** changes stacking for the entire track.
 - Choose output dimensions, frame rate and background in Composition. Save explicitly. Undo/redo works within the editing session; **History** restores a saved revision as a new revision.
 - Clean projects refresh when an agent saves. If local edits are unsaved, remote updates show a conflict notice and leave the draft intact. **Load latest** discards the unsaved local draft; it does not merge conflicting edits.
 - **Export MP4** saves the current draft and starts a background render of that revision. Closing the editor does not cancel a server-side render; reopening resumes its status. Completed output is a new task asset, available to the existing gallery and board tools.

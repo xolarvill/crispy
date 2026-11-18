@@ -73,15 +73,104 @@ const sdkMediaUrl = (uri: string) =>
     typeof location === "undefined" ? "http://localhost" : location.origin,
   ).href;
 export const videoId = (prefix = "e") => `${prefix}-${crypto.randomUUID()}`;
+export const MAX_VIDEO_TIME_US = 3_600_000_000;
+export const MAX_VIDEO_TRACKS = 16;
+export const MAX_VIDEO_CLIPS = 120;
+export const clipEnd = (clip: VideoClip) => clip.start_us + clip.duration_us;
 export const durationUs = (doc: VideoDocument) =>
   Math.max(
     0,
     ...doc.tracks.flatMap((t) =>
-      t.clips.map((c) => c.start_us + c.duration_us),
+      t.clips.map(clipEnd),
     ),
   );
 const sdkId = (id: string, prefix: string) =>
   id.startsWith(`${prefix}-`) ? id : `${prefix}-crispy-${id}`;
+
+export const clipCount = (doc: VideoDocument) =>
+  doc.tracks.reduce((count, track) => count + track.clips.length, 0);
+
+export const findClip = (doc: VideoDocument, id: string) =>
+  doc.tracks.flatMap((track) => track.clips).find((clip) => sdkId(clip.id, "e") === id);
+
+export function frameTimeUs(doc: VideoDocument, time: number) {
+  const frame = Math.round(time * doc.fps_num / doc.fps_den);
+  return Math.round(frame * 1e6 * doc.fps_den / doc.fps_num);
+}
+
+/** The inspector can move within the gap around a clip without crossing its neighbours. */
+export function clipTimingLimits(
+  clip: VideoClip,
+  previous?: VideoClip,
+  next?: VideoClip,
+  source?: VideoSource,
+) {
+  const nextStart = next?.start_us ?? MAX_VIDEO_TIME_US;
+  const sourceEnd = source && source.kind !== "image" ? source.duration_us : MAX_VIDEO_TIME_US;
+  return {
+    minStart: previous ? clipEnd(previous) : 0,
+    maxStart: nextStart - clip.duration_us,
+    maxDuration: Math.min(nextStart - clip.start_us, sourceEnd - clip.source_in_us),
+    maxSourceIn: sourceEnd - clip.duration_us,
+  };
+}
+
+/** A frame at the playhead divides a clip into two source-contiguous ranges. */
+export function cutClip(
+  doc: VideoDocument,
+  clip: VideoClip,
+  atUs: number,
+  action: "split" | "trim-start" | "trim-end",
+) {
+  const elapsed = atUs - clip.start_us;
+  if (elapsed <= 0 || elapsed >= clip.duration_us) return doc;
+  if (action === "split" && clipCount(doc) >= MAX_VIDEO_CLIPS) return doc;
+  const left = { ...clip, duration_us: elapsed };
+  const right = {
+    ...clip,
+    start_us: atUs,
+    duration_us: clip.duration_us - elapsed,
+    source_in_us: clip.source_in_us + (clip.kind === "video" || clip.kind === "audio" ? elapsed : 0),
+  };
+  const pieces = action === "split" ? [left, { ...right, id: videoId() }]
+    : [action === "trim-start" ? right : left];
+  return {
+    ...doc,
+    tracks: doc.tracks.map((track) => ({
+      ...track,
+      clips: track.clips.flatMap((item) => item.id === clip.id ? pieces : [item]),
+    })),
+  };
+}
+
+export function removeClip(doc: VideoDocument, clip: VideoClip, closeGap: boolean) {
+  return {
+    ...doc,
+    tracks: doc.tracks.flatMap((track) => {
+      if (!track.clips.some((item) => item.id === clip.id)) return [track];
+      const clips = track.clips.filter((item) => item.id !== clip.id).map((item) =>
+        closeGap && item.start_us >= clipEnd(clip)
+          ? { ...item, start_us: item.start_us - clip.duration_us }
+          : item,
+      );
+      return clips.length ? [{ ...track, clips }] : [];
+    }),
+  };
+}
+
+export function appendTrack(doc: VideoDocument, kind: VideoSource["kind"]) {
+  const accepts = (clip: VideoClip) => kind === "audio"
+    ? clip.kind === "audio"
+    : clip.kind === "video" || clip.kind === "image";
+  const prefix = kind === "audio" ? "t-audio-" : "t-picture-";
+  return doc.tracks.find((track) => track.id.startsWith(prefix) && track.clips.every(accepts))
+    ?? doc.tracks.find((track) => {
+      if (track.id.startsWith("t-overlay-") || !track.clips.length || !track.clips.every(accepts))
+        return false;
+      return kind === "audio" || track.clips.some((clip) => clip.kind === "video" ||
+        (clip.x === 0 && clip.y === 0 && clip.width === 1 && clip.height === 1));
+    });
+}
 
 export function newClip(
   kind: VideoClip["kind"],
