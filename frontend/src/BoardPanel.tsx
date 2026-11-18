@@ -23,12 +23,10 @@ export function BoardPanel({
   run,
   demo,
   notify,
-  editVideo,
 }: {
   run: Run;
   demo: boolean;
   notify?: (message: string) => void;
-  editVideo?: (uri: string) => void;
 }) {
   const { t } = useI18n();
   const [board, setBoard] = useState<BoardPayload | null>(null);
@@ -195,7 +193,6 @@ export function BoardPanel({
             setTick((value) => value + 1);
           }}
           notify={notify}
-          editVideo={editVideo}
         />
       ) : null}
     </section>

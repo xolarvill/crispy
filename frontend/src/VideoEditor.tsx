@@ -18,6 +18,7 @@ import {
 } from "@twick/live-player";
 import {
   Check,
+  ArrowLeft,
   Copy,
   Download,
   Film,
@@ -40,6 +41,7 @@ import {
   toTwick,
   videoId,
   videoMediaUrl,
+  type BoardVideoLayer,
   type VideoClip,
   type VideoDocument,
   type VideoJob,
@@ -54,14 +56,30 @@ const json = (value: unknown) => JSON.stringify(value);
 const request = () => crypto.randomUUID();
 const seconds = (us: number) => Math.round(us / 1000) / 1000;
 
+type RunSourceImport = VideoProject & { imported_source_id: string };
+type BoardComposition = {
+  layers: BoardVideoLayer[];
+  pinOutput: (uri: string) => Promise<void>;
+};
+
+function withOverlay(document: VideoDocument, clip: VideoClip, name: string): VideoDocument {
+  clip.duration_us = durationUs(document) || 3_000_000;
+  return {
+    ...document,
+    tracks: [...document.tracks, { id: videoId("t"), name, clips: [clip] }],
+  };
+}
+
 export default function VideoStudio({
   target,
   close,
   notify,
+  board,
 }: {
   target: VideoTarget;
   close: () => void;
-  notify: (message: string) => void;
+  notify?: (message: string) => void;
+  board?: BoardComposition;
 }) {
   const { t } = useI18n();
   const [project, setProject] = useState<VideoProject | null>(null);
@@ -82,6 +100,7 @@ export default function VideoStudio({
   const [job, setJob] = useState<VideoJob | null>(null);
   const [renderReady, setRenderReady] = useState(false);
   const [discard, setDiscard] = useState(false);
+  const [pinnedUri, setPinnedUri] = useState<string | null>(null);
   const draft = useRef<VideoDocument | null>(null),
     saved = useRef(""),
     dirtyRef = useRef(false);
@@ -121,7 +140,7 @@ export default function VideoStudio({
     let active = true;
     if (!initialization.current)
       initialization.current = (async () => {
-        const list = await api<VideoProject[]>(
+        const list = target.boardKey ? [] : await api<VideoProject[]>(
           `/runs/${target.runId}/video-projects`,
         );
         if (target.projectId || list.length)
@@ -133,28 +152,34 @@ export default function VideoStudio({
           {
             method: "POST",
             body: json({
-              title: t("Video edit", "视频剪辑"),
-              request_id: request(),
+              title: target.boardKey
+                ? `Board · ${(target.uri?.split(/[\\/]/).pop() || "Video").slice(0, 130)}`
+                : t("Video edit", "视频剪辑"),
+              request_id: target.boardKey || request(),
             }),
           },
         );
-        if (target.uri) {
-          p = await api(`/video-projects/${p.id}/sources/from-run`, {
+        // Revision 1 can be the source import from a previously interrupted setup.
+        if (target.uri && p.revision <= 1 && !p.document.tracks.length) {
+          const imported = await api<RunSourceImport>(`/video-projects/${p.id}/sources/from-run`, {
             method: "POST",
             body: json({
               uri: target.uri,
-              expected_revision: p.revision,
-              request_id: request(),
+              expected_revision: 0,
+              request_id: "initialize-source",
             }),
           });
-          const source = p.sources[0];
+          p = imported;
+          const source = p.sources.find((item) => item.id === imported.imported_source_id);
+          if (!source) throw new Error(t("Source could not be imported", "无法导入源素材"));
+          if (p.revision > 1) return p;
           const doc = {
             ...p.document,
             tracks: [
               {
-                id: videoId("t"),
-                name: t("Video", "视频"),
-                clips: [newClip(source.kind, source)],
+                id: "t-picture-initial",
+                name: "Video",
+                clips: [{ ...newClip(source.kind, source), id: "initial-clip" }],
               },
             ],
           };
@@ -163,7 +188,7 @@ export default function VideoStudio({
             body: json({
               document: doc,
               expected_revision: p.revision,
-              request_id: request(),
+              request_id: "initialize-timeline",
               summary: "Start from task media",
             }),
           });
@@ -174,7 +199,9 @@ export default function VideoStudio({
       .then((p) => {
         if (active) {
           task(p);
-          void refreshList();
+          void refreshList().catch((error: Error) => {
+            if (active) setError(error.message);
+          });
         }
       })
       .catch((e) => {
@@ -213,11 +240,12 @@ export default function VideoStudio({
   }, [project?.id]);
 
   useEffect(() => {
-    if (!project) return;
+    if (!project || busy) return;
+    let active = true;
     const id = window.setInterval(async () => {
       try {
         const latest = await api<VideoProject>(`/video-projects/${project.id}`);
-        if (latest.revision !== project.revision) {
+        if (active && latest.revision !== project.revision) {
           if (dirtyRef.current) setRemote(true);
           else task(latest);
         }
@@ -225,8 +253,11 @@ export default function VideoStudio({
         /* Saving still surfaces connection failures. */
       }
     }, 4000);
-    return () => window.clearInterval(id);
-  }, [project?.id, project?.revision, task]);
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
+  }, [project?.id, project?.revision, busy, task]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -237,16 +268,23 @@ export default function VideoStudio({
 
   useEffect(() => {
     if (!project || !job || !["queued", "running"].includes(job.status)) return;
+    let active = true;
     const id = window.setInterval(() => {
       api<VideoJob>(`/video-projects/${project.id}/renders/${job.id}`)
         .then((next) => {
+          if (!active) return;
           setJob(next);
           if (next.status === "completed")
-            notify(t("Video exported to task assets", "视频已导出到任务素材"));
+            notify?.(t("Video exported to task assets", "视频已导出到任务素材"));
         })
-        .catch((e) => setError(e.message));
+        .catch((e) => {
+          if (active) setError(e.message);
+        });
     }, 1000);
-    return () => window.clearInterval(id);
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
   }, [project?.id, job?.id, job?.status, notify, t]);
 
   const onChange = useCallback((doc: VideoDocument) => {
@@ -320,6 +358,29 @@ export default function VideoStudio({
     });
   }
 
+  async function addBoardImage(layer: Extract<BoardVideoLayer, { kind: "image" }>) {
+    await perform(async () => {
+      if (!project || !draft.current) return;
+      const current = draft.current;
+      if (current.tracks.length >= 16 ||
+          current.tracks.reduce((count, track) => count + track.clips.length, 0) >= 120)
+        throw new Error(t("The timeline has reached its layer or clip limit.", "时间线已达到图层或片段上限。"));
+      const imported = await api<RunSourceImport>(`/video-projects/${project.id}/sources/from-run`, {
+        method: "POST",
+        body: json({ uri: layer.uri, expected_revision: project.revision, request_id: request() }),
+      });
+      const source = imported.sources.find((item) => item.id === imported.imported_source_id);
+      const overlay = source?.kind === "image"
+        ? { ...newClip("image", source), x: 0.05, y: 0.05, width: 0.3, height: 0.3 }
+        : null;
+      const document = overlay ? withOverlay(current, overlay, layer.label.slice(0, 100)) : current;
+      task(imported);
+      setSeed(document);
+      onChange(document);
+      if (!overlay) throw new Error(t("This board asset is not a supported image.", "此白板素材无法作为图片叠加。"));
+    });
+  }
+
   async function openProject(id: string) {
     await perform(async () => {
       await save();
@@ -329,33 +390,29 @@ export default function VideoStudio({
     });
   }
 
-  const dismiss = () => (dirtyRef.current ? setDiscard(true) : close());
+  const dismiss = () => {
+    if (busy) return;
+    if (dirtyRef.current) setDiscard(true);
+    else close();
+  };
   const rendering = job && ["queued", "running"].includes(job.status);
-  return (
-    <Dialog.Root
-      open
-      onOpenChange={(open) => {
-        if (!open) dismiss();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Overlay className="video-overlay" />
-        <Dialog.Content
-          className="video-workspace"
-          aria-describedby={undefined}
-          onEscapeKeyDown={(e) => {
-            e.preventDefault();
-            dismiss();
-          }}
-          onInteractOutside={(e) => e.preventDefault()}
-        >
+  const outputUri = job?.status === "completed" ? job.uri : undefined;
+  const body = (
+    <>
           <header className="video-header">
             <div className="video-heading">
-              <Film size={20} />
+              {board ? (
+                <Button variant="ghost" size="icon" onClick={dismiss} disabled={busy}
+                  autoFocus aria-label={t("Back to board", "返回白板")}>
+                  <ArrowLeft size={18} />
+                </Button>
+              ) : <Film size={20} />}
               <div>
-                <Dialog.Title asChild>
-                  <p>{project?.title || t("Video editor", "视频编辑")}</p>
-                </Dialog.Title>
+                {board ? <p>{t("Video composition", "视频合成")}</p> : (
+                  <Dialog.Title asChild>
+                    <p>{project?.title || t("Video editor", "视频编辑")}</p>
+                  </Dialog.Title>
+                )}
                 <span>
                   {dirty
                     ? t("Unsaved changes", "有未保存的修改")
@@ -374,7 +431,7 @@ export default function VideoStudio({
                     await navigator.clipboard.writeText(
                       `Crispy video project ${project!.id}\nRun: ${project!.run_id}\nRead get_video_project before editing. Times are microseconds; preserve human edits.\n${window.location.origin}/?mode=live#/assets?video=${project!.id}&run=${project!.run_id}`,
                     );
-                    notify(
+                    notify?.(
                       t("Agent handoff copied", "已复制给 agent 的工程信息"),
                     );
                   })
@@ -403,7 +460,7 @@ export default function VideoStudio({
                 onClick={() =>
                   perform(async () => {
                     await save();
-                    notify(t("Video project saved", "视频工程已保存"));
+                    notify?.(t("Video project saved", "视频工程已保存"));
                   })
                 }
               >
@@ -436,14 +493,14 @@ export default function VideoStudio({
                 )}
                 {t("Export MP4", "导出 MP4")}
               </Button>
-              <Button
+              {!board && <Button
                 variant="ghost"
                 size="icon"
                 aria-label={t("Close video editor", "关闭视频编辑器")}
                 onClick={dismiss}
               >
                 <X size={18} />
-              </Button>
+              </Button>}
             </div>
           </header>
           {error && (
@@ -521,6 +578,16 @@ export default function VideoStudio({
                   <a href={videoMediaUrl(job.uri)} download="crispy-video.mp4">
                     {t("Download", "下载")}
                   </a>
+                  {board && outputUri && (
+                    <Button variant="outline" disabled={busy || pinnedUri === outputUri}
+                      onClick={() => perform(async () => {
+                        await board.pinOutput(outputUri);
+                        setPinnedUri(outputUri);
+                      })}>
+                      <Plus size={14} />
+                      {pinnedUri === outputUri ? t("On board", "已放到白板") : t("Add to board", "放到白板")}
+                    </Button>
+                  )}
                 </>
               ) : (
                 <span>{job.error || t("Export cancelled", "导出已取消")}</span>
@@ -555,6 +622,8 @@ export default function VideoStudio({
                   projectId={project.id}
                   onChange={onChange}
                   busy={busy}
+                  boardLayers={board?.layers}
+                  addBoardImage={addBoardImage}
                   library={
                     <>
                       <div className="video-library-head">
@@ -572,6 +641,7 @@ export default function VideoStudio({
                       <label className="video-project-picker">
                         {t("Project", "工程")}
                         <select
+                          aria-label={t("Project", "工程")}
                           disabled={busy}
                           value={project.id}
                           onChange={(e) => openProject(e.target.value)}
@@ -583,7 +653,7 @@ export default function VideoStudio({
                           ))}
                         </select>
                       </label>
-                      <Button
+                      {!board && <Button
                         variant="outline"
                         disabled={busy}
                         onClick={() =>
@@ -606,7 +676,7 @@ export default function VideoStudio({
                       >
                         <Plus size={14} />
                         {t("New edit", "新建剪辑")}
-                      </Button>
+                      </Button>}
                       <div className="video-library-label">
                         {t("Project sources", "工程素材")}
                       </div>
@@ -764,6 +834,17 @@ export default function VideoStudio({
               </div>
             </div>
           )}
+    </>
+  );
+  if (board) return <section className="video-workspace video-workspace-embedded" aria-label={t("Video composition", "视频合成")}>{body}</section>;
+  return (
+    <Dialog.Root open onOpenChange={(open) => { if (!open) dismiss(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="video-overlay" />
+        <Dialog.Content className="video-workspace" aria-describedby={undefined}
+          onEscapeKeyDown={(event) => { event.preventDefault(); dismiss(); }}
+          onInteractOutside={(event) => event.preventDefault()}>
+          {body}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -868,6 +949,8 @@ function EditorBody({
   onChange,
   library,
   busy,
+  boardLayers,
+  addBoardImage,
 }: {
   initial: VideoDocument;
   sources: VideoSource[];
@@ -875,6 +958,8 @@ function EditorBody({
   onChange: (doc: VideoDocument) => void;
   library: ReactNode;
   busy: boolean;
+  boardLayers?: BoardVideoLayer[];
+  addBoardImage: (layer: Extract<BoardVideoLayer, { kind: "image" }>) => Promise<void>;
 }) {
   const { t } = useI18n();
   const {
@@ -931,6 +1016,23 @@ function EditorBody({
     (a, b) => a.start_us - b.start_us,
   );
   const selectedIndex = ordered.findIndex((c) => c.id === selected?.id);
+  const layerLimit = document.tracks.length >= 16 ||
+    document.tracks.reduce((count, track) => count + track.clips.length, 0) >= 120;
+  function addText(text: string) {
+    const clip = {
+      ...newClip("text"),
+      text,
+      x: 0.08,
+      y: 0.75,
+      width: 0.84,
+      height: 0.2,
+    };
+    const next = withOverlay(capture(), clip, t("Text", "文字"));
+    replace(next);
+    const track = next.tracks.at(-1)!;
+    const element = editor.getTrackById(track.id)?.getElements()[0];
+    if (element) setSelectedItem(element);
+  }
   function reorder(offset: number) {
     if (!selected || !owner) return;
     const neighbor = ordered[selectedIndex + offset];
@@ -971,29 +1073,30 @@ function EditorBody({
     <Actions.Provider value={actions}>
       <div className={`video-body ${busy ? "is-busy" : ""}`}>
         <aside className="video-library">
+          {boardLayers && (
+            <section className="video-board-layers">
+              <h3>{t("From this board", "当前白板素材")}</h3>
+              {boardLayers.length ? boardLayers.map((layer) => (
+                <Button
+                  key={layer.id}
+                  variant="ghost"
+                  title={layer.label}
+                  disabled={busy || layerLimit || (layer.kind === "text" && layer.text.length > 2000)}
+                  onClick={() => layer.kind === "text" ? addText(layer.text) : void addBoardImage(layer)}
+                >
+                  {layer.kind === "text" ? <Type size={14} /> : <Plus size={14} />}
+                  <span>{layer.label}</span>
+                </Button>
+              )) : <p>{t("Pin images or add text on the board to use them as overlays.", "在白板放入图片或文字，即可在这里叠加。")}</p>}
+              {layerLimit && <p role="status">{t("Layer or clip limit reached.", "已达到图层或片段上限。")}</p>}
+            </section>
+          )}
           {library}
           <div className="video-library-label">{t("Overlays", "叠加内容")}</div>
           <Button
             variant="outline"
-            onClick={() => {
-              const doc = capture();
-              const clip = newClip("text");
-              clip.text = t("Your title", "输入标题");
-              clip.x = 0.08;
-              clip.y = 0.75;
-              clip.width = 0.84;
-              clip.height = 0.2;
-              clip.duration_us = durationUs(doc) || 3_000_000;
-              const track = {
-                id: videoId("t"),
-                name: t("Text", "文字"),
-                clips: [clip],
-              };
-              doc.tracks.push(track);
-              replace(doc);
-              const el = editor.getTrackById(track.id)?.getElements()[0];
-              if (el) setSelectedItem(el);
-            }}
+            disabled={busy || layerLimit}
+            onClick={() => addText(t("Your title", "输入标题"))}
           >
             <Type size={15} />
             {t("Add text", "添加文字")}
@@ -1022,7 +1125,8 @@ function EditorBody({
             </Button>
           </div>
           <div className="video-twick">
-            <NativeTimeline document={document} sources={sources} />
+            <NativeTimeline document={document} sources={sources}
+              selected={busy ? undefined : selected} moveSelected={updateSelected} />
           </div>
           {!document.tracks.some((tr) => tr.clips.length) && (
             <div className="video-empty-stage">
@@ -1342,9 +1446,13 @@ function NumberField({
 function NativeTimeline({
   document,
   sources,
+  selected,
+  moveSelected,
 }: {
   document: VideoDocument;
   sources: VideoSource[];
+  selected?: VideoClip;
+  moveSelected: (position: Pick<VideoClip, "x" | "y">) => void;
 }) {
   const {
     currentTime,
@@ -1406,7 +1514,14 @@ function NativeTimeline({
   const container = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 640, height: 360 });
   const [mediaError, setMediaError] = useState("");
+  const drag = useRef<{ id: string; clientX: number; clientY: number } | null>(null);
+  const [dragPosition, setDragPosition] = useState<{ id: string; x: number; y: number } | null>(null);
   const { t } = useI18n();
+  const previewTime = currentTime >= total ? Math.max(0, total - 0.000001) : currentTime;
+  const isVisible = (clip: VideoClip) =>
+    previewTime >= clip.start_us / 1e6 && previewTime < (clip.start_us + clip.duration_us) / 1e6;
+  const movable = selected && selected.kind !== "audio" && !playing && isVisible(selected) ? selected : null;
+  const position = (clip: VideoClip) => dragPosition?.id === clip.id ? dragPosition : clip;
   useEffect(() => {
     const node = container.current;
     if (!node) return;
@@ -1451,12 +1566,10 @@ function NativeTimeline({
     for (const clip of clips) {
       const node = media.current.get(clip.id);
       if (!node || node.readyState < 1) continue;
-      const active =
-        currentTime >= clip.start_us / 1e6 &&
-        currentTime < (clip.start_us + clip.duration_us) / 1e6;
+      const active = isVisible(clip);
       const expected =
         clip.source_in_us / 1e6 +
-        Math.max(0, currentTime - clip.start_us / 1e6);
+        Math.max(0, previewTime - clip.start_us / 1e6);
       node.volume = Math.min(1, clip.volume);
       if (active) {
         if (Math.abs(node.currentTime - expected) > (playing ? 0.15 : 0.025))
@@ -1475,7 +1588,7 @@ function NativeTimeline({
         else if (!playing && !node.paused) node.pause();
       } else if (!node.paused) node.pause();
     }
-  }, [currentTime, playing, clips, t]);
+  }, [previewTime, playing, clips, t]);
   const seek = (time: number) => {
     setCurrentTime(time);
     setSeekTime(time);
@@ -1493,13 +1606,12 @@ function NativeTimeline({
         >
           {clips.map((clip) => {
             const source = sources.find((s) => s.id === clip.source_id);
-            const active =
-              currentTime >= clip.start_us / 1e6 &&
-              currentTime < (clip.start_us + clip.duration_us) / 1e6;
+            const active = isVisible(clip);
+            const { x, y } = position(clip);
             const style = {
               position: "absolute" as const,
-              left: `${clip.x * 100}%`,
-              top: `${clip.y * 100}%`,
+              left: `${x * 100}%`,
+              top: `${y * 100}%`,
               width: `${clip.width * 100}%`,
               height: `${clip.height * 100}%`,
               opacity: active ? clip.opacity : 0,
@@ -1555,6 +1667,39 @@ function NativeTimeline({
               <video key={clip.id} {...props} style={style} playsInline />
             );
           })}
+          {movable && (
+            <div className="video-layer-bounds" aria-hidden="true"
+              style={{
+                left: `${position(movable).x * 100}%`,
+                top: `${position(movable).y * 100}%`,
+                width: `${movable.width * 100}%`,
+                height: `${movable.height * 100}%`,
+              }}
+              onPointerDown={(event) => {
+                if (event.button !== 0) return;
+                event.currentTarget.setPointerCapture(event.pointerId);
+                drag.current = { id: movable.id, clientX: event.clientX, clientY: event.clientY };
+              }}
+              onPointerMove={(event) => {
+                const origin = drag.current;
+                if (origin?.id !== movable.id) return;
+                setDragPosition({
+                  id: movable.id,
+                  x: Math.max(0, Math.min(1 - movable.width, movable.x + (event.clientX - origin.clientX) / size.width)),
+                  y: Math.max(0, Math.min(1 - movable.height, movable.y + (event.clientY - origin.clientY) / size.height)),
+                });
+              }}
+              onPointerUp={() => {
+                if (drag.current?.id === movable.id && dragPosition?.id === movable.id) {
+                  moveSelected({ x: dragPosition.x, y: dragPosition.y });
+                }
+              }}
+              onLostPointerCapture={() => {
+                drag.current = null;
+                setDragPosition(null);
+              }}
+            />
+          )}
         </div>
         {mediaError && (
           <div className="video-preview-error" role="alert">

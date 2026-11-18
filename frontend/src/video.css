@@ -17,6 +17,45 @@
   box-shadow: 0 24px 80px #101b2440;
   overflow: hidden;
 }
+.video-workspace.video-workspace-embedded {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+}
+.video-board-layers {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.video-board-layers h3 {
+  font-size: 13px;
+  margin: 0 0 6px;
+}
+.video-board-layers button {
+  min-width: 0;
+  justify-content: flex-start;
+}
+.video-board-layers button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.video-board-layers p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.video-layer-bounds {
+  position: absolute;
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  cursor: move;
+  touch-action: none;
+}
 .video-header {
   display: flex;
   align-items: center;
@@ -565,7 +604,7 @@
   font-size: 11px;
 }
 @media (max-width: 760px) {
-  .video-header-actions > button:last-child {
+  .video-workspace:not(.video-workspace-embedded) .video-header-actions > button:last-child {
     position: absolute;
     right: 10px;
     top: 10px;
@@ -622,7 +661,7 @@
   .video-library-head {
     margin-bottom: 6px;
   }
-  .video-project-picker,
+  .video-workspace:not(.video-workspace-embedded) .video-project-picker,
   .video-library > .video-library-label,
   .video-library > .video-task-sources {
     display: none;
@@ -630,6 +669,10 @@
   .video-sources {
     display: flex;
     overflow-x: auto;
+  }
+  .video-board-layers {
+    max-height: 100px;
+    overflow-y: auto;
   }
   .video-source {
     min-width: 170px;

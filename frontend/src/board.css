@@ -26,6 +26,21 @@
   box-shadow: 0 24px 80px #0004;
   overflow: hidden;
 }
+.video-board-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+.board-shell > .board-header[inert],
+.board-shell > .board-body[inert] {
+  opacity: 0;
+}
 .board-header {
   display: flex;
   align-items: center;

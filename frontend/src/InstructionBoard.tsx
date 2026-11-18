@@ -5,6 +5,8 @@
  * server compiles it into the prompt digest shown in the side panel.
  */
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useRef,
@@ -12,6 +14,7 @@ import {
 } from "react";
 import {
   createShapeId,
+  renderPlaintextFromRichText,
   Tldraw,
   useValue,
   type Editor,
@@ -87,6 +90,7 @@ import {
   boardTools,
 } from "./board-shapes";
 import { loadScene, readScene } from "./board-mapping";
+import type { BoardVideoLayer, VideoTarget } from "./video-data";
 
 export type BoardTarget = {
   runId: string;
@@ -95,6 +99,7 @@ export type BoardTarget = {
 
 const MAX_MARK = 99;
 const SNAPSHOT_BUDGET = 2_900_000;
+const VideoStudio = lazy(() => import("./VideoEditor"));
 
 const ROLES: { value: BoardRole; en: string; zh: string }[] = [
   { value: "source", en: "Source", zh: "主体素材" },
@@ -249,12 +254,10 @@ export function InstructionBoard({
   target,
   close,
   notify,
-  editVideo,
 }: {
   target: BoardTarget;
   close: () => void;
   notify?: (message: string) => void;
-  editVideo?: (uri: string) => void;
 }) {
   const { t } = useI18n();
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -275,6 +278,8 @@ export function InstructionBoard({
   const [openTrace, setOpenTrace] = useState(true);
   const [assets, setAssets] = useState<RunMedia[]>([]);
   const [selected, setSelected] = useState<TLShape[]>([]);
+  const [composition, setComposition] = useState<VideoTarget | null>(null);
+  const compositionTrigger = useRef<HTMLButtonElement>(null);
   const [version, setVersion] = useState(0);
   const [focusedRegion, setFocusedRegion] = useState<TLShapeId | null>(null);
   const [tabs, setTabs] = useState<BoardTab[]>([]);
@@ -748,6 +753,7 @@ export function InstructionBoard({
   }, [activeBoardId, editor, notify, t, target.runId]);
 
   useEffect(() => {
+    if (composition) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
@@ -756,7 +762,7 @@ export function InstructionBoard({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [saveNow]);
+  }, [composition, saveNow]);
 
   const closeBoard = useCallback(() => {
     if (
@@ -979,8 +985,8 @@ export function InstructionBoard({
     return () => window.removeEventListener("pointerdown", onPointerDown);
   }, [historyOpen, tabMenuOpen]);
 
-  async function addAsset(media: RunMedia) {
-    if (!editor) return;
+  async function addAsset(media: RunMedia, role: BoardRole = "source") {
+    if (!editor) return false;
     const existing = editor
       .getCurrentPageShapes()
       .find(
@@ -991,12 +997,12 @@ export function InstructionBoard({
     if (existing) {
       editor.select(existing.id);
       fitShape(editor, existing);
-      return;
+      return true;
     }
     const mark = nextMark(editor);
     if (mark === null) {
       setNotice(t("The board is full (99 numbered assets).", "白板素材已达上限（99 个编号）。"));
-      return;
+      return false;
     }
     const video = isVideoUri(media.uri);
     let width = 360;
@@ -1030,7 +1036,7 @@ export function InstructionBoard({
         uri: media.uri,
         assetId: `m_${shortHash(media.uri)}`,
         mark,
-        role: "source",
+        role,
         caption: "",
         mediaKind: video ? "video" : "image",
       },
@@ -1049,6 +1055,16 @@ export function InstructionBoard({
         animation: { duration: 220 },
       });
     }
+    return true;
+  }
+
+  async function pinVideoOutput(uri: string) {
+    const output: RunMedia = { uri, kind: "video", source: "generated" };
+    if (!(await addAsset(output, "output"))) {
+      throw new Error(t("There is no space for another board asset.", "白板已满，无法放入成片。"));
+    }
+    setAssets((current) => current.some((asset) => asset.uri === uri) ? current : [...current, output]);
+    setNotice(t("Video added. Save the board to keep it in this layout.", "成片已放回白板，保存白板即可保留。"));
   }
 
   async function refreshDigest() {
@@ -1080,6 +1096,21 @@ export function InstructionBoard({
   );
   const selectedAsset =
     selected.length === 1 && selected[0].type === ASSET_SHAPE ? selected[0] : null;
+  const boardVideoLayers = composition && editor ? shapes.flatMap((shape): BoardVideoLayer[] => {
+    if (shape.type === ASSET_SHAPE && shape.props.mediaKind === "image") {
+      return [{
+        id: shape.id,
+        kind: "image",
+        uri: shape.props.uri,
+        label: `${circledMark(shape.props.mark)} ${shape.props.caption || shape.props.uri.split(/[\\/]/).pop()}`,
+      }];
+    }
+    if (shape.type === "text") {
+      const text = renderPlaintextFromRichText(editor, shape.props.richText).trim();
+      if (text) return [{ id: shape.id, kind: "text", label: text, text }];
+    }
+    return [];
+  }) : [];
   const selectedRegion =
     selected.length === 1 && selected[0].type === REGION_SHAPE ? selected[0] : null;
 
@@ -1165,7 +1196,7 @@ export function InstructionBoard({
       aria-label={t("Instruction board", "指令白板")}
     >
       <div className="board-shell">
-        <header className="board-header">
+        <header className="board-header" inert={!!composition} aria-hidden={!!composition}>
           <div className="board-tabbar">
             <div
               className="board-tabs"
@@ -1333,7 +1364,7 @@ export function InstructionBoard({
           </button>
         </header>
 
-        <div className="board-body">
+        <div className="board-body" inert={!!composition} aria-hidden={!!composition}>
           <aside className="board-sidebar">
             <section className="board-section">
               <label className="board-label" htmlFor="board-goal">
@@ -1406,9 +1437,11 @@ export function InstructionBoard({
                             )}
                           </span>
                           <span className="board-asset-chip-label">
-                            {media.source === "generated"
-                              ? t("Generated", "生成")
-                              : t("Input", "素材")}
+                            {media.kind === "video"
+                              ? media.uri.split(/[\\/]/).pop()
+                              : media.source === "generated"
+                                ? t("Generated", "生成")
+                                : t("Input", "素材")}
                           </span>
                         </button>
                       );
@@ -1523,7 +1556,18 @@ export function InstructionBoard({
 
             {selectedAsset ? (
               <>
-              {selectedAsset.props.mediaKind === "video" && editVideo && <section className="board-section"><Button variant="outline" onClick={() => editVideo(selectedAsset.props.uri)}>{t("Edit video", "编辑视频")}</Button></section>}
+              {selectedAsset.props.mediaKind === "video" && (
+                <section className="board-section">
+                  <Button ref={compositionTrigger} variant="outline" onClick={() => setComposition({
+                    runId: target.runId,
+                    uri: selectedAsset.props.uri,
+                    boardKey: `board-video:${selectedAsset.meta.boardId ?? selectedAsset.id}:${shortHash(selectedAsset.props.uri)}`,
+                  })}>
+                    <Video size={15} />
+                    {t("Edit video on board", "在白板编辑视频")}
+                  </Button>
+                </section>
+              )}
               <AssetInspector
                 key={selectedAsset.id}
                 editor={editor!}
@@ -1771,7 +1815,7 @@ export function InstructionBoard({
           </div>
         </div>
 
-        {notice ? <div className="board-notice">{notice}</div> : null}
+        {notice && !composition ? <div className="board-notice">{notice}</div> : null}
         {error ? (
           <div className="board-fatal">
             <p>{error}</p>
@@ -1785,6 +1829,22 @@ export function InstructionBoard({
             {t("Loading the board", "正在加载白板")}
           </div>
         ) : null}
+        {composition && (
+          <Suspense fallback={<div className="video-board-loading" role="status">
+            <LoaderCircle size={18} className="spin" />{t("Opening video composition…", "正在打开视频合成…")}
+          </div>}>
+            <VideoStudio
+              target={composition}
+              board={{ layers: boardVideoLayers, pinOutput: pinVideoOutput }}
+              close={() => {
+                setComposition(null);
+                void fetchBoardAssets(target.runId).then(setAssets).catch(() => {});
+                requestAnimationFrame(() => (compositionTrigger.current ?? editor?.getContainer())?.focus());
+              }}
+              notify={notify}
+            />
+          </Suspense>
+        )}
       </div>
     </div>
   );

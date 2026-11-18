@@ -713,7 +713,6 @@ export default function App() {
                         run={current}
                         demo={demo}
                         notify={setToast}
-                        editVideo={uri => setVideo({ runId: current.id, uri })}
                       />
                     ) : detailTab === "stages" ? (
                       <section

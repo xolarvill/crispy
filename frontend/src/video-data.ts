@@ -55,7 +55,16 @@ export type VideoJob = {
   uri: string;
   artifact_id: string | null;
 };
-export type VideoTarget = { runId: string; uri?: string; projectId?: string };
+export type VideoTarget = {
+  runId: string;
+  uri?: string;
+  projectId?: string;
+  boardKey?: string;
+};
+
+export type BoardVideoLayer =
+  | { id: string; kind: "image"; label: string; uri: string }
+  | { id: string; kind: "text"; label: string; text: string };
 export const videoMediaUrl = (uri: string) =>
   `/api/media?path=${encodeURIComponent(uri)}`;
 const sdkMediaUrl = (uri: string) =>

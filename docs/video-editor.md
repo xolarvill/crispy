@@ -1,6 +1,8 @@
 # Local video editing
 
-Video edits live inside Crispy's media workbench. Open a live task's video preview and choose **Edit video**, or select a pinned video on the instruction board and use the same action. Existing edits for that run reopen automatically; **New edit** creates another independent project. Demo-mode media does not write projects.
+Open a live task's video preview and choose **Edit video**. Existing edits for that run reopen automatically, and **New edit** creates another independent project. Demo-mode media does not write projects.
+
+On an instruction board, select a pinned video and choose **Edit video on board**. This opens the composition inside the board workspace and reopens the project attached to that pin. Use the **Project** picker to continue an existing edit for the run, including one started from Assets. Under **From this board**, choose pinned images or text to add them above the video on separate tracks. These layers start at the beginning of the composition and span its current duration. Select a timeline layer and drag its outline in the preview to position it, or set position, size and timing in the inspector. After export, choose **Add to board**, return to the board and save it to keep the new output in the layout.
 
 ## Editing
 
