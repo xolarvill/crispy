@@ -67,6 +67,13 @@ const json = (value: unknown) => JSON.stringify(value);
 const request = () => crypto.randomUUID();
 const seconds = (us: number) => Math.round(us / 1000) / 1000;
 
+type ExportReview = {
+  revision: number;
+  sheet_uri: string;
+  notes: string[];
+  checks: { check: string; status: "PASS" | "WARN" | "FAIL"; value: string; expected: string; reason?: string }[];
+};
+
 type RunSourceImport = VideoProject & { imported_source_id: string };
 type BoardComposition = {
   layers: BoardVideoLayer[];
@@ -108,6 +115,7 @@ export default function VideoStudio({
   const [history, setHistory] = useState<
     { revision: number; actor: string; summary: string }[] | null
   >(null);
+  const [reviewJobId, setReviewJobId] = useState<string | null>(null);
   const [job, setJob] = useState<VideoJob | null>(null);
   const [renderReady, setRenderReady] = useState(false);
   const [discard, setDiscard] = useState(false);
@@ -454,11 +462,10 @@ export default function VideoStudio({
                 variant="ghost"
                 disabled={!project || busy}
                 onClick={() =>
-                  perform(async () =>
-                    setHistory(
-                      await api(`/video-projects/${project!.id}/history`),
-                    ),
-                  )
+                  perform(async () => {
+                    setReviewJobId(null);
+                    setHistory(await api(`/video-projects/${project!.id}/history`));
+                  })
                 }
               >
                 <History size={15} />
@@ -588,6 +595,12 @@ export default function VideoStudio({
                   <a href={videoMediaUrl(job.uri)} download="crispy-video.mp4">
                     {t("Download", "下载")}
                   </a>
+                  <Button variant="outline" onClick={() => {
+                    setHistory(null);
+                    setReviewJobId(job.id);
+                  }}>
+                    {t("Review export", "检查成片")}
+                  </Button>
                   {board && outputUri && (
                     <Button variant="outline" disabled={busy || pinnedUri === outputUri}
                       onClick={() => perform(async () => {
@@ -808,6 +821,14 @@ export default function VideoStudio({
               ))}
             </div>
           )}
+          {project && job?.status === "completed" && reviewJobId === job.id && (
+            <VideoExportReview
+              key={job.id}
+              projectId={project.id}
+              job={job}
+              close={() => setReviewJobId(null)}
+            />
+          )}
           {discard && (
             <div
               className="video-discard"
@@ -858,6 +879,92 @@ export default function VideoStudio({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function VideoExportReview({ projectId, job, close }: {
+  projectId: string;
+  job: VideoJob;
+  close: () => void;
+}) {
+  const { t } = useI18n();
+  const [platform, setPlatform] = useState("");
+  const [report, setReport] = useState<ExportReview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const requestRef = useRef<AbortController | null>(null);
+  useEffect(() => () => requestRef.current?.abort(), []);
+
+  async function runReview() {
+    const controller = new AbortController();
+    requestRef.current = controller;
+    setBusy(true);
+    setError("");
+    setReport(null);
+    try {
+      setReport(await api<ExportReview>(`/video-projects/${projectId}/renders/${job.id}/review`, {
+        method: "POST",
+        body: json({ platform: platform || null }),
+        signal: controller.signal,
+      }));
+    } catch (cause) {
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
+
+  const failed = report?.checks.filter((check) => check.status === "FAIL").length ?? 0;
+  const warned = report?.checks.filter((check) => check.status === "WARN").length ?? 0;
+  return (
+    <section className="video-review" aria-label={t("Export review", "成片检查")} aria-busy={busy}>
+      <header>
+        <h3>{t("Export review", "成片检查")} · r{job.revision}</h3>
+        <Button size="icon" variant="ghost" aria-label={t("Close export review", "关闭成片检查")}
+          onClick={close} autoFocus><X size={16} /></Button>
+      </header>
+      <div className="video-review-options">
+        <label className="video-field">
+          {t("Delivery platform", "交付平台")}
+          <select value={platform} disabled={busy} onChange={(event) => {
+            setPlatform(event.target.value);
+            setReport(null);
+            setError("");
+          }}>
+            <option value="">{t("General review", "通用检查")}</option>
+            <option value="youtube">YouTube</option>
+            <option value="shorts">YouTube Shorts</option>
+            <option value="tiktok">TikTok</option>
+            <option value="reels">Instagram Reels</option>
+          </select>
+        </label>
+        <Button onClick={() => void runReview()} disabled={busy}>
+          {busy && <LoaderCircle size={14} className="spin" />}
+          {busy ? t("Checking…", "检查中…") : t("Run review", "开始检查")}
+        </Button>
+      </div>
+      {error && <p role="alert" className="video-notice error">{error}</p>}
+      {report && (
+        <>
+          <p role="status">
+            {t(`${report.checks.length} checks · ${failed} failed · ${warned} warnings`,
+               `${report.checks.length} 项检查 · ${failed} 项未通过 · ${warned} 项提示`)}
+          </p>
+          <img src={videoMediaUrl(report.sheet_uri)} alt={t("Export contact sheet", "成片抽帧图")} />
+          <ul className="video-review-results" aria-label={t("Check results", "检查结果")}>
+            {report.checks.map((row) => (
+              <li key={row.check}>
+                <strong data-status={row.status}>{row.status}</strong>
+                <span><b>{row.check}</b> · {row.value}
+                  {row.status !== "PASS" && <small>{row.expected}{row.reason ? ` · ${row.reason}` : ""}</small>}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {report.notes.map((note, index) => <p className="muted" key={index}>{note}</p>)}
+        </>
+      )}
+    </section>
   );
 }
 

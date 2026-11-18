@@ -13,6 +13,7 @@ On an instruction board, select a pinned video and choose **Edit video on board*
 - Choose output dimensions, frame rate and background in Composition. Save explicitly. Undo/redo works within the editing session; **History** restores a saved revision as a new revision.
 - Clean projects refresh when an agent saves. If local edits are unsaved, remote updates show a conflict notice and leave the draft intact. **Load latest** discards the unsaved local draft; it does not merge conflicting edits.
 - **Export MP4** saves the current draft and starts a background render of that revision. Closing the editor does not cancel a server-side render; reopening resumes its status. Completed output is a new task asset, available to the existing gallery and board tools.
+- **Review export** runs the vendored `check` and `look` tools on the completed MP4. Choose a delivery platform to check its preset, or use General review for guidance. The report shows pass, warning and failure rows and a 3×2 contact sheet. Review uses the export's saved revision and is separate from export completion.
 
 The browser preview uses native media elements driven by Twick's timeline clock. Twick provides timeline manipulation, selection and local undo history; Crispy owns the edit document, persistence, source references, public tools and FFmpeg render adapter. Twick's optional motion-graphics player is not the preview authority. Upstream UI styles are scoped to the editor and optional remote font imports are removed at build time. Timeline analytics are disabled.
 
@@ -78,6 +79,8 @@ Example split:
 Operations: `add_track`, `remove_track`, `add_clip`, `update_clip`, `remove_clip`, `split_clip`, `settings`. `add_clip.values` follows `VideoClip` in `app/schemas/video.py`. Source IDs come from the pinned source inventory; file paths do not belong in clips. Export jobs pin document and source references even if later edits continue.
 
 HTTP clients can use `POST /video-editing/tools` with `{name, arguments}` to call the same tool catalog. Direct UI routes include `/runs/{run_id}/video-projects`, `/video-projects/{id}`, `/sources`, `/sources/from-run`, `/operations`, `/history`, `/restore`, `/renders` and `/sources/{source_id}/frame`. Existing `/media?path=...` serves playback with HTTP Range support.
+
+`POST /video-projects/{project_id}/renders/{job_id}/review` accepts `{"platform": null}` for a general review or one of `youtube`, `shorts`, `tiktok`, and `reels`. It returns the export revision, check rows, notes and the contact sheet URI. See the [ffmpeg-skill pin and license](../third_party/media/ffmpeg-skill/UPSTREAM.md).
 
 ## Validation
 

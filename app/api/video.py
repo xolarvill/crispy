@@ -11,6 +11,7 @@ from app.schemas.video import Strict, VideoOperation, VideoWrite, VideoDocument
 from app.services import video_editing as service
 from app.services.run_media import run_media_summaries
 from app.services import video_rendering as rendering
+from app.services.video_review import ReviewPlatform, review_render
 from app.services.video_tools import call_tool
 from app.data.models import VideoRender
 from sqlalchemy import select
@@ -40,6 +41,10 @@ class Operations(RevisionRequest):
 
 class Restore(RevisionRequest):
     revision: int = Field(ge=0)
+
+
+class RenderReview(Strict):
+    platform: ReviewPlatform | None = None
 
 
 def run_action(action):
@@ -159,6 +164,11 @@ def job(project_id: str, job_id: str, db: Session = Depends(get_db)):
 @router.post("/video-projects/{project_id}/renders/{job_id}/cancel")
 def cancel(project_id: str, job_id: str, db: Session = Depends(get_db)):
     return run_action(lambda: rendering.job_payload(rendering.cancel_render(db, project_id, job_id)))
+
+
+@router.post("/video-projects/{project_id}/renders/{job_id}/review")
+def review(project_id: str, job_id: str, body: RenderReview, db: Session = Depends(get_db)):
+    return run_action(lambda: review_render(db, project_id, job_id, body.platform))
 
 
 @router.get("/video-projects/{project_id}/sources/{source_id}/frame")

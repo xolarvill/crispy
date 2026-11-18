@@ -59,6 +59,16 @@ def test_real_export_pins_sources_and_registers_result(client, tmp_path, monkeyp
         # Existing media endpoint already provides byte-range playback.
         response = client.get("/media", params={"path": job.uri}, headers={"Range": "bytes=0-99"})
         assert response.status_code == 206 and len(response.content) == 100
+        review_path = f"/video-projects/{project.id}/renders/{job.id}/review"
+        review = client.post(review_path, json={"platform": "tiktok"})
+        assert review.status_code == 200, review.text
+        report = review.json()
+        assert report["revision"] == job.revision and report["platform"] == "tiktok"
+        assert any(row["check"] == "aspect" and row["status"] == "FAIL" for row in report["checks"])
+        sheet = client.get("/media", params={"path": report["sheet_uri"]})
+        assert sheet.status_code == 200 and sheet.content.startswith(b"\x89PNG\r\n\x1a\n")
+        assert client.post(review_path, json={"platform": "../../other"}).status_code == 422
+        assert client.post(f"/video-projects/other/renders/{job.id}/review", json={}).status_code == 422
 
 
 def test_tool_operations_retry_and_cancellation(client):

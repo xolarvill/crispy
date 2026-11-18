@@ -401,7 +401,8 @@
   flex: 1;
   color: var(--muted-foreground);
 }
-.video-history {
+.video-history,
+.video-review {
   position: absolute;
   z-index: 4;
   right: 14px;
@@ -414,6 +415,53 @@
   border-radius: 6px;
   padding: 12px;
   box-shadow: 0 12px 36px #101b2426;
+}
+.video-review {
+  width: min(690px, calc(100% - 28px));
+  font-size: 12px;
+  overscroll-behavior: contain;
+}
+.video-review > header,
+.video-review-options {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  justify-content: space-between;
+}
+.video-review h3,
+.video-review-options label {
+  margin: 0;
+}
+.video-review-options label {
+  flex: 1;
+}
+.video-review img {
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+}
+.video-review-results {
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.video-review-results li {
+  display: grid;
+  grid-template-columns: 4em minmax(0, 1fr);
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.video-review-results [data-status="FAIL"] {
+  color: var(--danger);
+}
+.video-review-results [data-status="PASS"] {
+  color: var(--primary);
+}
+.video-review-results small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted-foreground);
 }
 .video-history > div {
   display: flex;

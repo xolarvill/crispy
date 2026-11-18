@@ -142,3 +142,12 @@ The production frontend bundle is not yet served by FastAPI. Live provider/platf
 This is currently a single-user application with no authentication. Keep local instances private.
 
 [Product direction](PRODUCT.md) · [Design system](DESIGN.md) · [Frontend notes](frontend/README.md) · [AGPL-3.0 license](LICENSE)
+
+## Credits
+
+Thanks to the maintainers and contributors of the projects used in Crispy.
+
+- **Video and media** — [Twick](https://github.com/ncounterspecialist/twick) for the editing timeline, [FFmpeg](https://ffmpeg.org/) and [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) for local media processing, [Pillow](https://python-pillow.org/) for image rendering, and [ffmpeg-skill by kajisho5](https://github.com/kajisho5/ffmpeg-skill) for export checks and contact sheets. The [vendored snapshot](third_party/media/ffmpeg-skill/UPSTREAM.md) includes its MIT license.
+- **Canvas and interface** — [tldraw SDK](https://tldraw.dev/) for instruction boards under the [tldraw license](https://github.com/tldraw/tldraw/blob/main/LICENSE.md), and [Konva](https://konvajs.org/) for artwork layout. The workbench uses [React](https://react.dev/), [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), [shadcn/ui](https://ui.shadcn.com/), [Aceternity UI](https://ui.aceternity.com/), [Motion](https://motion.dev/), and [Lucide](https://lucide.dev/).
+- **Backend** — [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/), [Pydantic](https://docs.pydantic.dev/), [SQLAlchemy](https://www.sqlalchemy.org/), [SQLite](https://sqlite.org/), [CrewAI](https://github.com/crewAIInc/crewAI), and the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk).
+- **Repository-local marketing methods** — Anthropic's [Knowledge Work Plugins](https://github.com/anthropics/knowledge-work-plugins), Corey Haines's [Marketing Skills](https://github.com/coreyhaines31/marketingskills), BlackTwist's [Social Media Skills](https://github.com/blacktwist/social-media-skills), and [Resend Skills](https://github.com/resend/resend-skills). The [source inventory](docs/local-skills-inventory.json) records their versions and licenses.
