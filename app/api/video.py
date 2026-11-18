@@ -109,8 +109,9 @@ def import_run_source(project_id: str, body: ImportSource, db: Session = Depends
     def action():
         project = service.get_project(db, project_id)
         path = service.resolve_run_source(db, project, body.uri)
-        return service.payload(service.import_source(db, project_id, path, path.name,
-            body.expected_revision, body.request_id, "human"))
+        updated, source_id = service.import_source_with_id(db, project_id, path, path.name,
+            body.expected_revision, body.request_id, "human")
+        return {**service.payload(updated), "imported_source_id": source_id}
     return run_action(action)
 
 

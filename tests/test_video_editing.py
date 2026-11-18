@@ -5,6 +5,7 @@ import uuid
 import pytest
 from PIL import Image
 from app.core.config import get_settings
+from app.data.models import Artifact
 from app.schemas.video import VideoDocument, VideoOperation
 from app.services.video_editing import apply_operations
 
@@ -91,6 +92,25 @@ def test_create_is_idempotent_and_run_source_is_scoped(client, tmp_path):
     denied = client.post(f"/video-projects/{project['id']}/sources/from-run", json={"expected_revision": 0,
         "request_id": str(uuid.uuid4()), "uri": str(tmp_path / "unregistered.mp4")})
     assert denied.status_code == 422
+
+
+def test_run_import_returns_the_selected_source_when_content_is_already_pinned(
+    client, db_session, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(get_settings(), "assets_dir", tmp_path)
+    project, image = upload_image(client, make_project(client), tmp_path)
+    alias = tmp_path / "board-image.png"
+    alias.write_bytes(image.read_bytes())
+    db_session.add(Artifact(run_id=project["run_id"], stage_name="intake",
+                            artifact_type="input_file", uri=str(alias)))
+    db_session.commit()
+    response = client.post(
+        f"/video-projects/{project['id']}/sources/from-run",
+        json={"expected_revision": project["revision"], "request_id": "board-import", "uri": str(alias)},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["imported_source_id"] == project["sources"][0]["id"]
+    assert response.json()["sources"] == project["sources"]
 
 
 def test_import_retry_does_not_replay_over_new_edits(client, tmp_path, monkeypatch):

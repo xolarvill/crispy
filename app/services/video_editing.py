@@ -11,6 +11,7 @@ from pathlib import Path
 
 from PIL import Image
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -117,7 +118,16 @@ def create_project(db: Session, run_id: str, title: str, request_id: str) -> Vid
     db.add(project)
     db.add(VideoRevision(project_id=project_id, revision=0, document=document,
                          actor="system", request_id="initial", request_hash=signature, summary="Created project"))
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.get(VideoProject, project_id)
+        if existing is None:
+            raise
+        if existing.creation_hash != signature:
+            raise VideoConflict("Request ID was already used with different creation inputs")
+        return existing
     return project
 
 
@@ -156,6 +166,10 @@ def save_project(db: Session, project_id: str, document: VideoDocument, expected
                          execution_options={"synchronize_session": False})
     if not changed.rowcount:
         db.rollback()
+        previous = db.scalar(select(VideoRevision).where(VideoRevision.project_id == project_id,
+                                                         VideoRevision.request_id == request_id))
+        if previous and previous.request_hash == signature:
+            return get_project(db, project_id)
         raise VideoConflict("Project changed. Reload the latest revision before applying edits.")
     db.add(VideoRevision(project_id=project_id, revision=expected_revision + 1,
                          document=document.model_dump(), request_id=request_id, request_hash=signature,
@@ -176,8 +190,8 @@ def resolve_run_source(db: Session, project: VideoProject, uri: str) -> Path:
     return path
 
 
-def import_source(db: Session, project_id: str, path: Path, name: str, expected_revision: int,
-                  request_id: str, actor: str) -> VideoProject:
+def import_source_with_id(db: Session, project_id: str, path: Path, name: str, expected_revision: int,
+                          request_id: str, actor: str) -> tuple[VideoProject, str]:
     project = get_project(db, project_id)
     if path.stat().st_size > 500_000_000:
         raise VideoError("Media must be at most 500 MB")
@@ -186,13 +200,14 @@ def import_source(db: Session, project_id: str, path: Path, name: str, expected_
         raise VideoError("Unsupported media type")
     with path.open("rb") as stream:
         sha = hashlib.file_digest(stream, "sha256").hexdigest()
+    source_id = "s-" + sha[:24]
     command = {"op": "import", "sha256": sha, "name": name, "expected_revision": expected_revision, "actor": actor}
     previous = db.scalar(select(VideoRevision).where(VideoRevision.project_id == project_id,
                                                      VideoRevision.request_id == request_id))
     if previous:
         if previous.request_hash != fingerprint(command):
             raise VideoConflict("Request ID was already used for a different import")
-        return project
+        return project, source_id
     target = root() / project_id / "sources" / (sha + path.suffix.lower())
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
@@ -206,13 +221,18 @@ def import_source(db: Session, project_id: str, path: Path, name: str, expected_
         temporary.replace(target)
     metadata = probe(target)
     sources = copy.deepcopy(project.sources)
-    source_id = "s-" + sha[:24]
     source = {"id": source_id, "name": name[:160], "uri": str(target), "sha256": sha, **metadata}
     if not any(s["id"] == source_id for s in sources):
         sources.append(source)
     result = save_project(db, project_id, VideoDocument.model_validate(project.document), expected_revision,
                           request_id, actor, f"Import {name[:120]}", sources=sources, request_payload=command)
-    return result
+    return result, source_id
+
+
+def import_source(db: Session, project_id: str, path: Path, name: str, expected_revision: int,
+                  request_id: str, actor: str) -> VideoProject:
+    project, _ = import_source_with_id(db, project_id, path, name, expected_revision, request_id, actor)
+    return project
 
 
 def apply_operations(document: VideoDocument, operations: list[VideoOperation]) -> VideoDocument:
