@@ -9,9 +9,16 @@ from app.data.session import SessionLocal
 from app.data.models import Artifact, VideoRender
 from app.schemas.video import VideoDocument
 from app.services.video_editing import import_source, save_project
-from app.services.video_rendering import request_render, render_job, cancel_render
+from app.services.video_rendering import _render_progress, request_render, render_job, cancel_render
 from app.services.video_tools import call_tool
 from test_video_editing import make_project
+
+
+def test_progress_ignores_unavailable_and_partially_written_timestamps():
+    assert _render_progress("out_time_us=N/A\n", 1_000_000) is None
+    assert _render_progress("out_time_us=400000\nout_time_us=N/A\nout_time_us=6", 1_000_000) == .4
+    assert _render_progress("out_time_us=-2000\n", 1_000_000) == 0
+    assert _render_progress("out_time_us=1000000\n", 1_000_000) == .95
 
 
 @pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="Requires local FFmpeg and FFprobe")

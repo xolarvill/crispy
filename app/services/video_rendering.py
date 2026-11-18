@@ -99,7 +99,8 @@ def _text_image(clip, document: VideoDocument, directory: Path) -> Path:
             line += char
     lines.append(line)
     draw.multiline_text((0, 0), "\n".join(lines), font=font, fill=clip.color, spacing=round(clip.font_size * .2))
-    output = directory / (clip.id.encode().hex() + ".png")
+    filename = hashlib.sha256(clip.id.encode()).hexdigest()[:24]
+    output = directory / f"{filename}.png"
     image.save(output)
     return output
 
@@ -149,6 +150,18 @@ def build_command(document: VideoDocument, sources: list[dict], directory: Path,
     return command
 
 
+def _render_progress(report: str, duration_us: int) -> float | None:
+    for line in reversed(report.splitlines(keepends=True)):
+        if not line.startswith("out_time_us=") or not line.endswith("\n"):
+            continue
+        try:
+            elapsed_us = int(line.split("=", 1)[1])
+        except ValueError:
+            continue
+        return max(0, min(.95, elapsed_us / max(1, duration_us)))
+    return None
+
+
 def render_job(engine, job_id: str):
     process = None
     with Session(engine) as db:
@@ -183,10 +196,8 @@ def render_job(engine, job_id: str):
                         raise VideoError("Local render exceeded its time limit")
                     progress_file = directory / "progress.txt"
                     if progress_file.exists():
-                        times = [line.split("=", 1)[1] for line in progress_file.read_text(errors="ignore").splitlines()
-                                 if line.startswith("out_time_us=")]
-                        if times:
-                            progress = min(.95, int(times[-1]) / max(1, document.duration_us))
+                        progress = _render_progress(progress_file.read_text(errors="ignore"), document.duration_us)
+                        if progress is not None:
                             db.execute(update(VideoRender).where(VideoRender.id == job_id).values(progress=progress))
                             db.commit()
             if process.returncode:
